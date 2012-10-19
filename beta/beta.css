@@ -1,0 +1,15 @@
+svg {
+  background: #000;
+  width: 1600px;
+  height: 800px;
+}
+
+#counties path {
+  stroke: #fff;
+  stroke-width: .25px;
+}
+
+#states path {
+  stroke: #000;
+  stroke-width: 1px;
+}
