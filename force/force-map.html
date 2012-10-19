@@ -2,7 +2,11 @@
     <html>
     <head>
     <title>Force-Directed Map</title>
+<<<<<<< HEAD
     <script type="text/javascript" src="../d3.v2.js"></script>
+=======
+    <script type="text/javascript" src="../../d3.v2.js"></script>
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     <style type="text/css">
 
 path {
@@ -22,7 +26,11 @@ line {
     <script type="text/javascript">
 
 var width = 960,
+<<<<<<< HEAD
 height = 500;
+=======
+ height = 500;
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 
 var path = d3.geo.path(),
 force = d3.layout.force().size([width, height]);
@@ -60,12 +68,17 @@ d3.json("../data/us-states.json", function(states) {
         closestStates = []
         nodes.map(function(e) {
             link = edge(d,e)
+<<<<<<< HEAD
             if (link.distance <= 100) {
+=======
+            if (link.distance <= 750) {
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
                 if (link.distance > 0) {
                     closestStates.push(link)
                 }
             }
         })
+<<<<<<< HEAD
         closestStates.sort(function(a,b) {return(b.distance-a.distance)})
         closestStates.slice(-5).map(function(d) {links.push(d)})
     })
@@ -81,6 +94,18 @@ d3.json("../data/us-states.json", function(states) {
         .links(links)
 //        .linkDistance(distanceFunction(d))
         .linkDistance(function(d) {return distanceFunction(d)})
+=======
+	closestStates.sort(function(a,b) {return(b.distance-a.distance)})
+	closestStates.slice(-2).map(function(d) {links.push(d)})
+    })
+
+    force
+        .gravity(0.05)
+        .charge(-10)
+        .nodes(nodes)
+        .links(links)
+        .linkDistance(function(d) { return d.distance*1.3; })
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         .start();
 
     var link = svg.selectAll("line")
@@ -105,16 +130,23 @@ d3.json("../data/us-states.json", function(states) {
 
     force.on("tick", function(e) {
         node.attr("transform", function(d) {
+<<<<<<< HEAD
             d.x = Math.max(Math.min(d.x,width),0)
             d.y = Math.max(Math.min(d.y,height),0)
             return "translate(" + d.x + "," + d.y + ")";
         });
 
+=======
+            return "translate(" + d.x + "," + d.y + ")";
+        });
+	
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         link.attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; });
     })
+<<<<<<< HEAD
         .linkDistance(function(d) {return distanceFunction(d)})
     muss(1)
     //nodes.map(function(d) {
@@ -123,6 +155,16 @@ d3.json("../data/us-states.json", function(states) {
     //  if (d.x > width) {d.x = width}
     //  if (d.y > height) {d.x = height}
     //  }
+=======
+        .linkDistance(function(d) {return d.distance})
+    muss(1)
+    //nodes.map(function(d) {
+//	if (d.x < 0) {d.x=0}
+//	if (d.y < 0) {d.y=0}
+//	if (d.x > width) {d.x = width}
+//	if (d.y > height) {d.x = height}
+  //  }
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 });
 
 function edge(a, b) {
@@ -136,6 +178,7 @@ function edge(a, b) {
 
 function muss(fraction) {
     nodes.map(function(n) {
+<<<<<<< HEAD
         console.log(n.feature.id);
         if (Math.random() < fraction) {
             n.x = Math.random()*width;
@@ -146,6 +189,18 @@ function muss(fraction) {
     force.update()
 }
 
+=======
+	console.log(n.feature.id);
+	if (Math.random() < fraction) {
+            n.x = Math.random()*width;
+            n.y = height*Math.random();
+	}
+	return(n)
+    })
+    force.update()
+}
+	  
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 
 
 </script>

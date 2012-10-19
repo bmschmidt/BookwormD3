@@ -5,7 +5,11 @@
     <title>Geographic Bookworm Panel</title>
     <script type="text/javascript" src="../d3.v2.js"></script>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+<<<<<<< HEAD
     <link type="text/css" rel="stylesheet" href="beta.css"/>
+=======
+    <link type="text/css" rel="stylesheet" href="choropleth.css"/>
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
     </head>
     <body>
@@ -27,6 +31,7 @@ var query = {
     }
 };
 
+<<<<<<< HEAD
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 var APIbox = d3.selectAll('div')
@@ -64,17 +69,29 @@ var queryBox = $('<div />');
 $('<input />').attr("id", "word_box").val(query['search_limits']['word'][0]).appendTo(queryBox);
 // clear below
 
+=======
+var queryBox = $('<div />');
+$('<input />').attr("id", "word_box").val(query['search_limits']['word'][0]).appendTo(queryBox);
+// clear below
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 $('<input />').attr("id", "word_box2").val('').appendTo(queryBox);
 $('<input />').attr("id", "year1_box").val(query['search_limits']['date_year']['$gte']).appendTo(queryBox);
 $('<input />').attr("id", "year2_box").val(query['search_limits']['date_year']['$lte']).appendTo(queryBox);
 $('<input />').attr("id", "group1_box").val(query['groups'][0]).appendTo(queryBox);
 $('<input />').attr("id", "group2_box").val(query['groups'][1]).appendTo(queryBox);
 $('<input />').attr("id", "database_box").val(query['database']).appendTo(queryBox);
+<<<<<<< HEAD
 */
 $('<button />').text('Map Query').click(function(){mapQuery();}).appendTo(queryBox);
 $('<button />').text('Heatgrid chart').click(function(){stateQuery();}).appendTo(queryBox);
 $('<button />').text('Change over Time').click(function(){stateQuery();}).appendTo(queryBox);
 //$('<span />').attr("id", "max_x").appendTo(queryBox);
+=======
+$('<button />').text('Submit').click(function(){runQuery();}).appendTo(queryBox);
+$('<button />').text('State-Level Query').click(function(){stateQuery();}).appendTo(queryBox);
+$('<button />').text('Change over Time').click(function(){stateQuery();}).appendTo(queryBox);
+$('<span />').attr("id", "max_x").appendTo(queryBox);
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 
 var options = $('<div />');
 
@@ -83,7 +100,11 @@ queryBox.appendTo($('body'));
 
 $('body').keypress(function(e){
     if(e.which == 13){
+<<<<<<< HEAD
         mapQuery();
+=======
+        runQuery();
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     }
 });
 
@@ -115,9 +136,12 @@ d3.json("../data/us-states.json", function(json) {
 });
 
 
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 // Prepare the paper points.
 var paperdiv = svg.append("g").attr("id","paperdiv");
 var yaxis = svg.append("g").attr("id","yaxis");
@@ -136,6 +160,7 @@ colors = d3.scale.log().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,
 
 logcolors = d3.scale.log().range(['green','white','red']);
 // PuOr pallette from colorBrewer2.org designed to be color-blind compatible
+<<<<<<< HEAD
 logcolors = d3.scale.log().range(['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)',//'rgb(241,163,64)',
 'rgb(230,97,1)'])
 nwords = d3.scale.sqrt().range([3,25]);
@@ -145,6 +170,12 @@ var colorscale = colors;
 
 var comparetype = 'absolute';
 
+=======
+logcolors = d3.scale.log().range(['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)','rgb(241,163,64)','rgb(230,97,1)'])
+nwords = d3.scale.sqrt().range([3,25]);
+var colorscale = colors;
+
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 
 function key(d) {return d.key;};
 
@@ -155,6 +186,7 @@ function popitup(url) {
 }
 
 function destinationize(query) {
+<<<<<<< HEAD
     return( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
 };
 
@@ -163,6 +195,72 @@ function parseBookwormData(json,query) {
     names = [].concat(query.groups).concat(query.counttype);
     function flatten(hash,prepend) {
         results = Object.keys(hash).map(function(key) {
+=======
+    return( "http://arxiv.culturomics.org/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
+};
+
+function parseBookwormData(json,query) {
+    //this parses any Bookworm json into a nice set of objects
+    //that should be easily plottable.
+    //It's possible it would be faster just to transfer the csv format in the API call.
+    //One point per object, though, rather than a path:
+    //an additional layer may be needed to do lines nicely, perhaps.
+    names = [].concat(query.groups).concat(query.counttype);
+
+    function flatten(example) {
+        return(
+            Object.keys(example).map(function(key) {
+                if (example[key] instanceof Array)
+                {
+                    return([key].concat(example[key]))}
+                else {
+                    return(
+                        [key].concat(flatten(example[key])[0])
+                    )}
+            })
+        )
+    };
+
+    function toObject(names, values) {
+        var result = {};
+        for (var i = 0; i < names.length; i++) {
+            result[names[i]] = values[i];}
+        return result;
+    };
+
+    flat = flatten(json);
+
+    results = flat.map(function(localdata){
+        return(toObject(names,localdata));
+    })
+    return results
+}
+
+
+
+function parseBookwormData(json,query) {
+
+    names = [].concat(query.groups).concat(query.counttype);
+    function flatten(example) {
+        allarrays = []
+        Object.keys(example).map(function(key) {
+            if (example[key] instanceof Array)
+            {
+                allarrays.push([key].concat(example[key]))
+            }
+            else {
+                vals = flatten(example[key])
+                results = vals.map(function(val) {
+                    return([key].concat(val))
+                })
+                allarrays = allarrays.concat(results)
+            }
+        })
+        return(allarrays)
+    };
+    function flatten(hash,prepend) {
+	results = Object.keys(hash).map(function(key) {
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
             newpend = prepend.concat(key)
             if (hash[key] instanceof Array)
             {
@@ -177,11 +275,19 @@ function parseBookwormData(json,query) {
                 )
             }
         })
+<<<<<<< HEAD
         if (results[0][0] instanceof Array) {
             return(results.reduce(function(a,b){return(a.concat(b))}))
         } else {
             return(results)
         }
+=======
+	if (results[0][0] instanceof Array) {
+            return(results.reduce(function(a,b){return(a.concat(b))}))
+	} else {
+            return(results)
+	}
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     }
     function toObject(names, values) {
         var result = {};
@@ -189,6 +295,10 @@ function parseBookwormData(json,query) {
             result[names[i]] = values[i];}
         return result;
     };
+<<<<<<< HEAD
+=======
+
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     flat = flatten(json,[]);
     results = flat.map(function(localdata){
         return(toObject(names,localdata));
@@ -196,6 +306,7 @@ function parseBookwormData(json,query) {
     return(results)
 }
 
+<<<<<<< HEAD
 
 function changeWord() {
     // The idea here is that we can have a dynamic title option that prompts you for new values when you click on it.
@@ -281,6 +392,39 @@ function mapQuery() {
 
 
     d3.json(webpath,function(json) {
+=======
+var comparetype = 'absolute';
+
+function runQuery() {
+    query["groups"]=["paperid","lat","lng"]
+    paperdiv.selectAll('circle')
+        .transition()
+        .duration(2500)
+        .attr('r',2)
+        .attr('fill','white');
+
+    colorscale = colors;
+    query['compare_limits'] = {};
+    query['search_limits']['word'] = [$("#word_box").val()];
+    query['search_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+    query['search_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+
+    if ($("#word_box2").val().length) {
+        comparetype = 'comparison';
+        colorscale  = logcolors;
+        query['compare_limits'] = {};
+        query['compare_limits']['date_year'] = {};
+        query['compare_limits']['word'] = [$("#word_box2").val()];
+        query['compare_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+        query['compare_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+    } else {comparetype="absolute"}
+
+    webpath = destinationize(query);
+    console.log(webpath);
+
+    d3.json(webpath,function(json) {
+
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         paperdata = parseBookwormData(json,query);
 
         if (comparetype=='comparison') {
@@ -315,6 +459,10 @@ function mapQuery() {
         //stupid, but don't want to change the underlying function.
         searchTemplate = {"search_limits" : [JSON.parse(JSON.stringify(query['search_limits']))]}
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         //paperdiv.selectAll('circle').remove()
 
         paperdata.sort(function(a,b) {return(a.value-b.value)} );
@@ -327,7 +475,11 @@ function mapQuery() {
             .append('circle')
             .on('click',function(d) {
                 searchTemplate['search_limits'][0]['paperid'] = [d.paperid]
+<<<<<<< HEAD
                 popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
+=======
+                popitup('http://arxiv.culturomics.org/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
             });
 
         mypoints
@@ -352,6 +504,7 @@ function mapQuery() {
 }
 
 function stateQuery() {
+<<<<<<< HEAD
     query.plotType = 'heatMap'
     updateQuery()
 
@@ -365,16 +518,57 @@ function stateQuery() {
     group2 = query['groups'][1]
 
 
+=======
+    query['groups'] = ['state','date_year']
+    query['groups'] = [$("#group1_box").val(),$("#group2_box").val()];
+    group1 = query['groups'][0]
+    group2 = query['groups'][1]
+
+    query['database'] = $('#database_box').val()
+
+    console.log(query)
+    //colorscale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     svg.selectAll('circle').remove()
     svg.selectAll('path').remove()
     svg.selectAll('text').remove()
 
+<<<<<<< HEAD
+=======
+    query['compare_limits'] = {};
+    query['search_limits']['word'] = [$("#word_box").val()];
+    query['search_limits']['date_year'] = {}
+    query['search_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+    query['search_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+  
+    if ($("#word_box2").val().length) {
+        comparetype = 'comparison';
+        colorscale  = logcolors;
+        query['compare_limits'] = {};
+        query['compare_limits']['date_year'] = {};
+        query['compare_limits']['word'] = [$("#word_box2").val()];
+        query['compare_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+        query['compare_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+    } else {comparetype="absolute"}
+    
+    delete query['search_limits']['date_year']
+    if (comparetype=='absolute') {
+	delete query['compare_limits']
+    }
+    webpath = destinationize(query);
+    console.log(webpath);
+
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     d3.json(webpath,function(json) {
         paperdata = parseBookwormData(json,query);
 
         if (comparetype=='comparison') {
             // This probably isn't the best place to do this: what is?
+<<<<<<< HEAD
             // Maybe the API somewhere?
+=======
+	    // Maybe the API somewhere?
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
             paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
         }
 
@@ -393,9 +587,15 @@ function stateQuery() {
         max = Math.log(numbers[1])
 
         colorscale.domain(d3.range(
+<<<<<<< HEAD
             min,
             max,
             (max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+=======
+	    min,
+	    max,
+	    (max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         colorscale.nice()
         nwords.domain(d3.extent(totals))
         nwords.nice()
@@ -405,6 +605,7 @@ function stateQuery() {
 
         years.sort()
         states.sort()
+<<<<<<< HEAD
         console.log(states)
         console.log(years)
         x = d3.scale.ordinal().domain(years).rangeBands([50, 900]);
@@ -442,12 +643,52 @@ function stateQuery() {
             .attr("font-size", "13px")
             .attr("fill", "white")
             .text(function(d) {return(d.year)})
+=======
+	console.log(states)
+	console.log(years)
+        x = d3.scale.ordinal().domain(years).rangeBands([50, 900]);
+        y = d3.scale.ordinal().domain(states).rangeBands([50, 660]);
+
+	ylegendData = states.map(function(d) {return({"label":d,"y":y(d)+13,"x":5})})
+	ypoints = yaxis.selectAll('text').data(ylegendData,function(d) {return(d.label)})
+	ypoints
+	    .enter()
+	    .append('text')
+	    .attr('fill','white')
+	    .attr('x',function(d) {return(d.x)})
+	    .attr('y',function(d) {return(d.y)})
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "13px")
+            .attr("fill", "white")
+	    .text(function(d) {return(d.label)})
+
+	xlegendData = years.map(function(d) {
+	    objectb = {"year":d,"y":40,"x":x(d) - 13};
+	    if (objectb.year != Math.round(objectb.year/5)*5) {objectb.year=""};
+	    return(objectb);
+	})
+	xpoints = xaxis.selectAll('text').data(xlegendData,function(d) {return(d[group2])})
+	xpoints
+	    .enter()
+	    .append('text')
+	    .attr('fill','white')
+	    .attr('x',function(d) {return(d.x)})
+	    .attr('y',function(d) {return(d.y)})
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "13px")
+            .attr("fill", "white")
+	    .text(function(d) {return(d.year)})
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 
         //stupid, but don't want to change the underlying function.
         searchTemplate = {"search_limits" : [JSON.parse(JSON.stringify(query['search_limits']))]}
 
         paperdata.sort(function(d) {return(d.value)} );
+<<<<<<< HEAD
         svg.selectAll('rect').remove()
+=======
+	svg.selectAll('rect').remove()
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         var mystates = svg.selectAll('rect')
             .data(paperdata,function(d) {return(d.state)})
 
@@ -456,7 +697,11 @@ function stateQuery() {
             .on('click',function(d) {
                 searchTemplate['search_limits'][0]['state'] = [d.state]
                 searchTemplate['search_limits'][0]['date_year'] = [d.date_year]
+<<<<<<< HEAD
                 popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
+=======
+                popitup('http://arxiv.culturomics.org/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
             })
             .attr('opacity','.85')
             .attr('onmouseover', "evt.target.setAttribute('opacity','1');")
@@ -484,6 +729,7 @@ var ylab = legend.append('g').attr('id','ylab');
 var xlab = legend.append('g').attr('id','xlab');
 
 var legendData = [];
+<<<<<<< HEAD
 var colorLegend = legend.append('g').attr('id','colorLegend');
 var sizeLegend = legend.append('g').attr('id','sizeLegend');
 
@@ -632,6 +878,11 @@ function makeLegend() {
 }
 
 oldLegend = function() {
+=======
+
+function makeLegend() {
+
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
     legendDimensions={"color":5,"size":5}
     legendData = []
 
@@ -656,7 +907,11 @@ oldLegend = function() {
         d.y = 450 + sizethrough*(nwords.range()[1]*1.6)*legendDimensions.size
         d.r = nwords.range()[0] + (nwords.range()[1] - nwords.range()[0]) * sizethrough
         d.color = legendColors(colthrough)
+<<<<<<< HEAD
         d.sizetext = prettyName(nwords.invert(d.r));
+=======
+        d.sizetext = Math.round(nwords.invert(d.r));
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
         d.coltext = {}
         d.coltext['absolute'] = Math.round(colorFractionScale.invert(colthrough)*1000000,1)
         //d.coltext['absolute'] = //Math.round(Math.exp(Math.log(colorscale.domain()[2]*colthrough))*1000000)
@@ -749,7 +1004,11 @@ function click(d) {
         .attr("d", path);
 }
 
+<<<<<<< HEAD
 mapQuery()
+=======
+runQuery()
+>>>>>>> 15e4f41a52ce0c8164cf9fec4f6888f9f68d351b
 </script>
     </body>
     </html>

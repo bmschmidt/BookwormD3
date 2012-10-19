@@ -27,7 +27,6 @@ var query = {
     }
 };
 
-
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 var APIbox = d3.selectAll('div')
     .append('input')
@@ -61,6 +60,7 @@ var APIbox = d3.selectAll('div')
 
 var queryBox = $('<div />');
 /* deprecated for the pure json approach
+
 $('<input />').attr("id", "word_box").val(query['search_limits']['word'][0]).appendTo(queryBox);
 // clear below
 $('<input />').attr("id", "word_box2").val('').appendTo(queryBox);
@@ -69,6 +69,7 @@ $('<input />').attr("id", "year2_box").val(query['search_limits']['date_year']['
 $('<input />').attr("id", "group1_box").val(query['groups'][0]).appendTo(queryBox);
 $('<input />').attr("id", "group2_box").val(query['groups'][1]).appendTo(queryBox);
 $('<input />').attr("id", "database_box").val(query['database']).appendTo(queryBox);
+
 */
 
 $('<button />').text('Map Query').click(function(){mapQuery();}).appendTo(queryBox);
@@ -77,11 +78,14 @@ $('<button />').text('Change over Time').click(function(){stateQuery();}).append
 
 var options = $('<div />');
 
+
 queryBox.appendTo($('body'));
 
 $('body').keypress(function(e){
     if(e.which == 13){
+
         mapQuery();
+
     }
 });
 
@@ -112,6 +116,7 @@ d3.json("../data/us-states.json", function(json) {
         .attr('fill',"grey")
 });
 
+
 // Prepare the paper points.
 var paperdiv = svg.append("g").attr("id","paperdiv");
 var yaxis = svg.append("g").attr("id","yaxis");
@@ -130,6 +135,7 @@ colors = d3.scale.log().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,
 
 logcolors = d3.scale.log().range(['green','white','red']);
 // PuOr pallette from colorBrewer2.org designed to be color-blind compatible
+
 logcolors = d3.scale.log().range(['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)',//'rgb(241,163,64)',
 'rgb(230,97,1)'])
 nwords = d3.scale.sqrt().range([3,25]);
@@ -138,7 +144,6 @@ var sizescale = nwords
 var colorscale = colors;
 
 var comparetype = 'absolute';
-
 
 function key(d) {return d.key;};
 
@@ -153,6 +158,7 @@ function destinationize(query) {
 };
 
 function parseBookwormData(json,query) {
+
     // Just changes the shape around--more complicated than it necessarily should be, but whatever.
     names = [].concat(query.groups).concat(query.counttype);
     function flatten(hash,prepend) {
@@ -171,6 +177,7 @@ function parseBookwormData(json,query) {
                 )
             }
         })
+
         if (results[0][0] instanceof Array) {
             return(results.reduce(function(a,b){return(a.concat(b))}))
         } else {
@@ -189,6 +196,7 @@ function parseBookwormData(json,query) {
     })
     return(results)
 }
+
 
 
 function changeWord() {
@@ -368,6 +376,7 @@ function stateQuery() {
 
         if (comparetype=='comparison') {
             // This probably isn't the best place to do this: what is?
+
             // Maybe the API somewhere?
             paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
         }
@@ -441,6 +450,7 @@ function stateQuery() {
         searchTemplate = {"search_limits" : [JSON.parse(JSON.stringify(query['search_limits']))]}
 
         paperdata.sort(function(d) {return(d.value)} );
+
         svg.selectAll('rect').remove()
         var mystates = svg.selectAll('rect')
             .data(paperdata,function(d) {return(d.state)})
