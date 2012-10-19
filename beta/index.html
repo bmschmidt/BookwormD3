@@ -1,0 +1,590 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Geographic Bookworm Panel</title>
+    <script type="text/javascript" src="../d3.v2.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="choropleth.css"/>
+    <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
+    </head>
+    <body>
+    <div id="chart"></div>
+    <script type="text/javascript">
+
+
+//There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
+
+var query = {
+    "method":"return_json",
+    "words_collation":"Case_Sensitive",
+    "groups":["paperid","lat","lng"],
+    "database":"ChronAm",
+    "counttype":["WordCount","TotalWords"],
+    "search_limits":{
+        "date_year":{"$lte":1922,"$gte":1850},
+        "word":["Ohio river"]
+    }
+};
+
+var queryBox = $('<div />');
+$('<input />').attr("id", "word_box").val(query['search_limits']['word'][0]).appendTo(queryBox);
+// clear below
+$('<input />').attr("id", "word_box2").val('').appendTo(queryBox);
+$('<input />').attr("id", "year1_box").val(query['search_limits']['date_year']['$gte']).appendTo(queryBox);
+$('<input />').attr("id", "year2_box").val(query['search_limits']['date_year']['$lte']).appendTo(queryBox);
+$('<input />').attr("id", "group1_box").val(query['groups'][0]).appendTo(queryBox);
+$('<input />').attr("id", "group2_box").val(query['groups'][1]).appendTo(queryBox);
+$('<input />').attr("id", "database_box").val(query['database']).appendTo(queryBox);
+$('<button />').text('Submit').click(function(){runQuery();}).appendTo(queryBox);
+$('<button />').text('State-Level Query').click(function(){stateQuery();}).appendTo(queryBox);
+$('<button />').text('Change over Time').click(function(){stateQuery();}).appendTo(queryBox);
+$('<span />').attr("id", "max_x").appendTo(queryBox);
+
+var options = $('<div />');
+
+
+queryBox.appendTo($('body'));
+
+$('body').keypress(function(e){
+    if(e.which == 13){
+        runQuery();
+    }
+});
+
+var svg = d3.select("#chart")
+    .append("svg")
+    .attr("background","cream")
+
+// Make the background map
+
+var projection = d3.geo.albersUsa()
+    .translate([700,350])
+    .scale([1500]);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+var states = svg.append("g")
+    .attr("id", "states")
+
+var stateItems
+d3.json("../data/us-states.json", function(json) {
+    stateItems = states.selectAll("path")
+        .data(json.features)
+    stateItems
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr('fill',"grey")
+});
+
+
+// Prepare the paper points.
+var paperdiv = svg.append("g").attr("id","paperdiv");
+var yaxis = svg.append("g").attr("id","yaxis");
+var xaxis = svg.append("g").attr("id","xaxis");
+
+var paperdata = [];
+
+var paperpoints = paperdiv
+    .selectAll("circle")
+    .data(paperdata,function(d) {d.key})
+
+// Make the d3 scales
+
+colors = d3.scale.log().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,11)"])
+//colors = d3.scale.log().range(['rgb(37,52,148)','rgb(44,127,184)','rgb(65,182,196)','rgb(161,218,180)','rgb(255,255,204)'])
+
+logcolors = d3.scale.log().range(['green','white','red']);
+// PuOr pallette from colorBrewer2.org designed to be color-blind compatible
+logcolors = d3.scale.log().range(['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)','rgb(241,163,64)','rgb(230,97,1)'])
+nwords = d3.scale.sqrt().range([3,25]);
+var colorscale = colors;
+
+
+function key(d) {return d.key;};
+
+function popitup(url) {
+    newwindow=window.open(url,'name','height=640,width=1000');
+    if (window.focus) {newwindow.focus()}
+    return false;
+}
+
+function destinationize(query) {
+    return( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
+};
+
+function parseBookwormData(json,query) {
+    //this parses any Bookworm json into a nice set of objects
+    //that should be easily plottable.
+    //It's possible it would be faster just to transfer the csv format in the API call.
+    //One point per object, though, rather than a path:
+    //an additional layer may be needed to do lines nicely, perhaps.
+    names = [].concat(query.groups).concat(query.counttype);
+
+    function flatten(example) {
+        return(
+            Object.keys(example).map(function(key) {
+                if (example[key] instanceof Array)
+                {
+                    return([key].concat(example[key]))}
+                else {
+                    return(
+                        [key].concat(flatten(example[key])[0])
+                    )}
+            })
+        )
+    };
+
+    function toObject(names, values) {
+        var result = {};
+        for (var i = 0; i < names.length; i++) {
+            result[names[i]] = values[i];}
+        return result;
+    };
+
+    flat = flatten(json);
+
+    results = flat.map(function(localdata){
+        return(toObject(names,localdata));
+    })
+    return results
+}
+
+
+
+function parseBookwormData(json,query) {
+
+    names = [].concat(query.groups).concat(query.counttype);
+    function flatten(example) {
+        allarrays = []
+        Object.keys(example).map(function(key) {
+            if (example[key] instanceof Array)
+            {
+                allarrays.push([key].concat(example[key]))
+            }
+            else {
+                vals = flatten(example[key])
+                results = vals.map(function(val) {
+                    return([key].concat(val))
+                })
+                allarrays = allarrays.concat(results)
+            }
+        })
+        return(allarrays)
+    };
+    function flatten(hash,prepend) {
+	results = Object.keys(hash).map(function(key) {
+            newpend = prepend.concat(key)
+            if (hash[key] instanceof Array)
+            {
+                return(newpend.concat(hash[key]))
+            }
+            else {
+                vals = flatten(hash[key],newpend)
+                return(
+                    vals.map(function(array) {
+                        return(array)
+                    })
+                )
+            }
+        })
+	if (results[0][0] instanceof Array) {
+            return(results.reduce(function(a,b){return(a.concat(b))}))
+	} else {
+            return(results)
+	}
+    }
+    function toObject(names, values) {
+        var result = {};
+        for (var i = 0; i < names.length; i++) {
+            result[names[i]] = values[i];}
+        return result;
+    };
+
+    flat = flatten(json,[]);
+    results = flat.map(function(localdata){
+        return(toObject(names,localdata));
+    })
+    return(results)
+}
+
+var comparetype = 'absolute';
+
+function runQuery() {
+    query["groups"]=["paperid","lat","lng"]
+    paperdiv.selectAll('circle')
+        .transition()
+        .duration(2500)
+        .attr('r',2)
+        .attr('fill','white');
+
+    colorscale = colors;
+    query['compare_limits'] = {};
+    query['search_limits']['word'] = [$("#word_box").val()];
+    query['search_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+    query['search_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+
+    if ($("#word_box2").val().length) {
+        comparetype = 'comparison';
+        colorscale  = logcolors;
+        query['compare_limits'] = {};
+        query['compare_limits']['date_year'] = {};
+        query['compare_limits']['word'] = [$("#word_box2").val()];
+        query['compare_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+        query['compare_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+    } else {comparetype="absolute"}
+
+    webpath = destinationize(query);
+    console.log(webpath);
+
+    d3.json(webpath,function(json) {
+
+        paperdata = parseBookwormData(json,query);
+
+        if (comparetype=='comparison') {
+            // This probably isn't the best place to do this: what is? Maybe the API somewhere?
+            paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
+        }
+
+        values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords)});
+        totals = paperdata.map(function(d) {return(d.TotalWords)});
+
+        // Set domains across what we have
+        numbers = d3.extent(values)
+
+        numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
+
+        if (comparetype=='comparison') {
+            outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
+            numbers = [1/outerbound,outerbound]
+        }
+
+        min = Math.log(numbers[0])
+        max = Math.log(numbers[1])
+
+        colorscale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+        colorscale.nice()
+        nwords.domain(d3.extent(totals))
+        nwords.nice()
+
+        $("#max_x").text(' maximum value: ' + Math.round( 100*1000000*colors.domain()[2],2)/100 );
+
+
+        //stupid, but don't want to change the underlying function.
+        searchTemplate = {"search_limits" : [JSON.parse(JSON.stringify(query['search_limits']))]}
+
+
+        //paperdiv.selectAll('circle').remove()
+
+        paperdata.sort(function(a,b) {return(a.value-b.value)} );
+        var mypoints = paperdiv.selectAll('circle')
+            .data(paperdata,function(d) {return(d.paperid)});
+
+
+        mypoints
+            .enter()
+            .append('circle')
+            .on('click',function(d) {
+                searchTemplate['search_limits'][0]['paperid'] = [d.paperid]
+                popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
+            });
+
+        mypoints
+            .attr('transform',function(d) {
+                coords = projection([d.lng,d.lat]);
+                return "translate(" + coords[0] +","+ coords[1] + ")"})
+            .attr('id',function(d) {return(d.paperid)})
+            .attr('opacity','.5')
+            .attr('onmouseover', "evt.target.setAttribute('opacity','1');")
+            .attr('onmouseout',  "evt.target.setAttribute('opacity','.5');")
+            .transition()
+            .duration(2500)
+            .attr('r',function(d) {return(nwords(d.TotalWords))})
+            .attr('fill',function(d) {
+                if (comparetype=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
+                else {return(colorscale(d.WordCount/d.TotalWords))}
+            })
+
+        mypoints.exit().transition(1000).remove()
+        makeLegend();
+    });
+}
+
+function stateQuery() {
+    query['groups'] = ['state','date_year']
+    query['groups'] = [$("#group1_box").val(),$("#group2_box").val()];
+    group1 = query['groups'][0]
+    group2 = query['groups'][1]
+
+    query['database'] = $('#database_box').val()
+
+    console.log(query)
+    //colorscale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+    svg.selectAll('circle').remove()
+    svg.selectAll('path').remove()
+    svg.selectAll('text').remove()
+
+    query['compare_limits'] = {};
+    query['search_limits']['word'] = [$("#word_box").val()];
+    query['search_limits']['date_year'] = {}
+    query['search_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+    query['search_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+  
+    if ($("#word_box2").val().length) {
+        comparetype = 'comparison';
+        colorscale  = logcolors;
+        query['compare_limits'] = {};
+        query['compare_limits']['date_year'] = {};
+        query['compare_limits']['word'] = [$("#word_box2").val()];
+        query['compare_limits']['date_year']['$gte'] = parseInt($("#year1_box").val());
+        query['compare_limits']['date_year']['$lte'] = parseInt($("#year2_box").val());
+    } else {comparetype="absolute"}
+    
+    delete query['search_limits']['date_year']
+    if (comparetype=='absolute') {
+	delete query['compare_limits']
+    }
+    webpath = destinationize(query);
+    console.log(webpath);
+
+    d3.json(webpath,function(json) {
+        paperdata = parseBookwormData(json,query);
+
+        if (comparetype=='comparison') {
+            // This probably isn't the best place to do this: what is?
+	    // Maybe the API somewhere?
+            paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
+        }
+
+        values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords)});
+        totals = paperdata.map(function(d) {return(d.TotalWords)});
+        numbers = d3.extent(values)
+
+        numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
+
+        if (comparetype=='comparison') {
+            outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
+            numbers = [1/outerbound,outerbound]
+        }
+
+        min = Math.log(numbers[0])
+        max = Math.log(numbers[1])
+
+        colorscale.domain(d3.range(
+	    min,
+	    max,
+	    (max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+        colorscale.nice()
+        nwords.domain(d3.extent(totals))
+        nwords.nice()
+
+        years = d3.nest().key(function(d) {return(d[query['groups'][1]]);}).entries(paperdata).map(function(d) {return(d.key)})
+        states = d3.nest().key(function(d) {return(d[query['groups'][0]]);}).entries(paperdata).map(function(d) {return(d.key)})
+
+        years.sort()
+        states.sort()
+	console.log(states)
+	console.log(years)
+        x = d3.scale.ordinal().domain(years).rangeBands([50, 900]);
+        y = d3.scale.ordinal().domain(states).rangeBands([50, 660]);
+
+	ylegendData = states.map(function(d) {return({"label":d,"y":y(d)+13,"x":5})})
+	ypoints = yaxis.selectAll('text').data(ylegendData,function(d) {return(d.label)})
+	ypoints
+	    .enter()
+	    .append('text')
+	    .attr('fill','white')
+	    .attr('x',function(d) {return(d.x)})
+	    .attr('y',function(d) {return(d.y)})
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "13px")
+            .attr("fill", "white")
+	    .text(function(d) {return(d.label)})
+
+	xlegendData = years.map(function(d) {
+	    objectb = {"year":d,"y":40,"x":x(d) - 13};
+	    if (objectb.year != Math.round(objectb.year/5)*5) {objectb.year=""};
+	    return(objectb);
+	})
+	xpoints = xaxis.selectAll('text').data(xlegendData,function(d) {return(d[group2])})
+	xpoints
+	    .enter()
+	    .append('text')
+	    .attr('fill','white')
+	    .attr('x',function(d) {return(d.x)})
+	    .attr('y',function(d) {return(d.y)})
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "13px")
+            .attr("fill", "white")
+	    .text(function(d) {return(d.year)})
+
+        //stupid, but don't want to change the underlying function.
+        searchTemplate = {"search_limits" : [JSON.parse(JSON.stringify(query['search_limits']))]}
+
+        paperdata.sort(function(d) {return(d.value)} );
+	svg.selectAll('rect').remove()
+        var mystates = svg.selectAll('rect')
+            .data(paperdata,function(d) {return(d.state)})
+
+        mystates
+            .enter().append('rect')
+            .on('click',function(d) {
+                searchTemplate['search_limits'][0]['state'] = [d.state]
+                searchTemplate['search_limits'][0]['date_year'] = [d.date_year]
+                popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
+            })
+            .attr('opacity','.85')
+            .attr('onmouseover', "evt.target.setAttribute('opacity','1');")
+            .attr('onmouseout',  "evt.target.setAttribute('opacity','.85');")
+            .attr('x',function(d) {return(x(d[query['groups'][1]]))})
+            .attr('y',function(d) {return(y(d[query['groups'][0]]))})
+            .transition()
+            .duration(2500)
+            .attr('fill',function(d) {
+                if (comparetype=='comparison') {
+                    return(colorscale(d.WordCount/d.CompareWords))}
+                else {return(colorscale(d.WordCount/d.TotalWords))}
+            })
+
+            .attr('height', y.range()[1]-y.range()[0])
+            .attr('width', x.range()[1]-y.range()[0])
+        mystates.exit().transition(1000).remove()
+        makeLegend();
+    })
+}
+
+var legend = svg.append('g').attr('id','legend');
+var legendPoints = legend.append('g').attr('id','legendPoints')
+var ylab = legend.append('g').attr('id','ylab');
+var xlab = legend.append('g').attr('id','xlab');
+
+var legendData = [];
+
+function makeLegend() {
+
+    legendDimensions={"color":5,"size":5}
+    legendData = []
+
+    calledForSideEffects = d3.range(legendDimensions.color).map(
+        function(colpos){
+            d3.range(legendDimensions.size).map(function(sizepos) {
+                legendData.push({"colpos":colpos,"sizepos":sizepos})
+            })
+        });
+
+    legendColors = d3.scale.linear().range(colorscale.range())
+    legendColors.domain(d3.range(0,1.01,1/(colorscale.range().length-1)))
+
+    colorFractionScale = d3.scale.log().range([0,1]).domain(d3.extent(colorscale.domain()))
+    wordsFractionScale = d3.scale.log().range([0,1]).domain(d3.extent(nwords.domain()))
+
+    legendData = legendData.map(function(d){
+        colthrough = d.colpos/(legendDimensions.color-1)
+        sizethrough = d.sizepos/(legendDimensions.size-1)
+        d.id = d.colpos + "," + d.sizepos
+        d.x = 1150 + colthrough*(nwords.range()[1]*1.5)*legendDimensions.color
+        d.y = 450 + sizethrough*(nwords.range()[1]*1.6)*legendDimensions.size
+        d.r = nwords.range()[0] + (nwords.range()[1] - nwords.range()[0]) * sizethrough
+        d.color = legendColors(colthrough)
+        d.sizetext = Math.round(nwords.invert(d.r));
+        d.coltext = {}
+        d.coltext['absolute'] = Math.round(colorFractionScale.invert(colthrough)*1000000,1)
+        //d.coltext['absolute'] = //Math.round(Math.exp(Math.log(colorscale.domain()[2]*colthrough))*1000000)
+        if (comparetype=='comparison') {
+            value = colorFractionScale.invert(colthrough)
+            if (value >= 1) {d.coltext['comparison'] = Math.round(value) + ":1"}
+            if (value < 1) {d.coltext['comparison'] = "1:" + Math.round(1/value) }
+        }
+        return(d);
+    })
+
+
+    var points = legendPoints
+        .selectAll('circle')
+        .data(legendData,function(d) {return (d.id)});
+
+    points
+        .enter()
+        .append('circle')
+
+    points.exit().transition(2500).attr('size',0).remove();
+
+
+    points
+        .attr('cx',function(d) {return(d.x)})
+        .attr('cy',function(d) {return(d.y)})
+        .transition().duration(2000)
+        .attr('r',function(d) {return(d.r)})
+        .attr('fill',function(d){return(d.color)});
+
+
+    nWordsText = xlab
+        .selectAll("text")
+        .data(legendData,function(d) {return (d.sizepos)});
+
+    nWordsText
+        .enter()
+        .append("text")
+
+    nWordsText
+        .exit()
+        .remove()
+
+    nWordsText
+        .attr('x',function(d) {return(1325)})
+        .attr('y',function(d) {return(d.y)})
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "11px")
+        .attr("fill", "white")
+        .transition().duration(2500)
+        .text(function(d) {return(d.sizetext)})
+
+    nWordsText.exit().remove();
+
+    colorText = ylab
+        .selectAll("text")
+        .data(legendData,function(d) {return (d.ypos)});
+
+    colorText
+        .enter()
+        .append("text")
+
+    colorText
+        .attr('x',function(d) {return(d.x)})
+        .attr('y',function(d) {return(425)})
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "11px")
+        .attr("fill", "white")
+        .attr("transform",function(d) {return("rotate(-45 " + d.x + "," + 425 + ")")})
+        .transition()
+        .duration(1000)
+        .text(function(d) {return(d.coltext[comparetype])})
+
+
+    colorText.exit().remove();
+}
+
+
+//Goofy d3 stuff:
+function click(d) {
+    var centroid = path.centroid(d),
+    translate = projection.translate();
+    projection.translate([
+        translate[0] - centroid[0] + width / 2,
+        translate[1] - centroid[1] + height / 2
+    ]);
+    zoom.translate(projection.translate());
+    states.selectAll("path").transition()
+        .duration(1000)
+        .attr("d", path);
+}
+
+runQuery()
+</script>
+    </body>
+    </html>
+
+
+
