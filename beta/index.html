@@ -17,7 +17,7 @@
 
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
 
-var query = {
+var defaultQuery = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
     "groups":["paperid","lat","lng"],
@@ -29,8 +29,19 @@ var query = {
     }
 };
 
+if (window.location.host=="melville.seas.harvard.edu") {
+    var defaultQuery = {"method":"return_json","words_collation":"All_Words_with_Same_Stem","groups":["lc1","year"],"database":"presidio","counttype":["WordCount","TotalWords"],"search_limits":{"year":{"$lte":1922,"$gte":1850},"word":["natural selection"]}}
+}
 
-query = {"method":"return_json","words_collation":"All_Words_with_Same_Stem","groups":["lc1","year"],"database":"presidio","counttype":["WordCount","TotalWords"],"search_limits":{"year":{"$lte":1922,"$gte":1850},"word":["natural selection"]}}
+
+if(window.location.hash) {
+    var hash = window.location.hash.substring(1);
+    decoded = decodeURIComponent(hash)
+    var query =  JSON.parse(decoded)
+    console.log(query)
+} else {
+    var query=defaultQuery
+}
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 var APIbox = d3.selectAll('div')
@@ -38,7 +49,7 @@ var APIbox = d3.selectAll('div')
     .attr('type', String) // implicit function(d, i) { return ''+d; }
     .attr('name', 'lone-ranger')
     .attr('value', JSON.stringify(query))
-    .attr('style', 'width: 1700px;')
+    .attr('style', 'width: 1400px;')
     .on('change', function(d, i) {
         // 'this' is the node itself
         var pa = d3.select(this.parentNode);
@@ -201,7 +212,10 @@ var paperpoints = paperdiv
 colors = d3.scale.sqrt().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,11)"])
 //colors = d3.scale.log().range(['rgb(37,52,148)','rgb(44,127,184)','rgb(65,182,196)','rgb(161,218,180)','rgb(255,255,204)'])
 colors = d3.scale.log().range(['white','lightblue','red'])
-logcolors = d3.scale.log().range(['green','white','red']);
+
+
+
+//logcolors = d3.scale.log().range(['green','white','red']);
 // PuOr pallette from colorBrewer2.org designed to be color-blind compatible
 
 logcolors = d3.scale.log().range(['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)',//'rgb(241,163,64)',
@@ -226,7 +240,6 @@ function destinationize(query) {
 };
 
 function parseBookwormData(json,query) {
-
     // Just changes the shape around--more complicated than it necessarily should be, but whatever.
     names = [].concat(query.groups).concat(query.counttype);
     function flatten(hash,prepend) {
@@ -269,6 +282,7 @@ function parseBookwormData(json,query) {
 
 function changeWord() {
     // The idea here is that we can have a dynamic title option that prompts you for new values when you click on it.
+    //It's not working quite yet, and maybe it shouldn't
     $('#word_box').val(prompt("Enter new word","Ohio River"))
 
     mapQuery()
@@ -291,21 +305,23 @@ function changeWord() {
     textLegend.exit().remove()
 }
 
+
+function comparisontype() {
+    //There are some differences in the legends and the titles depending if we're comparing to all
+    //books or to certain ones. This should be useful for that.
+    if ('compare_limits' in query) {
+        if ('word' in query['compare_limits']) {
+            return('comparison');
+        }
+    } else {return("absolute")}    
+}
+
 function updateQuery() {
     //make sure the box and the internal state are aligned
     APIbox.update()
     //assign comparison limits if necessary
-
-    if ('compare_limits' in query) {
-        if ('word' in query['compare_limits']) {
-            comparetype = 'comparison';
-        }
-    } else {comparetype="absolute"}
-
-
+    comparetype = comparisontype()
     query = JSON.parse(APIbox[0][0].value)
-
-
 }
 
 
@@ -341,7 +357,6 @@ function OldmapQuery() {
         .duration(2500)
         .attr('r',2)
         .attr('fill','white');
-
 
     d3.json(webpath,function(json) {
         paperdata = parseBookwormData(json,query);
@@ -555,7 +570,7 @@ function heatMap() {
 var legendPoints = legend.append('g').attr('id','legendPoints')
 var ylab = legend.append('g').attr('id','ylab');
 var xlab = legend.append('g').attr('id','xlab');
-
+var title = legend.append('g').attr('id','title');
 var legendData = [];
 var colorLegend = legend.append('g').attr('id','colorLegend');
 var sizeLegend = legend.append('g').attr('id','sizeLegend');
@@ -594,8 +609,6 @@ function makeLegend() {
     colorLegend.colorlabels   = colorLegend.selectAll('text')
 
     colorLegend.scale = d3.scale.linear().range(colorLegend.yrange).domain(d3.extent(d3.range(colorticks.length)))
-
-    console.log(colorticks);
 
     colorLegend.update = function() {
         colorLegend.data = d3.range(colorticks.length).map(function(n) {
