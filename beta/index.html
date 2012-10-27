@@ -169,7 +169,7 @@ drawStates = function() {
 
 drawStates = function() {
     projection = d3.geo.albersUsa()
-//        .origin([15,50])
+    //        .origin([15,50])
         .translate([700,350])
         .scale([1500])
 
@@ -178,8 +178,8 @@ drawStates = function() {
     path = d3.geo.path()
         .projection(projection);
 
-//    states = svg.append("g")
-  //      .attr("id", "states")
+    //    states = svg.append("g")
+    //      .attr("id", "states")
 
     stateItems
 
@@ -224,8 +224,6 @@ nwords = d3.scale.sqrt().range([3,25]);
 
 var sizescale = nwords
 var colorscale = colors;
-
-var comparetype = 'absolute';
 
 function key(d) {return d.key;};
 
@@ -307,13 +305,15 @@ function changeWord() {
 
 
 function comparisontype() {
+    //Maybe this function should also match up constraints between the two?
     //There are some differences in the legends and the titles depending if we're comparing to all
     //books or to certain ones. This should be useful for that.
     if ('compare_limits' in query) {
+	//This should just test length, not for this particular key as it does. 
         if ('word' in query['compare_limits']) {
             return('comparison');
         }
-    } else {return("absolute")}    
+    } else {return("absolute")}
 }
 
 function updateQuery() {
@@ -342,94 +342,12 @@ topn = function(n,key,paperdata) {
     )
 }
 
-function OldmapQuery() {
-    drawStates()
-    query.plotType = 'map'
-    colorscale = colors;
-    query["groups"]=["paperid","lat","lng"]
-
-    updateQuery()
-    webpath = destinationize(query);
-    console.log(webpath);
-
-    paperdiv.selectAll('circle')
-        .transition()
-        .duration(2500)
-        .attr('r',2)
-        .attr('fill','white');
-
-    d3.json(webpath,function(json) {
-        paperdata = parseBookwormData(json,query);
-
-        if (comparetype=='comparison') {
-            // This probably isn't the best place to do this: what is? Maybe the API somewhere?
-            paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
-        }
-
-        values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords)});
-        totals = paperdata.map(function(d) {return(d.TotalWords)});
-
-        // Set domains across what we have
-        numbers = d3.extent(values)
-
-        numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
-
-        if (comparetype=='comparison') {
-            outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
-            numbers = [1/outerbound,outerbound]
-        }
-
-        min = Math.log(numbers[0])
-        max = Math.log(numbers[1])
-
-        colorscale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
-        colorscale.nice()
-        nwords.domain(d3.extent(totals))
-        nwords.nice()
-
-        $("#max_x").text(' maximum value: ' + Math.round( 100*1000000*colors.domain()[2],2)/100 );
-
-
-        //stupid, but don't want to change the underlying function.
-        searchTemplate = {"search_limits" : [JSON.parse(JSON.stringify(query['search_limits']))]}
-
-        //paperdiv.selectAll('circle').remove()
-
-        paperdata.sort(function(a,b) {return(a.value-b.value)} );
-        var mypoints = paperdiv.selectAll('circle')
-            .data(paperdata,function(d) {return(d.paperid)});
-
-
-        mypoints
-            .enter()
-            .append('circle')
-            .on('click',function(d) {
-                searchTemplate['search_limits'][0]['paperid'] = [d.paperid]
-                popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
-            });
-
-        mypoints
-            .attr('transform',function(d) {
-                coords = projection([d.lng,d.lat]);
-                return "translate(" + coords[0] +","+ coords[1] + ")"})
-            .attr('id',function(d) {return(d.paperid)})
-            .attr('opacity','.5')
-            .attr('onmouseover', "evt.target.setAttribute('opacity','1');")
-            .attr('onmouseout',  "evt.target.setAttribute('opacity','.5');")
-            .transition()
-            .duration(2500)
-            .attr('r',function(d) {return(nwords(d.TotalWords))})
-            .attr('fill',function(d) {
-                if (comparetype=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
-                else {return(colorscale(d.WordCount/d.TotalWords))}
-            })
-
-        mypoints.exit().transition(1000).remove()
-        makeLegend();
-    });
-}
 
 function heatMap() {
+
+    xlim = [100,900]
+    ylim=[75,690]
+
     updateQuery()
     webpath = destinationize(query);
     console.log(webpath);
@@ -448,7 +366,7 @@ function heatMap() {
     d3.json(webpath,function(json) {
         paperdata = parseBookwormData(json,query);
 
-        if (comparetype=='comparison') {
+        if (comparisontype()=='comparison') {
             // This probably isn't the best place to do this: what is?
             paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
         }
@@ -459,9 +377,10 @@ function heatMap() {
 
         numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
 
-        if (comparetype=='comparison') {
+        if (comparisontype()=='comparison') {
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
+	    colorscale = logcolors
         }
 
         min = Math.log(numbers[0])
@@ -489,13 +408,11 @@ function heatMap() {
         years.sort()
         xnames.sort()
 
-        xlim = [50,1100]
-        ylim=[50,690]
         x = d3.scale.ordinal().domain(years).rangeBands(xlim);
         y = d3.scale.ordinal().domain(xnames).rangeBands(ylim);
 
         //set up axes
-        ylegendData = xnames.map(function(d) {return({"label":d,"y":y(d)+13,"x":5})})
+        ylegendData = xnames.map(function(d) {return({"label":d,"y":y(d)+y.rangeBand()*.9,"x":xlim[1]})})
         ypoints = yaxis.selectAll('text').data(ylegendData,function(d) {return(d.label)})
         ypoints
             .enter()
@@ -508,7 +425,7 @@ function heatMap() {
             .text(function(d) {return(d.label)})
 
         xlegendData = years.map(function(d) {
-            objectb = {"year":d,"y":40,"x":x(d) - 13};
+            objectb = {"year":d,"y":ylim[0]-5,"x":x(d) - 13};
             if (objectb.year != Math.round(objectb.year/5)*5) {objectb.year=""};
             return(objectb);
         })
@@ -546,26 +463,48 @@ function heatMap() {
                 //popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
                 searchWindow(searchTemplate)
             })
-            .attr('opacity','.85')
+            .attr('opacity','.99')
             .attr('onmouseover', "evt.target.setAttribute('opacity','1');")
-            .attr('onmouseout',  "evt.target.setAttribute('opacity','.85');")
+            .attr('onmouseout',  "evt.target.setAttribute('opacity','.95');")
             .attr('x',function(d) {return(x(d[query['groups'][1]]))})
             .attr('y',function(d) {return(y(d[query['groups'][0]]))})
             .transition()
             .duration(2500)
             .attr('fill',function(d) {
-                if (comparetype=='comparison') {
+                if (comparisontype()=='comparison') {
                     return(colorscale(d.WordCount/d.CompareWords))}
                 else {return(colorscale(d.WordCount/d.TotalWords))}
             })
 
             .attr('height', y.rangeBand())
             .attr('width', x.rangeBand())
+
         mystates.exit().transition(1000).remove()
         makeLegend();
     })
 }
 
+prettyName = function(number) {
+    if (comparisontype()=='absolute') {
+        suffix = ''
+        switch(number) {
+        case number>1000000000:
+            number = number/1000000000
+            suffix = 'B'
+        case number>1000000:
+            number = number/1000000
+            suffix = 'M'
+        case number>1000:
+            number = number/1000
+            suffix = 'K'
+        }
+        return(Math.round(number*10)/10+suffix)
+    }
+    if (comparisontype()=='comparison') {
+        if (number >= 1) {return(Math.round(number)) + ":1"}
+        if (number < 1) {return("1:" + Math.round(1/number))}
+    }
+}
 
 var legendPoints = legend.append('g').attr('id','legendPoints')
 var ylab = legend.append('g').attr('id','ylab');
@@ -576,33 +515,14 @@ var colorLegend = legend.append('g').attr('id','colorLegend');
 var sizeLegend = legend.append('g').attr('id','sizeLegend');
 
 function makeLegend() {
-    prettyName = function(number) {
-        if (comparetype=='absolute') {
-            suffix = ''
-            switch(number) {
-            case number>1000000000:
-                number = number/1000000000
-                suffix = 'B'
-            case number>1000000:
-                number = number/1000000
-                suffix = 'M'
-            case number>1000:
-                number = number/1000
-                suffix = 'K'
-            }
-            return(Math.round(number*10)/10+suffix)
-        }
-        if (comparetype=='comparison') {
-            if (number >= 1) {return(Math.round(number)) + ":1"}
-            if (number < 1) {return("1:" + Math.round(1/number))}
-        }
-    }
+
+    colorLegend.yrange = [75,500]
 
     colorticks = colorscale.ticks();
-    colorLegend.yrange = [150,500]
+
     colorLegend.boxheight = (colorLegend.yrange[1]-colorLegend.yrange[0])/colorticks.length +1.5
     colorLegend.width = 25
-    colorLegend.xpos  = 1340-100
+    colorLegend.xpos  = 10
     colorLegend.plot = true
     colorLegend.title = "Per Million Words"
     colorLegend.colorpoints = colorLegend.selectAll('rect')
@@ -617,7 +537,7 @@ function makeLegend() {
                  "color":colorscale(colorticks[n]),
                  'y':colorLegend.scale(n)
                 }
-            if (comparetype=='comparison') {
+            if (comparisontype()=='comparison') {
                 value.label = prettyName(colorticks[n])
             }
             return(value)
@@ -631,17 +551,22 @@ function makeLegend() {
             .attr('x',colorLegend.xpos)
             .attr('width',colorLegend.width)
             .attr('fill',function(d) {return(d.color)})
+
         colorLegend.colorlabels
             .remove()
+
         colorLegend.colorlabels = colorLegend.selectAll('text').data(colorLegend.data,function(d) {return(d.y)})
+
         colorLegend.colorlabels.enter().append('text')
-            .attr('y',function(d) {return(d.y+colorLegend.boxheight/2)})
+            .attr('y',function(d) {return(d.y+colorLegend.boxheight*.9)})
             .attr('x',colorLegend.xpos + colorLegend.width *1.5)
             .attr('fill','white')
             .text(function(d) {return(d.label)})
-        text1 = "Usage of " + query['search_limits']['word'][0]; text2 =  "per Million Words"
-        if (comparetype=='comparison') {text1 = "Usage of " + query['search_limits']['word'][0]; text2 =  " per use of " + query['compare_limits']['word'][0]}
-        colorLegend.append('text').attr('x',colorLegend.xpos).attr('y',colorLegend.yrange[0]-25).text(text1).attr('fill','white')
+
+        text1 = "Usage of '" + query['search_limits']['word'][0] + "'"; text2 =  "per Million Words"
+        text1 = "Usage of '" + query['search_limits']['word'][0] + "'" +   " per Million Words";text2 = ''
+        if (comparisontype()=='comparison') {text1 = "Usage of '" + query['search_limits']['word'][0] + "'"; text2 =  " per use of " + query['compare_limits']['word'][0]}
+        colorLegend.append('text').attr('x',colorLegend.xpos+75).attr('y',colorLegend.yrange[0]-25).text(text1).attr('fill','white').attr('font-size',35).attr('font-family',"Arial")
         colorLegend.append('text').attr('x',colorLegend.xpos).attr('y',colorLegend.yrange[0]-5).text(text2).attr('fill','white')
     }
 
@@ -699,7 +624,7 @@ function makeLegend() {
             .text(function(d) {return(d.label)})
         text1 = "Total words in corpus"
         text2 = "";
-        if (comparetype=='comparison') {text1="Uses of both words"}
+        if (comparisontype()=='comparison') {text1="Uses of both words"}
         thisLegend.append('text').attr('x',thisLegend.xpos).attr('y',thisLegend.yrange[0]-25).text(text1).attr('fill','white')
         thisLegend.append('text').attr('x',thisLegend.xpos).attr('y',thisLegend.yrange[0]-5).text(text2).attr('fill','white')
     }
