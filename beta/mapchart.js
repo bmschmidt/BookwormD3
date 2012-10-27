@@ -21,7 +21,7 @@ function mapQuery() {
     d3.json(webpath,function(json) {
         paperdata = parseBookwormData(json,query);
 
-        if (comparetype=='comparison') {
+        if (comparisontype()=='comparison') {
             // This probably isn't the best place to do this: what is? Maybe the API somewhere?                                                                     
             paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
         }
@@ -34,9 +34,10 @@ function mapQuery() {
 	
         numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
 
-        if (comparetype=='comparison') {
+        if (comparisontype()=='comparison') {
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
+	    colorscale=logcolors
         }
 
         min = Math.log(numbers[0])
@@ -81,7 +82,7 @@ function mapQuery() {
             .duration(2500)
             .attr('r',function(d) {return(nwords(d.TotalWords))})
             .attr('fill',function(d) {
-                if (comparetype=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
+                if (comparisontype()=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
                 else {return(colorscale(d.WordCount/d.TotalWords))}
             })
 
