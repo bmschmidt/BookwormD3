@@ -2,16 +2,23 @@
     <html>
     <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>Geographic Bookworm Panel</title>
+    <title>Advanced Bookworm Browser</title>
     <script type="text/javascript" src="../d3.v2.js"></script>
-    <script type="text/javascript" src="searchWindow.js"></script>
-    <script type="text/javascript" src="mapchart.js"></script>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
-    <link type="text/css" rel="stylesheet" href="beta.css"/>
-    <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
+    <!--> <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/> <--!>
+
+    <script type="text/javascript" src="searchWindow.js"></script>
+    <script type="text/javascript" src="chartTypes/mapchart.js"></script>
+    <script type="text/javascript" src="chartTypes/heatMap.js"></script>
+    <script type="text/javascript" src="legends.js"></script>
+
     </head>
+
     <body>
     <div id="chart"></div>
+
+    <link type="text/css" rel="stylesheet" href="bookworm.css"/>
+
     <script type="text/javascript">
 
 
@@ -30,7 +37,17 @@ var defaultQuery = {
 };
 
 if (window.location.host=="melville.seas.harvard.edu") {
-    var defaultQuery = {"method":"return_json","words_collation":"All_Words_with_Same_Stem","groups":["lc1","year"],"database":"presidio","counttype":["WordCount","TotalWords"],"search_limits":{"year":{"$lte":1922,"$gte":1850},"word":["natural selection"]}}
+    defaultQuery = {
+        "method":"return_json",
+        "words_collation":"All_Words_with_Same_Stem",
+        "groups":["classification","year"],
+        "database":"presidio",
+        "counttype":["WordCount","TotalWords"],
+        "search_limits":{
+            "year":{"$lte":1922,"$gte":1850},
+            "word":["natural selection"]
+	}
+    }
 }
 
 
@@ -40,10 +57,11 @@ if(window.location.hash) {
     var query =  JSON.parse(decoded)
     console.log(query)
 } else {
-    var query=defaultQuery
+    var query = defaultQuery
 }
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
+
 var APIbox = d3.selectAll('div')
     .append('input')
     .attr('type', String) // implicit function(d, i) { return ''+d; }
@@ -73,50 +91,32 @@ var APIbox = d3.selectAll('div')
 
 APIbox.update = function() {APIbox.attr('value',JSON.stringify(query))}
 
-
-
-//These elements are ugly, and my (Ben's) goal is chiefly to make it so that they work but can be shuffled around on the screen.
-//But they're also outdated now
+runQuery = function() {
+    if (query.plotType=='heatMap') {return(heatMap())}
+    return(mapQuery())
+}
 
 var queryBox = $('<div />');
-/* deprecated for the pure json approach
-
-   $('<input />').attr("id", "word_box").val(query['search_limits']['word'][0]).appendTo(queryBox);
-   // clear below
-   $('<input />').attr("id", "word_box2").val('').appendTo(queryBox);
-   $('<input />').attr("id", "year1_box").val(query['search_limits']['date_year']['$gte']).appendTo(queryBox);
-   $('<input />').attr("id", "year2_box").val(query['search_limits']['date_year']['$lte']).appendTo(queryBox);
-   $('<input />').attr("id", "group1_box").val(query['groups'][0]).appendTo(queryBox);
-   $('<input />').attr("id", "group2_box").val(query['groups'][1]).appendTo(queryBox);
-   $('<input />').attr("id", "database_box").val(query['database']).appendTo(queryBox);
-
-*/
 
 $('<button />').text('Map Query').click(function(){mapQuery();}).appendTo(queryBox);
 $('<button />').text('Heatgrid chart').click(function(){heatMap();}).appendTo(queryBox);
-$('<button />').text('Change over Time').click(function(){heatMap();}).appendTo(queryBox);
 
 var options = $('<div />');
-
 
 queryBox.appendTo($('body'));
 
 $('body').keypress(function(e){
     if(e.which == 13){
-        mapQuery();
+        runQuery();
     }
 });
 
 var svg = d3.select("#chart")
     .append("svg")
-    .attr("background","cream")
 
 // Make the background map
 
 var projection
-
-//var path = d3.geo.path()
-//  .projection(projection);
 
 //These are the things to delete when a new chart is refreshed.
 
@@ -125,16 +125,17 @@ var paperdiv = svg.append("g").attr("id","#paperdiv");
 var yaxis = svg.append("g").attr("id","#yaxis");
 var xaxis = svg.append("g").attr("id","#xaxis");
 var legend = svg.append('g').attr('id','#legend');
-var title = svg.append('g').attr('id','#title')
+var title = svg.append('g').attr('id','#title');
 
-var stateItems
+var stateItems;
 
-drawStates = function() {
-    projection = d3.geo.albersUsa()
+drawWorld = function() {
+
+    projection = d3.geo.albers()
         .translate([700,350])
-        .scale([1500]);
+        .scale([700]);
 
-    d3.json("../data/us-states.json", function(json) {
+    d3.json("../data/world-countries.json", function(json) {
         stateItems = maplevel.selectAll("path")
             .data(json.features)
 
@@ -209,10 +210,12 @@ var paperpoints = paperdiv
 
 // Make the d3 scales
 
-colors = d3.scale.sqrt().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,11)"])
-//colors = d3.scale.log().range(['rgb(37,52,148)','rgb(44,127,184)','rgb(65,182,196)','rgb(161,218,180)','rgb(255,255,204)'])
-colors = d3.scale.log().range(['white','lightblue','red'])
+//colors = d3.scale.sqrt().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,11)"])
 
+//I like this pallette--I think we usually need two tones.
+colors = d3.scale.log().range(["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse())
+//colors = d3.scale.log().range(['white','lightblue','green','red'])
+//colors = d3.scale.log().range(['white','#EDF8FB','#B3CDE3','#8C96C6','#8856A7','#810F7C'])
 
 
 //logcolors = d3.scale.log().range(['green','white','red']);
@@ -286,6 +289,7 @@ function changeWord() {
     mapQuery()
 
     textdata = [{"id":"title","label":words[0],'x':550,'y':50,'fill':'white'}];
+
     textLegend =
         title.selectAll('text')
         .data(textdata);
@@ -298,9 +302,11 @@ function changeWord() {
         .attr("font-family", "sans-serif")
         .attr("font-size", "70px")
         .text(function(d) {return(d.label)})
+
     words = query['search_limits']['word']
 
     textLegend.exit().remove()
+
 }
 
 
@@ -309,7 +315,7 @@ function comparisontype() {
     //There are some differences in the legends and the titles depending if we're comparing to all
     //books or to certain ones. This should be useful for that.
     if ('compare_limits' in query) {
-	//This should just test length, not for this particular key as it does. 
+        //This should just test length, not for this particular key as it does.
         if ('word' in query['compare_limits']) {
             return('comparison');
         }
@@ -343,147 +349,6 @@ topn = function(n,key,paperdata) {
 }
 
 
-function heatMap() {
-
-    xlim = [100,900]
-    ylim=[75,690]
-
-    updateQuery()
-    webpath = destinationize(query);
-    console.log(webpath);
-
-    //make the graphic
-    group1 = query['groups'][0]
-    group2 = query['groups'][1]
-
-    if (query.plotType != heatMap) {
-        query.plotType = 'heatMap'
-        svg.selectAll('circle').remove()
-        svg.selectAll('path').remove()
-        svg.selectAll('text').remove()
-    }
-
-    d3.json(webpath,function(json) {
-        paperdata = parseBookwormData(json,query);
-
-        if (comparisontype()=='comparison') {
-            // This probably isn't the best place to do this: what is?
-            paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
-        }
-
-        values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords)});
-        totals = paperdata.map(function(d) {return(d.TotalWords)});
-        numbers = d3.extent(values)
-
-        numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
-
-        if (comparisontype()=='comparison') {
-            outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
-            numbers = [1/outerbound,outerbound]
-	    colorscale = logcolors
-        }
-
-        min = Math.log(numbers[0])
-        max = Math.log(numbers[1])
-
-        colorscale.domain(d3.range(
-            min,
-            max,
-            (max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
-        colorscale.nice()
-
-        nwords.domain(d3.extent(totals))
-        nwords.nice()
-
-        years = d3.nest().key(function(d) {return(d[query['groups'][1]]);}).entries(paperdata).map(function(d) {return(d.key)})
-        xnames = d3.nest().key(function(d) {return(d[query['groups'][0]]);}).entries(paperdata).map(function(d) {return(d.key)})
-
-        //filter out elements of the array
-        xnames = topn(50,query['groups'][0],paperdata)
-        paperdata = paperdata.filter(function(entry) {
-            return(xnames.indexOf(entry[group1]) > -1)
-        })
-
-        //set up scales.
-        years.sort()
-        xnames.sort()
-
-        x = d3.scale.ordinal().domain(years).rangeBands(xlim);
-        y = d3.scale.ordinal().domain(xnames).rangeBands(ylim);
-
-        //set up axes
-        ylegendData = xnames.map(function(d) {return({"label":d,"y":y(d)+y.rangeBand()*.9,"x":xlim[1]})})
-        ypoints = yaxis.selectAll('text').data(ylegendData,function(d) {return(d.label)})
-        ypoints
-            .enter()
-            .append('text')
-            .attr('fill','white')
-            .attr('x',function(d) {return(d.x)})
-            .attr('y',function(d) {return(d.y)})
-            .attr("font-family", "sans-serif")
-            .attr("font-size", "13px")
-            .text(function(d) {return(d.label)})
-
-        xlegendData = years.map(function(d) {
-            objectb = {"year":d,"y":ylim[0]-5,"x":x(d) - 13};
-            if (objectb.year != Math.round(objectb.year/5)*5) {objectb.year=""};
-            return(objectb);
-        })
-
-        xpoints = xaxis
-            .selectAll('text')
-            .data(xlegendData,function(d) {return(d[group2])})
-
-        xpoints
-            .enter()
-            .append('text')
-            .attr('fill','white')
-            .attr('x',function(d) {return(d.x)})
-            .attr('y',function(d) {return(d.y)})
-            .attr("font-family", "sans-serif")
-            .attr("font-size", "13px")
-            .attr("fill", "white")
-            .text(function(d) {return(d.year)})
-
-        //stupid, but don't want to change the underlying function.
-
-        paperdata.sort(function(d) {return(d.value)} );
-
-        paperdiv.selectAll('rect').remove()
-        var mystates = paperdiv.selectAll('rect')
-            .data(paperdata,function(d) {return(d.state)})
-
-        mystates
-            .enter().append('rect')
-            .on('click',function(d) {
-                console.log(d)
-                searchTemplate = JSON.parse(JSON.stringify(query))
-                searchTemplate['search_limits'][group2] = [d[group2]]
-                searchTemplate['search_limits'][group1] = [d[group1]]
-                //popitup('/ChronAm/#?' + encodeURIComponent(JSON.stringify(searchTemplate)))
-                searchWindow(searchTemplate)
-            })
-            .attr('opacity','.99')
-            .attr('onmouseover', "evt.target.setAttribute('opacity','1');")
-            .attr('onmouseout',  "evt.target.setAttribute('opacity','.95');")
-            .attr('x',function(d) {return(x(d[query['groups'][1]]))})
-            .attr('y',function(d) {return(y(d[query['groups'][0]]))})
-            .transition()
-            .duration(2500)
-            .attr('fill',function(d) {
-                if (comparisontype()=='comparison') {
-                    return(colorscale(d.WordCount/d.CompareWords))}
-                else {return(colorscale(d.WordCount/d.TotalWords))}
-            })
-
-            .attr('height', y.rangeBand())
-            .attr('width', x.rangeBand())
-
-        mystates.exit().transition(1000).remove()
-        makeLegend();
-    })
-}
-
 prettyName = function(number) {
     if (comparisontype()=='absolute') {
         suffix = ''
@@ -513,126 +378,6 @@ var title = legend.append('g').attr('id','title');
 var legendData = [];
 var colorLegend = legend.append('g').attr('id','colorLegend');
 var sizeLegend = legend.append('g').attr('id','sizeLegend');
-
-function makeLegend() {
-
-    colorLegend.yrange = [75,500]
-
-    colorticks = colorscale.ticks();
-
-    colorLegend.boxheight = (colorLegend.yrange[1]-colorLegend.yrange[0])/colorticks.length +1.5
-    colorLegend.width = 25
-    colorLegend.xpos  = 10
-    colorLegend.plot = true
-    colorLegend.title = "Per Million Words"
-    colorLegend.colorpoints = colorLegend.selectAll('rect')
-    colorLegend.colorlabels   = colorLegend.selectAll('text')
-
-    colorLegend.scale = d3.scale.linear().range(colorLegend.yrange).domain(d3.extent(d3.range(colorticks.length)))
-
-    colorLegend.update = function() {
-        colorLegend.data = d3.range(colorticks.length).map(function(n) {
-            value =
-                {"label":prettyName(colorticks[n]*1000000),
-                 "color":colorscale(colorticks[n]),
-                 'y':colorLegend.scale(n)
-                }
-            if (comparisontype()=='comparison') {
-                value.label = prettyName(colorticks[n])
-            }
-            return(value)
-        })
-
-        colorLegend.colorpoints.remove()
-        colorLegend.colorpoints = colorLegend.selectAll('rect').data(colorLegend.data,function(d) {return(d.y)})
-        colorLegend.colorpoints.enter().append('rect')
-            .attr('y',function(d) {return(d.y)})
-            .attr('height',colorLegend.boxheight)
-            .attr('x',colorLegend.xpos)
-            .attr('width',colorLegend.width)
-            .attr('fill',function(d) {return(d.color)})
-
-        colorLegend.colorlabels
-            .remove()
-
-        colorLegend.colorlabels = colorLegend.selectAll('text').data(colorLegend.data,function(d) {return(d.y)})
-
-        colorLegend.colorlabels.enter().append('text')
-            .attr('y',function(d) {return(d.y+colorLegend.boxheight*.9)})
-            .attr('x',colorLegend.xpos + colorLegend.width *1.5)
-            .attr('fill','white')
-            .text(function(d) {return(d.label)})
-
-        text1 = "Usage of '" + query['search_limits']['word'][0] + "'"; text2 =  "per Million Words"
-        text1 = "Usage of '" + query['search_limits']['word'][0] + "'" +   " per Million Words";text2 = ''
-        if (comparisontype()=='comparison') {text1 = "Usage of '" + query['search_limits']['word'][0] + "'"; text2 =  " per use of " + query['compare_limits']['word'][0]}
-        colorLegend.append('text').attr('x',colorLegend.xpos+75).attr('y',colorLegend.yrange[0]-25).text(text1).attr('fill','white').attr('font-size',35).attr('font-family',"Arial")
-        colorLegend.append('text').attr('x',colorLegend.xpos).attr('y',colorLegend.yrange[0]-5).text(text2).attr('fill','white')
-    }
-
-    thisLegend = sizeLegend
-
-    thisLegend.sourceScale = sizescale
-    myticks = thisLegend.sourceScale.ticks(5);
-    thisLegend.yrange = [300,500]
-    thisLegend.boxheight = (thisLegend.yrange[1]-thisLegend.yrange[0])/myticks.length +1.5
-    thisLegend.width = 25
-    thisLegend.xpos  = 1500-100
-    thisLegend.plot = true
-    thisLegend.title = "Total size of corpus"
-    thisLegend.points = thisLegend.selectAll('circle')
-    thisLegend.labels   = thisLegend.selectAll('text')
-
-    thisLegend.scale = d3.scale.linear()
-        .range(thisLegend.yrange)
-        .domain(d3.extent(d3.range(myticks.length)))
-
-    console.log(myticks);
-
-    thisLegend.update = function() {
-        thisLegend.data = d3.range(myticks.length).map(function(n) {
-            console.log(myticks[n])
-            value =
-                {"label":prettyName(myticks[n]),
-                 "scaled":thisLegend.sourceScale(myticks[n]),
-                 'y':thisLegend.scale(n),
-                }
-            return(value)
-        })
-
-        thisLegend.points.remove()
-        thisLegend.points = thisLegend.selectAll('circle').data(thisLegend.data,function(d) {return(d.y)})
-        thisLegend.points.enter()
-            .append('circle')
-            .attr('y',function(d) {return(d.y)})
-            .attr('cy',function(d) {return(d.y)})
-        //            .attr('height',thisLegend.boxheight)
-            .attr('x',thisLegend.xpos)
-            .attr('cx',thisLegend.xpos)
-        //            .attr('width',thisLegend.width)
-        //            .attr('fill',function(d) {return(d.color)})
-            .attr('fill','white')
-            .attr('r',function(d) {return(d.scaled)})
-
-        thisLegend.labels
-            .remove()
-        thisLegend.labels = thisLegend.selectAll('text').data(thisLegend.data,function(d) {return(d.y)})
-        thisLegend.labels.enter().append('text')
-            .attr('y',function(d) {return(d.y)})//+thisLegend.boxheight/2)})
-            .attr('x',thisLegend.xpos + thisLegend.width *1.5)
-            .attr('fill','white')
-            .text(function(d) {return(d.label)})
-        text1 = "Total words in corpus"
-        text2 = "";
-        if (comparisontype()=='comparison') {text1="Uses of both words"}
-        thisLegend.append('text').attr('x',thisLegend.xpos).attr('y',thisLegend.yrange[0]-25).text(text1).attr('fill','white')
-        thisLegend.append('text').attr('x',thisLegend.xpos).attr('y',thisLegend.yrange[0]-5).text(text2).attr('fill','white')
-    }
-    thisLegend = colorLegend
-    thisLegend.update()
-    thisLegend = sizeLegend
-    thisLegend.update()
-}
 
 //Goofy d3 stuff:
 function click(d) {
