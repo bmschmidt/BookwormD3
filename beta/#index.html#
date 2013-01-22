@@ -6,26 +6,38 @@
     <script type="text/javascript" src="../d3.v2.js"></script>
     <script src="http://d3js.org/d3.v3.min.js"></script>
 
-    <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+    <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+    <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+
 
     <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
-
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
+    
     <script type="text/javascript" src="searchWindow.js"></script>
     <script type="text/javascript" src="chartTypes/newmapchart.js"></script>
     <script type="text/javascript" src="chartTypes/heatMap.js"></script>
     <script type="text/javascript" src="legends.js"></script>
-
-</head>
+    <script type="text/javascript">
+</script>
+    </head>
 
     <body>
+    <div id="topSelectors"></div>
+    <label for="amount">Year:</label>
+    <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
+    
+    </script>
+    <div id="slider-range" width=400></div>
     <div id="chart"></div>
-
+    <div id="bottomBoxes"></div>
+    <div id="lastOptions"></div>
     <link type="text/css" rel="stylesheet" href="bookworm.css"/>
 
+
     <script type="text/javascript">
-
-
+    
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
+//This is the cardinal rule of the architecture here: absolutely any state must draw from and update the query variable.
 
 var defaultQuery = {
     "method":"return_json",
@@ -55,15 +67,14 @@ if (window.location.host=="melville.seas.harvard.edu") {
     }
 }
 
+var lastPlotted="None"
+
+//Things for everywhere
 var svg = d3.select("#chart")
     .append("svg")
 
-// Make the background map
-
-var projection = {}
-
 //These are the things to delete when a new chart is refreshed.
-
+//They contain the various aspects of the actual plot
 var maplevel = svg.append("g").attr("id", "#maplevel")
 var paperdiv = svg.append("g").attr("id","#paperdiv");
 var yaxis = svg.append("g").attr("id","#yaxis");
@@ -71,12 +82,12 @@ var xaxis = svg.append("g").attr("id","#xaxis");
 var legend = svg.append('g').attr('id','#legend');
 var title = svg.append('g').attr('id','#title');
 
+// Things for the background map
+var projection = {"mapname":"none"}
 var stateItems;
 
-projection.mapname = "none"
-
 // Prepare the paper points.
-
+// These variables should be renamed for clarity: 'paper' refers to newspapers, for historical reasons.
 var paperdata = [];
 
 var paperpoints = paperdiv
@@ -86,55 +97,83 @@ var paperpoints = paperdiv
 var gridRects = paperdiv
     .selectAll('rect')
 
-
 if(window.location.hash) {
     var hash = window.location.hash.substring(1);
     decoded = decodeURIComponent(hash)
-    var query =  JSON.parse(decoded)
+    query =  JSON.parse(decoded)
 } else {
     var query = defaultQuery
 }
 
-// And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 
-var APIbox = d3.selectAll('div')
+// And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
+var APIbox = d3.selectAll('#chart')
     .append('input')
-    .attr('type', String) // implicit function(d, i) { return ''+d; }
-    .attr('name', 'lone-ranger')
+    .attr('id','APIbox')
+    .attr('type', String)
     .attr('value', JSON.stringify(query))
     .attr('style', 'width: 1400px;')
-    .on('change', function(d, i) {
-        // 'this' is the node itself
-        var pa = d3.select(this.parentNode);
-        var ranger_value = +this.value; // identical to +d3.select(this).node().value
-        //        var pn = pa.selectAll('p#display-value')
-        //            .enter();
-        //        pn.each(function(d, i) {
-        //            var sel = d3.select(this);
-        //            if (!d)
-        //            {
-        //                sel.append('span')
-        //                    .attr('id', 'display-value');
-        //           }
-        //       });
-        // always update the value shown:
-        pn = pa.select('span#display-value');
-        pn.text(function() {
-            return 'value = ' + ranger_value;
-        });
+    .on('keyup',function() {
+	query = JSON.parse(d3.select("#APIbox").property('value'));
+	wordBox.update()
+    })
+
+var wordBox= d3.select('#topSelectors')
+    .append('input')
+    .attr('id','wordBox')
+    .attr('type', String)
+    .attr('value', query['search_limits']['word'][0])
+    .attr('style', 'width: 350px;')
+    .on('keyup',function() {
+	query['search_limits']['word'][0] = d3.select("#wordBox").property('value');
+	APIbox.update()
     });
 
-APIbox.update = function() {APIbox.attr('value',JSON.stringify(query))}
+wordBox.update=function() {
+    d3.select('#wordBox').property('value',function() {return query['search_limits']['word'][0]});
+}
+
+APIbox.update = function() {
+    d3.select('#APIbox').property('value',function() {return JSON.stringify(query)});
+}
+
+    $(function() {
+	$( "#slider-range" ).slider({
+	    range: true,
+	    min: 1800,
+	    max: 2000,
+	    values: [query.search_limits['year']['$gte'], query.search_limits['year']['$lte']],
+	    slide: function( event, ui ) {
+		$( "#amount" ).val( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+		query.search_limits['year']['$gte'] = ui.values[0]
+		query.search_limits['year']['$lte'] = ui.values[1]
+		APIbox.update()
+	    }
+	});
+	$( "#amount" ).val( $( "#slider-range" ).slider( "values", 0 ) +
+			    " - " + $( "#slider-range" ).slider( "values", 1 ) );
+    });
 
 myPlot = function() {
     if (query.plotType=='heatMap') {return heatMapFactory() }
-    return(mapQuery())
+    if (query.plotType=='map') {return mapQuery()} 
 }
 
-var queryBox = $('<div />');
+var executeButtons = $('<div />');
+$('<button />').text('Map Query').click(function(){
+    query.plotType='map';
+    currentPlot = myPlot()
+    currentPlot()
+}).appendTo(executeButtons);
 
-$('<button />').text('Map Query').click(function(){mapQuery()();}).appendTo(queryBox);
-$('<button />').text('Heatgrid chart').click(function(){heatMapFactory()();}).appendTo(queryBox);
+$('<button />').text('Heatgrid chart').click(function(){
+    query.plotType='heatMap';
+    currentPlot = myPlot()
+    currentPlot()
+}).appendTo(executeButtons);
+
+var lastOptions = $('<div />');
+
 
 
 //The types of maps are just coded in.
@@ -142,19 +181,41 @@ mapOptions = [{"text":'USA','value':"USA"},
               {'text':'World','value':"World"},
               {'text':'Europe','value':"Europe"},
               {'text':'Asia','value':"Asia"}]
-mapSelector = d3.select("#chart").append('select').attr('id',"mapChoice")
+
+mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice")
 pointSelector = mapSelector.selectAll('option').data(mapOptions)
 
-var categorySelector = $('<div />').attr('id','categorySelector').appendTo(queryBox);
+pointSelector.enter()
+    .append('option')
+    .attr('value',function(d){return d.value})
+    .text(function(d) {return(d.text)})
+
+//var scaleTypeSelector = $('<div />').attr('id','scaleTypeSelector').appendTo(lastOptions);
+scaleTypes = [{"text":'Logarithmic','value':"log"},
+              {'text':'Square root','value':"sqrt"},
+              {'text':'Linear','value':"linear"}]
+
+scaleSelector = d3.select("#lastOptions")
+    .append('select')
+    .attr('id',"scaleType")
+
+scaleOptions = scaleSelector.selectAll('option').data(scaleTypes)
+
+scaleOptions.enter()
+    .append('option')
+    .attr('value',function(d){return d.value})
+    .text(function(d) {return(d.text)})
+
+scaleSelector.on("change",function(d){
+    myPlot()()
+})
 
 
 createDropbox = function(category) {
-
     myQuery = JSON.parse(JSON.stringify(query));
     myQuery['search_limits']['word'] = []
     myQuery['groups'] = [category]
     myQuery['counttype'] = ['WordCount','TextCount']
-//    console.log(destinationize(myQuery))
 
     dat = d3.json(destinationize(myQuery),function(json) {
 
@@ -174,7 +235,6 @@ createDropbox = function(category) {
         thisSelection.enter()
             .append('option')
             .attr('value',function(d){
-                console.log(d[category])
                 return d[category]})
             .text(function(d) {
                 text = d[category]
@@ -185,18 +245,9 @@ createDropbox = function(category) {
 }
 
 
-
-
-
-
-pointSelector.enter()
-    .append('option')
-    .attr('value',function(d){return d.value})
-    .text(function(d) {return(d.text)})
-
 var options = $('<div />');
 
-queryBox.appendTo($('body'));
+executeButtons.appendTo($('body'));
 
 $('body').keypress(function(e){
     if(e.which == 13){
@@ -228,8 +279,8 @@ drawMap = function (mapname) {
             projection = d3.geo.albers()
                 .scale([900])
                 .center([170,-30])
-	        .translate([700,350])
-		.rotate([0,90])
+                .translate([700,350])
+                .rotate([0,90])
         }
 
         if (mapname=="Europe") {
@@ -247,7 +298,7 @@ drawMap = function (mapname) {
                 .scale([1500]);
             sourceJson = "../data/us-states.json"
         }
-	
+
         path = d3.geo.path()
             .projection(projection)
 
@@ -298,7 +349,7 @@ returnScale = function() {
         numbers = d3.extent(values)
         //If we're using a log scale, the minimum can't be zero. So it's 0.1
         if (scaleType==d3.scale.log) {
-            numbers[0] = d3.max([(1/10),d3.min(values)])
+            numbers[0] = d3.max([(1/101),d3.min(values)])
         }
         if (comparisontype()=='comparison') {
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
@@ -315,6 +366,7 @@ returnScale = function() {
         } else if (scaleType==d3.scale.linear) {
             scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n)}))
         }
+	scale.clamp()
         return (scale)
     }
 
@@ -338,15 +390,17 @@ returnScale = function() {
     return my
 }
 
-colors = d3.scale.log().range(greenToRed)
 
+//commented for deletion.
+//colors = d3.scale.log().range(greenToRed)
 // PuOr pallette from colorBrewer2.org designed to be color-blind compatible
-logcolors = d3.scale.log().range(PuOr)
+//logcolors = d3.scale.log().range(PuOr)
+
+
 
 nwords = d3.scale.sqrt().range([3,25]);
-
 var sizescale = nwords
-var colorscale = colors;
+var colorscale = d3.scale.log().range(greenToRed);
 
 function key(d) {return d.key;};
 
@@ -361,7 +415,9 @@ function destinationize(query) {
 };
 
 function parseBookwormData(json,locQuery) {
-    // Just changes the shape around--more complicated than it necessarily should be, but whatever.
+    // Changes the shape of the hierarchical json the API delivers to a flat one with attribute names
+    // which takes more space but plays more nicely with d3/javascript. Uses recursion, yuck.
+
     names = [].concat(locQuery.groups).concat(locQuery.counttype);
     function flatten(hash,prepend) {
         results = Object.keys(hash).map(function(key) {
@@ -372,6 +428,7 @@ function parseBookwormData(json,locQuery) {
             }
             else {
                 vals = flatten(hash[key],newpend)
+		//is this doing anything different from return (vals)?
                 return(
                     vals.map(function(array) {
                         return(array)
@@ -386,13 +443,18 @@ function parseBookwormData(json,locQuery) {
             return(results)
         }
     }
+
     function toObject(names, values) {
         var result = {};
         for (var i = 0; i < names.length; i++) {
             result[names[i]] = values[i];}
         return result;
     };
+
+    //run flatten initially with nothing prepended: as it recurses, that will get filled in.
     flat = flatten(json,[]);
+
+    //add the labels.
     results = flat.map(function(localdata){
         return(toObject(names,localdata));
     })
@@ -449,7 +511,7 @@ function updateQuery() {
     APIbox.update()
     //assign comparison limits if necessary
     comparetype = comparisontype()
-    query = JSON.parse(APIbox[0][0].value)
+    query = JSON.parse($("#APIbox").val())
 }
 
 
@@ -484,6 +546,9 @@ prettyName = function(number) {
             suffix = 'K'
             break;
         }
+	if (number < .1) {
+            return(Math.round(number*100)/100+suffix)
+	}
         return(Math.round(number*10)/10+suffix)
     }
     if (comparisontype()=='comparison') {
@@ -514,8 +579,8 @@ function click(d) {
         .attr("d", path);
 }
 
-
-myPlot()()
+var currentPlot=myPlot()
+currentPlot()
 
 
 </script>
