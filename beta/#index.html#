@@ -42,7 +42,7 @@
 var defaultQuery = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
-    "groups":["state","date_year"],
+    "groups":["paperid","lat","lng"],
     "database":"ChronAm",
     "counttype":["WordCount","TotalWords"],
     "search_limits":{
@@ -395,6 +395,8 @@ returnScale = function() {
 //colors = d3.scale.log().range(greenToRed)
 // PuOr pallette from colorBrewer2.org designed to be color-blind compatible
 //logcolors = d3.scale.log().range(PuOr)
+
+
 
 nwords = d3.scale.sqrt().range([3,25]);
 var sizescale = nwords

@@ -15,7 +15,7 @@
     <script type="text/javascript" src="chartTypes/heatMap.js"></script>
     <script type="text/javascript" src="legends.js"></script>
 
-    </head>
+</head>
 
     <body>
     <div id="chart"></div>
@@ -36,7 +36,8 @@ var defaultQuery = {
     "search_limits":{
         "date_year":{"$lte":1922,"$gte":1850},
         "word":["Ohio river"]
-    }
+    },
+    "plotType":"map"
 };
 
 if (window.location.host=="melville.seas.harvard.edu") {
@@ -49,10 +50,41 @@ if (window.location.host=="melville.seas.harvard.edu") {
         "search_limits":{
             "year":{"$lte":1922,"$gte":1850},
             "word":["natural selection"]
-	},
-	"plotType":"map"
+        },
+        "plotType":"map"
     }
 }
+
+var svg = d3.select("#chart")
+    .append("svg")
+
+// Make the background map
+
+var projection = {}
+
+//These are the things to delete when a new chart is refreshed.
+
+var maplevel = svg.append("g").attr("id", "#maplevel")
+var paperdiv = svg.append("g").attr("id","#paperdiv");
+var yaxis = svg.append("g").attr("id","#yaxis");
+var xaxis = svg.append("g").attr("id","#xaxis");
+var legend = svg.append('g').attr('id','#legend');
+var title = svg.append('g').attr('id','#title');
+
+var stateItems;
+
+projection.mapname = "none"
+
+// Prepare the paper points.
+
+var paperdata = [];
+
+var paperpoints = paperdiv
+    .selectAll("circle")
+    .data(paperdata,function(d) {d.key})
+
+var gridRects = paperdiv
+    .selectAll('rect')
 
 
 if(window.location.hash) {
@@ -75,16 +107,16 @@ var APIbox = d3.selectAll('div')
         // 'this' is the node itself
         var pa = d3.select(this.parentNode);
         var ranger_value = +this.value; // identical to +d3.select(this).node().value
-//        var pn = pa.selectAll('p#display-value')
-//            .enter();
-//        pn.each(function(d, i) {
-//            var sel = d3.select(this);
-//            if (!d)
-//            {
-//                sel.append('span')
-//                    .attr('id', 'display-value');
- //           }
- //       });
+        //        var pn = pa.selectAll('p#display-value')
+        //            .enter();
+        //        pn.each(function(d, i) {
+        //            var sel = d3.select(this);
+        //            if (!d)
+        //            {
+        //                sel.append('span')
+        //                    .attr('id', 'display-value');
+        //           }
+        //       });
         // always update the value shown:
         pn = pa.select('span#display-value');
         pn.text(function() {
@@ -104,6 +136,64 @@ var queryBox = $('<div />');
 $('<button />').text('Map Query').click(function(){mapQuery()();}).appendTo(queryBox);
 $('<button />').text('Heatgrid chart').click(function(){heatMapFactory()();}).appendTo(queryBox);
 
+
+//The types of maps are just coded in.
+mapOptions = [{"text":'USA','value':"USA"},
+              {'text':'World','value':"World"},
+              {'text':'Europe','value':"Europe"},
+              {'text':'Asia','value':"Asia"}]
+mapSelector = d3.select("#chart").append('select').attr('id',"mapChoice")
+pointSelector = mapSelector.selectAll('option').data(mapOptions)
+
+var categorySelector = $('<div />').attr('id','categorySelector').appendTo(queryBox);
+
+
+createDropbox = function(category) {
+
+    myQuery = JSON.parse(JSON.stringify(query));
+    myQuery['search_limits']['word'] = []
+    myQuery['groups'] = [category]
+    myQuery['counttype'] = ['WordCount','TextCount']
+//    console.log(destinationize(myQuery))
+
+    dat = d3.json(destinationize(myQuery),function(json) {
+
+        myData = parseBookwormData(json,myQuery);
+        topChoices = topn(50,category,myData)
+
+        myData.filter(function(entry) {
+            return(topChoices.indexOf(entry[category]) > -1 & entry.WordCount > 0)
+        })
+
+        myData.sort(function(a,b) {return(a.WordCount<b.WordCount)})
+
+
+        thisGuy = d3.select("#categorySelector")
+            .append('select').attr('id',category).attr('multiple','multiple')
+        thisSelection = thisGuy.selectAll('option').data(myData)
+        thisSelection.enter()
+            .append('option')
+            .attr('value',function(d){
+                console.log(d[category])
+                return d[category]})
+            .text(function(d) {
+                text = d[category]
+                if( d[category]=="") {text = "[value blank]"}
+                return text + " (" +prettyName(d.WordCount) + " words in " + prettyName(d.TextCount) + " Texts)"
+            })
+    })
+}
+
+
+
+
+
+
+pointSelector.enter()
+    .append('option')
+    .attr('value',function(d){return d.value})
+    .text(function(d) {return(d.text)})
+
 var options = $('<div />');
 
 queryBox.appendTo($('body'));
@@ -111,117 +201,82 @@ queryBox.appendTo($('body'));
 $('body').keypress(function(e){
     if(e.which == 13){
         plotting = myPlot();
-	plotting()
+        plotting()
     }
 });
 
-var svg = d3.select("#chart")
-    .append("svg")
 
-// Make the background map
 
-var projection
+drawMap = function (mapname) {
+    mapname = mapname
 
-//These are the things to delete when a new chart is refreshed.
+    my = function() {
+        if (mapname!=projection.mapname) {
+            maplevel.selectAll('path').remove()
+            removeElements()
+        }
 
-var maplevel = svg.append("g").attr("id", "#maplevel")
-var paperdiv = svg.append("g").attr("id","#paperdiv");
-var yaxis = svg.append("g").attr("id","#yaxis");
-var xaxis = svg.append("g").attr("id","#xaxis");
-var legend = svg.append('g').attr('id','#legend');
-var title = svg.append('g').attr('id','#title');
+        sourceJson = "../data/world-countries.json"
 
-var stateItems;
+        if (mapname=="World") {
+            projection = d3.geo.equirectangular()
+                .scale([300])
+                .center([-50,30])
+        }
 
-drawWorld = function() {
-    maplevel.selectAll('path').remove()
+        if (mapname=="Asia") {
+            projection = d3.geo.albers()
+                .scale([900])
+                .center([170,-30])
+	        .translate([700,350])
+		.rotate([0,90])
+        }
 
-    projection = d3.geo.equirectangular()
-            .scale([1100]);
+        if (mapname=="Europe") {
+            projection = d3.geo.albers()
+                .center([10,50])
+                .parallels([29.5,65.5])
+                .rotate([0,0])
+                .translate([700,350])
+                .scale([1500])
+        }
 
-    path = d3.geo.path()
-        .projection(projection);
-    
-    d3.json("../data/world-countries.json", function(json) {
+        if (mapname=="USA") {
+            projection = d3.geo.albersUsa()
+                .translate([700,350])
+                .scale([1500]);
+            sourceJson = "../data/us-states.json"
+        }
+	
+        path = d3.geo.path()
+            .projection(projection)
+
+        projection.mapname = mapname
+
+        d3.json(sourceJson, function(json) {
             stateItems = maplevel.selectAll("path")
-		.data(json.features)
-	    
+                .data(json.features)
+
             stateItems
-		.enter()
-		.append("path")
-		.attr("d", path)
-		.attr('fill',"grey")
-	});
-    return(projection)
-}
+                .exit()
+                .remove()
 
-drawEurope = function() {
-    maplevel.selectAll('path').remove()
-
-    projection = d3.geo.albers()
-	.center([10,50])
-	.parallels([29.5,65.5])
-	.rotate([0,0])
-        .translate([700,350])
-        .scale([1500])
-
-    
-    path = d3.geo.path()
-        .projection(projection);
-    
-    d3.json("../data/world-countries.json", function(json) {
-            stateItems = maplevel.selectAll("path")
-		.data(json.features)
-	    
             stateItems
-		.enter()
-		.append("path")
-		.attr("d", path)
-		.attr('fill',"grey")
-	});
-    return(projection)
-}
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .attr('fill',"grey")
+        });
 
-drawStates = function() {
-    projection = d3.geo.albersUsa()
-        .translate([700,350])
-        .scale([1500]);
-
-    path = d3.geo.path()
-        .projection(projection);
-
-    //    states = svg.append("g")
-    //      .attr("id", "states")
-
-    stateItems
-
-    d3.json("../data/us-states.json", function(json) {
-        stateItems = maplevel.selectAll("path")
-            .data(json.features)
-
-        stateItems
-            .enter()
-            .append("path")
-            .attr("d", path)
-            .attr('fill',"grey")
-    });
-    return(projection)
+        return(projection)
+    }
+    return my
 }
 
 removeElements = function() {
     vals = ['rect','text','path','circle'].map(function(type) {svg.selectAll(type).transition().remove()})
 }
 
-// Prepare the paper points.
-
-var paperdata = [];
-
-var paperpoints = paperdiv
-    .selectAll("circle")
-    .data(paperdata,function(d) {d.key})
-
-var gridRects = paperdiv
-    .selectAll('rect')
 
 // Make the d3 scales
 
@@ -239,28 +294,28 @@ returnScale = function() {
     values = [1,2,3,4,5]
 
     function my() {
-	scale = scaleType().range(colors)
-	numbers = d3.extent(values)
+        scale = scaleType().range(colors)
+        numbers = d3.extent(values)
         //If we're using a log scale, the minimum can't be zero. So it's 0.1
-	if (scaleType==d3.scale.log) {	
+        if (scaleType==d3.scale.log) {
             numbers[0] = d3.max([(1/10),d3.min(values)])
-	}
+        }
         if (comparisontype()=='comparison') {
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
         }
-	min = numbers[0]
-	max = numbers[1]
-	if (scaleType==d3.scale.log) {
+        min = numbers[0]
+        max = numbers[1]
+        if (scaleType==d3.scale.log) {
             min = Math.log(numbers[0])
             max = Math.log(numbers[1])
             scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
-	}else if (scaleType==d3.scale.sqrt) {
-	    scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n^2)}))
-	} else if (scaleType==d3.scale.linear) {
-	    scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n)}))
-	}
-	return (scale)
+        }else if (scaleType==d3.scale.sqrt) {
+            scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n^2)}))
+        } else if (scaleType==d3.scale.linear) {
+            scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n)}))
+        }
+        return (scale)
     }
 
     my.values = function(value) {
@@ -305,9 +360,9 @@ function destinationize(query) {
     return( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
 };
 
-function parseBookwormData(json,query) {
+function parseBookwormData(json,locQuery) {
     // Just changes the shape around--more complicated than it necessarily should be, but whatever.
-    names = [].concat(query.groups).concat(query.counttype);
+    names = [].concat(locQuery.groups).concat(locQuery.counttype);
     function flatten(hash,prepend) {
         results = Object.keys(hash).map(function(key) {
             newpend = prepend.concat(key)
@@ -347,6 +402,7 @@ function parseBookwormData(json,query) {
 
 
 function changeWord() {
+
     // The idea here is that we can have a dynamic title option that prompts you for new values when you click on it.
     //It's not working quite yet, and maybe it shouldn't
     $('#word_box').val(prompt("Enter new word","Ohio River"))
@@ -397,19 +453,15 @@ function updateQuery() {
 }
 
 
-topn = function(n,key,paperdata) {
-    vals = d3.nest().key(function(d) {return(d[key]);}).entries(paperdata)
-
+topn = function(n,key,dataset) {
+    vals = d3.nest().key(function(d) {return(d[key]);}).entries(dataset)
     perm = vals.map(function(val) {
         val.total = d3.sum(val.values,function(d) {return(d.TotalWords)})
         return(val)
     })
-
     perm.sort(function(a,b) {return(b.total-a.total)})
     terms = perm.map(function(a) {return(a.key)})
     return(
-
-
         terms.slice(0,n)
     )
 }
@@ -422,15 +474,15 @@ prettyName = function(number) {
         case number>=1000000000:
             number = number/1000000000
             suffix = 'B'
-	    break;
+            break;
         case number>=1000000:
             number = number/1000000
             suffix = 'M'
-	    break;
+            break;
         case number>=1000:
             number = number/1000
             suffix = 'K'
-	    break;
+            break;
         }
         return(Math.round(number*10)/10+suffix)
     }
