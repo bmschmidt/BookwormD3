@@ -1,3 +1,4 @@
+
 fillLegendMaker = function(colorscale) {
     var yrange = [75,500]
     colorticks = colorscale.ticks(15);
