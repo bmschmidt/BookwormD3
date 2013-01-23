@@ -92,10 +92,10 @@ function mapQuery() {
                     else {return(colorscale(d.WordCount/d.TotalWords*1000000))}
                 })
 
-            mypoints
-                .append("svg:title")
+	    mypoints.append("svg:title")
                 .text(function(d) {return ('Click to read texts from here\n (' +prettyName(d.WordCount) + ' occurences out of ' + prettyName(d.TotalWords) + ' total words)')})
-            mypoints.exit().transition().duration(1000).remove()
+
+            mypoints.exit().transition().duration(2500).attr('r',0).remove()
 
 //        })
 

@@ -1,6 +1,5 @@
 searchWindow = function(local) {
-
-    //This takes a query string and opens up a new window with search results. Pretty bare-bones for now.
+    //This takes a query string and opens up a new window with search results. Pretty bare-bones for now, but could be a lot, lot better.
     local.method="search_results"
     url = destinationize(local)
     var newWindow = window.open('');
