@@ -42,7 +42,7 @@
 var defaultQuery = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
-    "groups":["paperid","lat","lng"],
+    "groups":["state","date_year"],
     "database":"ChronAm",
     "counttype":["WordCount","TotalWords"],
     "search_limits":{
@@ -133,26 +133,44 @@ wordBox.update=function() {
     d3.select('#wordBox').property('value',function() {return query['search_limits']['word'][0]});
 }
 
+
+var yearValue;
+//could be defined in the database somehow. (But how??)
+defaultYear = {"presidio":"year","OL":"publish_year","ChronAm":"date_year","arxiv":"year"}
+yearValue = defaultYear[query['database']]
+
 APIbox.update = function() {
     d3.select('#APIbox').property('value',function() {return JSON.stringify(query)});
 }
 
-    $(function() {
+$(function() {
 	$( "#slider-range" ).slider({
+	    id:"timeSelector",
 	    range: true,
 	    min: 1800,
 	    max: 2000,
-	    values: [query.search_limits['year']['$gte'], query.search_limits['year']['$lte']],
+	    values: [query.search_limits[yearValue]['$gte'], query.search_limits[yearValue]['$lte']],
 	    slide: function( event, ui ) {
+	    },
+	    change: function(event,ui) {
 		$( "#amount" ).val( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
-		query.search_limits['year']['$gte'] = ui.values[0]
-		query.search_limits['year']['$lte'] = ui.values[1]
+		query.search_limits[yearValue]['$gte'] = ui.values[0]
+		query.search_limits[yearValue]['$lte'] = ui.values[1]
 		APIbox.update()
 	    }
+	    
 	});
 	$( "#amount" ).val( $( "#slider-range" ).slider( "values", 0 ) +
 			    " - " + $( "#slider-range" ).slider( "values", 1 ) );
     });
+
+advanceSlider = function(step) {
+	if (step==null) {step=10}
+	current = $('#slider-range').slider('values'); 
+	range = current[1]-current[0];
+	$('#slider-range').slider('values',[current[0]+step,current[1]+step]);
+	currentPlot();
+}
 
 myPlot = function() {
     if (query.plotType=='heatMap') {return heatMapFactory() }

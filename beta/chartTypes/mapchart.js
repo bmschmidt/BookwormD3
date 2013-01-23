@@ -49,17 +49,10 @@ function mapQuery() {
         nwords.domain(d3.extent(totals))
         nwords.nice()
 
-        $("#max_x").text(' maximum value: ' + Math.round( 100*1000000*colors.domain()[2],2)/100 );
-
-
-
-        //paperdiv.selectAll('circle').remove()                                                                                                                     
-	
         paperdata.sort(function(a,b) {return(b.TotalWords-a.TotalWords)} );
 
         var mypoints = paperdiv.selectAll('circle')
             .data(paperdata,function(d) {return(d.paperid)});
-
 
         mypoints
             .enter()
@@ -70,6 +63,8 @@ function mapQuery() {
                 searchTemplate['search_limits']['lng'] = [d.lng]
                 searchWindow(searchTemplate)
             });
+
+	mypoints.exit().transition().duration(5500).attr('r','0')
 
         mypoints
             .attr('transform',function(d) {
@@ -87,7 +82,7 @@ function mapQuery() {
                 else {return(colorscale(d.WordCount/d.TotalWords))}
             })
 
-        mypoints.exit().transition(1000).remove()
+ 
         makeFillLegend();
         makeSizeLegend();
     });
