@@ -61,8 +61,13 @@ function mapQuery() {
 
             paperdata.sort(function(a,b) {return(b[sizeVariable]-a[sizeVariable])} );
 
+	    paperdata.filter(function(d){
+		return (d.WordCount > 0 & d.lat!=0)
+	    })
+
             var mypoints = paperdiv.selectAll('circle')
                 .data(paperdata,function(d) {return([d.lat,d.lng])});
+
 
             mypoints
                 .enter()
@@ -91,6 +96,9 @@ function mapQuery() {
                     if (comparisontype()=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
                     else {return(colorscale(d.WordCount/d.TotalWords*1000000))}
                 })
+	    
+	    //got to get rid of the old titles if using append: probably there's a better way.
+	    mypoints.selectAll('title').remove()
 
 	    mypoints.append("svg:title")
                 .text(function(d) {return ('Click to read texts from here\n (' +prettyName(d.WordCount) + ' occurences out of ' + prettyName(d.TotalWords) + ' total words)')})
