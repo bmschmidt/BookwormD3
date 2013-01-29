@@ -118,6 +118,8 @@ var APIbox = d3.selectAll('#chart')
 	wordBox.update()
     })
 
+
+//Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
 var wordBox= d3.select('#topSelectors')
     .append('input')
     .attr('id','wordBox')
@@ -209,9 +211,9 @@ pointSelector.enter()
     .text(function(d) {return(d.text)})
 
 //var scaleTypeSelector = $('<div />').attr('id','scaleTypeSelector').appendTo(lastOptions);
-scaleTypes = [{"text":'Logarithmic','value':"log"},
-              {'text':'Square root','value':"sqrt"},
-              {'text':'Linear','value':"linear"}]
+scaleTypes = [{'text':'Linear','value':"linear"},
+	      {"text":'Logarithmic','value':"log"}]
+
 
 scaleSelector = d3.select("#lastOptions")
     .append('select')
@@ -346,10 +348,7 @@ removeElements = function() {
     vals = ['rect','text','path','circle'].map(function(type) {svg.selectAll(type).transition().remove()})
 }
 
-
-// Make the d3 scales
-
-//colors = d3.scale.sqrt().range(["rgb(254,249,240)","rgb(246,188,91)","rgb(209,35,11)"])
+filter = svg.append("svg:defs").append("svg:filter").attr("id", "blur").append("svg:feGaussianBlur").attr("stdDeviation", 0);
 
 //I like this pallette--I think we usually need two tones to really discriminate,
 //even though dataviz wisdom seems to say that's not kosher.
@@ -365,6 +364,7 @@ returnScale = function() {
     function my() {
         scale = scaleType().range(colors)
         numbers = d3.extent(values)
+
         //If we're using a log scale, the minimum can't be zero. So it's 0.1
         if (scaleType==d3.scale.log) {
             numbers[0] = d3.max([(1/101),d3.min(values)])

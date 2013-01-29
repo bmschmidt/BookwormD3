@@ -3,7 +3,7 @@ var testing;
 function heatMapFactory() {
     var limits = {'x':[100,900],'y':[75,690]}
     var myQuery = query
-    var colorScaler = returnScale()
+    var colorScaler = returnScale().scaleType(d3.scale.linear)
     var sizeScaler  = returnScale()
 
     function my() {
@@ -16,6 +16,7 @@ function heatMapFactory() {
 	    xaxis.selectAll('text').remove()
 	    yaxis.selectAll('text').remove()
 	}
+	paperdiv.selectAll('title').remove()
 
         updateQuery()
 
@@ -28,7 +29,7 @@ function heatMapFactory() {
         group1 = myQuery['groups'][0]
         group2 = myQuery['groups'][1]
 
-        colorScaler = returnScale()
+//        colorScaler = returnScale().scaleType(d3
 
         // load in the data
         d3.json(webpath,function(json) {
@@ -162,10 +163,13 @@ function heatMapFactory() {
 		.data(paperdata,function(d) {
 		    return(d.key)
                 })
-	    
+
             gridPoint
 	        .enter()
                 .append('rect')
+		.attr('opacity',0)
+
+	    gridPoint
                 .on('click',function(d) {
                     searchTemplate = JSON.parse(JSON.stringify(myQuery))
                     searchTemplate['search_limits'][group2] = [d[group2]]
@@ -174,7 +178,7 @@ function heatMapFactory() {
                 })
 
 	    gridPoint
-                .attr('opacity','0')
+//                .attr('opacity','0')
                 .attr('stroke-width',0)
                 .attr('stroke','black')
                 .attr('onmouseover', "evt.target.setAttribute('stroke-width','2');")
@@ -191,14 +195,18 @@ function heatMapFactory() {
                 .attr('fill',function(d) {
                     if (comparisontype()=='comparison') {
                         color = colorscale(d.WordCount/d.CompareWords)}
-                    else {color = colorscale(d.WordCount/d.TotalWords*1000000)}
+                    else {
+			color = colorscale(d.WordCount/d.TotalWords*1000000);
+			if (d.WordCount==0) {color='#393939'}
+		    }
 		    if (color=="#000000") {color='#393939'}
+
 		    return color;
 		})
 
             gridPoint
                 .append("svg:title")
-                .text(function(d) { return ('Click for texts (value is ' + Math.round(d.WordCount/d.TotalWords*1000000*100)/100) + ')'});
+                .text(function(d) { return ('Click for texts \n' + prettyName(d.WordCount) + ' occurrences out of ' + prettyName(d.TotalWords) + ' words (' + Math.round(d.WordCount/d.TotalWords*1000000*100)/100 + ' per million)')});
 	    
 
             a = fillLegendMaker(colorscale).yrange(limits.y)
