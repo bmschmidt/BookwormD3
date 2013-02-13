@@ -1,9 +1,12 @@
 var testing;
+var yAxis;
+var xAxis;
+var x,y;
 
 function heatMapFactory() {
     var limits = {'x':[100,900],'y':[75,690]}
     var myQuery = query
-    var colorScaler = returnScale()
+    var colorScaler = returnScale().scaleType(d3.scale.linear)
     var sizeScaler  = returnScale()
 
     function my() {
@@ -17,6 +20,8 @@ function heatMapFactory() {
 	    yaxis.selectAll('text').remove()
 	}
 
+	paperdiv.selectAll('title').remove()
+
         updateQuery()
 
 	myQuery=query
@@ -28,12 +33,12 @@ function heatMapFactory() {
         group1 = myQuery['groups'][0]
         group2 = myQuery['groups'][1]
 
-        colorScaler = returnScale()
-
         // load in the data
         d3.json(webpath,function(json) {
+
             paperdata = parseBookwormData(json,myQuery);
 
+	    
             //Frequency stats are calculated from raw data here.
             if (comparisontype()=='comparison') {
                 // This probably isn't the best place to do this: what is?
@@ -42,17 +47,28 @@ function heatMapFactory() {
 	    
             nwords.nice()
 
-	    scaleAndTicks = function(axis) {
+	    scaleAndAxis = function(axis) {
+		//Should be renamed: now it just returns a scale.
 		pos=0; if (axis=='y') {pos=1}
 		variableName = myQuery['groups'][pos]
-		vals = d3.nest().key(function(d) {return(d[myQuery['groups'][pos]]);}).entries(paperdata).map(function(d) {return(d.key)})
+
+		vals = d3.nest().key(function(d) {return d[variableName] }).entries(paperdata).map(function(d) {
+		    return(plotTransformers[variableName](d.key))})
+
+		//if (paperdata[0][myQuery['groups'][pos]] instanceof Date) {
+		//    vals = vals.map(function(d) {return new Date(d)})
+		//}
 		
-		numeric = !d3.sum(vals.map(function(d) {return (isNaN(d) & d!="" & d!="None")}))
+		//datatype = function() {
+		//    if (vals[1] instanceof Date) {return "Date"}
+		//    if (!d3.sum(vals.map(function(d) {return (isNaN(d) & d!="" & d!="None")}))) {return ("Numeric")}
+		//    return("Categorical")
+		//}()
+		datatype = dataTypes[variableName]
 
-		if (!numeric) {
-		    console.log(axis + " is not numeric")
+		if (datatype=="Categorical") {
+		    console.log(axis + " is categorical")
 		    names = topn(50,variableName,paperdata)
-
 		    paperdata = paperdata.filter(function(entry) {
 			return(names.indexOf(entry[variableName]) > -1)
 		    })
@@ -61,9 +77,13 @@ function heatMapFactory() {
 		    vals = names
 		    scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
 		    pointsToLabel = vals
+		    thisAxis = d3.svg.axis()
+			.scale(scale)
+		    
 		}
+
 		
-		if (numeric) {
+		if (datatype=="Numeric") {
 		    console.log(axis + " is numeric")
 		    vals = vals.map(function(d) {return parseFloat(d)})
 		    if (axis=='x') {
@@ -73,86 +93,65 @@ function heatMapFactory() {
 		    if (axis=='y') {
 			vals.sort(function(a,b){return(b-a)})
 		    }
-
-		    scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
-
-		    pointsToLabel = d3.scale.linear().domain(d3.extent(vals)).ticks(10)
-
+		    //scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
+		    scale = d3.scale.linear().domain(d3.extent(vals)).range(limits[axis])
+		    thisAxis = d3.svg.axis()
+			.scale(scale)
+			.tickFormat(d3.format('g'))
+			.tickSubdivide(4)
 		}
 
-		checkLabel = function(d) {
-		    if (pointsToLabel.indexOf(d)>-1) {return d}; return "";
-		},
-		legendData = vals.map(function(d) {
-		    val = {
-			'label':checkLabel(d),
-			'x' : limits['x'][1],
-			'y' : limits['y'][0]
-		    } //overwrite the variable one.
-		    val[axis] = scale(d)
-		    if (axis=='y') {val[axis] = val[axis] + scale.rangeBand()*.5}		    
-		    if (axis=='x') {val[axis] = val[axis] + scale.rangeBand()*.5}		    
+		if (datatype=="Date") {
+		    console.log(axis + " is date")
+		    if (axis=='x') {
+			vals.sort(function(a,b){return(a-b)})
+			testing = vals
+		    }
+		    if (axis=='y') {
+			vals.sort(function(a,b){return(b-a)})
+		    }
+		    scale = d3.time.scale().domain(d3.extent(vals)).range(limits[axis])
+		    thisAxis = d3.svg.axis()
+			.scale(scale)
+			.tickSubdivide(4)
+		}
 
-		    return val
-		})
-		
-		return({'scale' : scale,'legendData' : legendData})
+		scale.pixels = (limits[axis][1]-limits[axis][0])/vals.length;
+		return({"scale":scale,"axis":thisAxis})		
 	    }
 
 
-
-	    xstuff = scaleAndTicks('x')
+	    
+	    xstuff = scaleAndAxis('x')
+	    xAxis = xstuff.axis.orient("top")
 	    x = xstuff.scale
-	    xlegendData = xstuff.legendData
 
-
-
-	    ystuff = scaleAndTicks('y')
+	    ystuff = scaleAndAxis('y')
+	    yAxis = ystuff.axis.orient("right")
 	    y = ystuff.scale
-	    ylegendData = ystuff.legendData
 
+	    //yaxis
+	    d3.selectAll('#y-axis').remove()
+	    svg.append("g")
+		.attr('id','y-axis')
+		.call(yAxis)
+		.attr("class","axis") // note new class name
+		.attr("transform","translate(" + (x.pixels+limits['x'][1])  +",0)") 
 
-// label the y legend	    
-            ypoints = yaxis.selectAll('text').data(ylegendData,function(d) {
-		return(d.label)
-	    })
-
-            ypoints
-                .enter()
-                .append('text')
-                .attr('fill','white')
-                .attr('x',function(d) {return(d.x)})
-                .attr('y',function(d) {return(d.y+7)})
-                .attr("font-family", "sans-serif")
-                .attr("font-size", "13px")
-                .text(function(d) {return(d.label)})
-
-	    ypoints.exit().remove()
-
-	 //label the x legend
-            xpoints = xaxis
-                .selectAll('text')
-                .data(xlegendData)
-	    xpoints.exit().remove()
-            xpoints
-                .enter()
-                .append('text')
-                .attr('fill','white')
-                .attr('x',function(d) {return(d.x)})
-                .attr('y',function(d) {return(d.y-2)})
-		.attr("text-anchor", "middle")
-                .attr("font-family", "sans-serif")
-                .attr("font-size", "13px")
-                .attr("fill", "white")
-                .text(function(d) {return(d.label)})
-
+	    //x-axis
+	    d3.selectAll('#x-axis').remove()
+	    
+	    svg.append("g")
+		.attr('id','x-axis')
+		.call(xAxis)
+		.attr("class","axis") // note new class name
+		.attr("transform","translate("+x.pixels/2+"," + (limits['y'][0])  +")") 
 
 	    //Key the data against the actual interaction it is, so transitions will work.
 	    paperdata = paperdata.map(function(d) {
 		d.key = d[myQuery['groups'][0]] + d[myQuery['groups'][1]]
 		return(d)
 	    })
-
             values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords*1000000)});
             totals = paperdata.map(function(d) {return(d.TotalWords)});
 	    
@@ -162,43 +161,49 @@ function heatMapFactory() {
 		.data(paperdata,function(d) {
 		    return(d.key)
                 })
-	    
+
             gridPoint
 	        .enter()
                 .append('rect')
+		.attr('opacity',0)
+
+	    gridPoint
                 .on('click',function(d) {
                     searchTemplate = JSON.parse(JSON.stringify(myQuery))
                     searchTemplate['search_limits'][group2] = [d[group2]]
                     searchTemplate['search_limits'][group1] = [d[group1]]
                     searchWindow(searchTemplate)
                 })
-
+	    xVariable = myQuery['groups'][0]
+	    yVariable = myQuery['groups'][1]
 	    gridPoint
-                .attr('opacity','0')
                 .attr('stroke-width',0)
                 .attr('stroke','black')
                 .attr('onmouseover', "evt.target.setAttribute('stroke-width','2');")
                 .attr('onmouseout',  "evt.target.setAttribute('stroke-width','0');")
-                .attr('x',function(d) {return(x(d[myQuery['groups'][0]]))})
-                .attr('y',function(d) {return(y(d[myQuery['groups'][1]]))})
-
-                .attr('height', y.rangeBand()*.985)
-                .attr('width', x.rangeBand()*.985)
-
+                .attr('x',function(d) {return x(plotTransformers[xVariable](d[xVariable]))})
+                .attr('y',function(d) {return Math.round(y(plotTransformers[yVariable](d[yVariable])))})
+	    
+                .attr('height', y.pixels)
+                .attr('width', x.pixels)
                 .transition()
                 .duration(2500)
                 .attr('opacity','1')
                 .attr('fill',function(d) {
                     if (comparisontype()=='comparison') {
                         color = colorscale(d.WordCount/d.CompareWords)}
-                    else {color = colorscale(d.WordCount/d.TotalWords*1000000)}
+                    else {
+			color = colorscale(d.WordCount/d.TotalWords*1000000);
+			if (d.WordCount==0) {color='#393939'}
+		    }
 		    if (color=="#000000") {color='#393939'}
+
 		    return color;
 		})
 
             gridPoint
                 .append("svg:title")
-                .text(function(d) { return ('Click for texts (value is ' + Math.round(d.WordCount/d.TotalWords*1000000*100)/100) + ')'});
+                .text(function(d) { return ('Click for texts \n' + prettyName(d.WordCount) + ' occurrences out of ' + prettyName(d.TotalWords) + ' words (' + Math.round(d.WordCount/d.TotalWords*1000000*100)/100 + ' per million)')});
 	    
 
             a = fillLegendMaker(colorscale).yrange(limits.y)

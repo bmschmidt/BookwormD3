@@ -1,4 +1,3 @@
-
 fillLegendMaker = function(colorscale) {
     var yrange = [75,500]
     colorticks = colorscale.ticks(15);
@@ -11,64 +10,60 @@ fillLegendMaker = function(colorscale) {
     colorlabels = colorLegend.selectAll('text')
 
     function my() {
-	colorLegend.selectAll().remove()
-
-	var data1 = d3.range(50);
-
-	//because I'm doing some non-Kosher multi-element color scales, I'm getting a little ugly here.
+	var data1 = d3.range(yrange[0],yrange[1]);
 
 	scaleRects = colorLegend.selectAll("rect")
-	    .data(data1);
+	    .data(data1,function(d){return(d)});
 
-	colorScaleLength = colorscale.domain().length
-	
-	singularize = d3.scale.linear()
-	    .range([d3.min(data1), d3.max(data1)])
-	    .domain([0,colorScaleLength])
-	
-	var colorScale = d3.scale.linear()
-	    .domain(d3.range(colorScaleLength).map(function(n) {return singularize(n)} ))
-	    .range(colorscale.range());
-
-	var colorAxisScale = d3.scale.linear()
-	    .range(yrange)
-	    .domain(d3.extent(data1))
+	legendScale=colorscale.copy()
+	legendScale.range(d3.range(yrange[0],yrange[1]+1,by=(yrange[1]-yrange[0])/(legendScale.domain().length-1)))
 
 	scaleRects.enter()
 	    .append("rect")
 	    .attr({
 		width: width,
-		height: (yrange[1]-yrange[0])/data1.length + 1,
-		y: function(d) { return colorAxisScale(d)},
+		height:1,
+		y: function(d) { return d},//return colorAxisScale(d)},
 		x: xpos,
 		fill: function(d) {
-		    return colorScale(d);
+		    return colorscale(legendScale.invert(d));
 		}
 	    })
-	
-        colorlabels.remove()
 
-	nticks = 18
+	scaleRects.exit().remove()
 
-	//the smoother sometimes mixes things up on you.
-	nticks = colorscale.ticks(nticks).length
+	//'formatter' pretties the name, and drops certain ticks for 
+	// a log scale.
+	function formatter(d) {
+	    var x = Math.log(d) / Math.log(10) + 1e-6;
+	    return Math.abs(x - Math.floor(x)) < .7 ? prettyName(d) : "";
+	}
+	if ($('#scaleType').val() != "log") {
+	    formatter=prettyName
+	}
+	d3.selectAll("#color-axis").remove()
+	colorAxis = d3.svg.axis().scale(legendScale).orient("right").tickFormat(formatter)
+	svg.append("g")
+            .attr('id','color-axis')
+            .call(colorAxis)
+            .attr("class","axis") // note new class name
+	    .attr("transform","translate (" + (xpos + width) + ",0)") 
 
-	var colorAxisScale = d3.scale.linear()
-	    .domain([0,nticks-1])
-	    .range([yrange[0]+5,yrange[1]-5])
+//	colorLegend.selectAll('text').remove()
+//	colorlabels = colorLegend.selectAll('text')
+//	    .data(legendScale.ticks(12).map(function(d) {
+//		asObject= {"value":formatter(d),"number":d};
+//		return(asObject)}  ))
+//
+//        colorlabels.enter().append('text')
+//	    .attr('y',function(d) {
+//		return legendScale(d.number)+5})
+  //          .attr('x', xpos + width +2)
+//	    .attr('dy',	  '0.5ex')
+//	    .attr("text-anchor", "left")
+  //          .attr('fill','white')
+    //        .text(function(d) {return d.value })
 
-	//I'm clearly not getting something here.
-	colorlabels = colorLegend.selectAll('text').data(d3.range(nticks))
-
-        colorlabels.enter().append('text')
-	    .attr('y',function(d) {return colorAxisScale(d)})
-            .attr('x', xpos + width +2)
-	    .attr('dy',	  '0.5ex')
-	    .attr("text-anchor", "left")
-            .attr('fill','white')
-            .text(function(d) {return(prettyName(colorscale.ticks(nticks)[d]))})
-
-	
         text1 = "Usage of '" + query['search_limits']['word'][0] + "'" +   " per Million Words"
         if (comparisontype()=='comparison') {
             text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
@@ -81,7 +76,6 @@ fillLegendMaker = function(colorscale) {
         yrange = value;
         return my;
     };
-
 
     return my
 }
@@ -156,11 +150,9 @@ makeSizeLegend = function() {
 
 
 sizeLegendMaker = function(originScale) {
-    
     thisLegend = sizeLegend
     yrange = [100,450]
     xpos  = 1500-100
-    
     //an ugly way to return evenly spaced values by the size of the circles, not by the size of the corresponding value.
     myticks = d3.scale.linear().domain(originScale.range()).ticks(6).map(function(n) {return originScale.invert(n)})
 
@@ -189,8 +181,11 @@ sizeLegendMaker = function(originScale) {
 	
         thisLegend.points.remove()
         thisLegend.points = thisLegend.selectAll('circle').data(thisLegend.data,function(d) {return(d.y)})
+
         thisLegend.points.enter()
             .append('circle')
+
+	thisLegend.points
             .attr('y',function(d) {return(d.y)})
             .attr('cy',function(d) {return(d.y)})
                .attr('height',thisLegend.boxheight)
