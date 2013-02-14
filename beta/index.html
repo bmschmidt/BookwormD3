@@ -348,7 +348,9 @@ removeElements = function() {
     vals = ['rect','text','path','circle'].map(function(type) {svg.selectAll(type).transition().remove()})
 }
 
-filter = svg.append("svg:defs").append("svg:filter").attr("id", "blur").append("svg:feGaussianBlur").attr("stdDeviation", 0);
+
+//A gaussian filter fails under firefox
+//filter = svg.append("svg:defs").append("svg:filter").attr("id", "blur").append("svg:feGaussianBlur").attr("stdDeviation", 0);
 
 //I like this pallette--I think we usually need two tones to really discriminate,
 //even though dataviz wisdom seems to say that's not kosher.
@@ -481,6 +483,8 @@ function parseBookwormData(json,locQuery) {
 
 
 
+
+///NOT ACTIVATED
 function changeWord() {
 
     // The idea here is that we can have a dynamic title option that prompts you for new values when you click on it.
@@ -513,6 +517,7 @@ function changeWord() {
 
 
 function comparisontype() {
+    //This just tells various functions whether it's using a log scale centered around 1 (for comparisons between two words) or some other type of scale.
     //Maybe this function should also match up constraints between the two?
     //There are some differences in the legends and the titles depending if we're comparing to all
     //books or to certain ones. This should be useful for that.

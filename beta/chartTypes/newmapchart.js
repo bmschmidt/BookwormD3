@@ -12,13 +12,13 @@ function mapQuery() {
     var sizeVariable = 'WordCount'
 
     function mapTransition() {
-        paperdiv.selectAll('text').attr('filter','url(#blur)')
-        filter.transition().duration(2500).attr('stdDeviation',8)
-        //        paperdiv.selectAll('circle')
-        //            .transition()
-        //            .duration(4500)
-        //            .attr('r',2)
-        //            .attr('fill','white');
+//        paperdiv.selectAll('text').attr('filter','url(#blur)')
+//        filter.transition().duration(2500).attr('stdDeviation',8)
+                paperdiv.selectAll('circle')
+                    .transition()
+                    .duration(4500)
+                    .attr('r',2)
+                    .attr('fill','white');
     }
 
     function updateChart() {
@@ -27,7 +27,7 @@ function mapQuery() {
         var mypoints = paperdiv.selectAll('circle')
             .data(paperdata,function(d) {return([d.lat,d.lng])});
 	
-        filter.transition().duration(750).attr('stdDeviation',0)
+        //filter.transition().duration(750).attr('stdDeviation',0)
 	
         mypoints
             .enter()
@@ -68,7 +68,7 @@ function mapQuery() {
         fillLegend()
 	
         makeSizeLegend();
-        svg.selectAll('text').attr('filter','url(#blur)')
+        //svg.selectAll('text').attr('filter','url(#blur)')
     }
     
     my.updateChart=updateChart
