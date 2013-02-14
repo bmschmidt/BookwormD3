@@ -98,7 +98,7 @@ function heatMapFactory() {
 		    thisAxis = d3.svg.axis()
 			.scale(scale)
 			.tickFormat(d3.format('g'))
-			.tickSubdivide(4)
+			.tickSubdivide(1)
 		}
 
 		if (datatype=="Date") {
@@ -113,7 +113,7 @@ function heatMapFactory() {
 		    scale = d3.time.scale().domain(d3.extent(vals)).range(limits[axis])
 		    thisAxis = d3.svg.axis()
 			.scale(scale)
-			.tickSubdivide(4)
+			.tickSubdivide(1)
 		}
 
 		scale.pixels = (limits[axis][1]-limits[axis][0])/vals.length;
@@ -179,8 +179,17 @@ function heatMapFactory() {
 	    gridPoint
                 .attr('stroke-width',0)
                 .attr('stroke','black')
-                .attr('onmouseover', "evt.target.setAttribute('stroke-width','2');")
-                .attr('onmouseout',  "evt.target.setAttribute('stroke-width','0');")
+//                .attr('onmouseover', function(d) {return "evt.target.setAttribute('stroke-width','2');" + "colorLegendPointer.transition().duration(500).attr('opacity',1).attr('transform','translate(0,legendScale(' + d.WordCount/d.TotalWords*1000000+ '))')"})
+		.on("mouseover",function(d) {
+		    this.setAttribute('stroke-width','2');
+		    updatePointer(d.WordCount/d.TotalWords*1000000)
+//		    colorLegendPointer.transition().duration(750).attr('opacity',1).attr('transform',"translate(0," + legendScale(d.WordCount/d.TotalWords*1000000)+ ')')
+		})
+		.on('mouseout',function(d) {
+		    this.setAttribute('stroke-width',0);
+		    colorLegendPointer.transition().duration(2500).attr('opacity',0)
+		})
+	    //                .attr('onmouseout',  "evt.target.setAttribute('stroke-width','0');")
                 .attr('x',function(d) {return x(plotTransformers[xVariable](d[xVariable]))})
                 .attr('y',function(d) {return Math.round(y(plotTransformers[yVariable](d[yVariable])))})
 	    

@@ -1,3 +1,5 @@
+var colorLegendPointer,updatePointer,legendScale = d3.scale.linear();
+
 fillLegendMaker = function(colorscale) {
     var yrange = [75,500]
     colorticks = colorscale.ticks(15);
@@ -10,8 +12,9 @@ fillLegendMaker = function(colorscale) {
     colorlabels = colorLegend.selectAll('text')
 
     function my() {
-	var data1 = d3.range(yrange[0],yrange[1]);
 
+	var data1 = d3.range(yrange[0],yrange[1]);
+	
 	scaleRects = colorLegend.selectAll("rect")
 	    .data(data1,function(d){return(d)});
 
@@ -49,26 +52,35 @@ fillLegendMaker = function(colorscale) {
             .attr("class","axis") // note new class name
 	    .attr("transform","translate (" + (xpos + width) + ",0)") 
 
-//	colorLegend.selectAll('text').remove()
-//	colorlabels = colorLegend.selectAll('text')
-//	    .data(legendScale.ticks(12).map(function(d) {
-//		asObject= {"value":formatter(d),"number":d};
-//		return(asObject)}  ))
-//
-//        colorlabels.enter().append('text')
-//	    .attr('y',function(d) {
-//		return legendScale(d.number)+5})
-  //          .attr('x', xpos + width +2)
-//	    .attr('dy',	  '0.5ex')
-//	    .attr("text-anchor", "left")
-  //          .attr('fill','white')
-    //        .text(function(d) {return d.value })
-
+	colorLegend.selectAll('text').remove()
         text1 = "Usage of '" + query['search_limits']['word'][0] + "'" +   " per Million Words"
+
         if (comparisontype()=='comparison') {
             text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
         }
         colorLegend.append('text').attr('x',xpos+375).attr('y',yrange[0]-25).text(text1).attr('fill','white').attr('font-size',35).attr('font-family',"Arial")
+
+	//set up pointer
+	d3.selectAll('#pointer').remove()
+
+
+	colorLegendPointer = colorLegend
+	    .append('path')
+	    .attr('id','pointer')
+	    .attr('d', function(d) { 
+		var y = 0, x = xpos+width-14;
+		return 'M ' + x +' '+ y + ' l 14 14 l -14 14 z';
+	    })
+	    .attr('fill','grey')
+	    .attr("transform","translate(0," + 200 + ")") //can start wherever
+	    .attr("opacity","0") //Start invisible: mouseover events will turn it on.
+	updatePointer=function(inputNumbers) {
+	    colorLegendPointer
+		.transition()
+		.duration(750)
+		.attr('opacity',1)
+		.attr('transform',"translate(0," + (legendScale(inputNumbers) -14)+ ')')
+	}
     }
     
     my.yrange = function(value) {

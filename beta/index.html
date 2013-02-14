@@ -112,7 +112,7 @@ if(window.location.hash) {
 
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
-var APIbox = d3.selectAll('#chart')
+var APIbox = d3.select('#chart')
     .append('input')
     .attr('id','APIbox')
     .attr('type', String)
@@ -203,8 +203,6 @@ $('<button />').text('Heatgrid chart').click(function(){
 }).appendTo(executeButtons);
 
 var lastOptions = $('<div />');
-
-
 
 //The types of maps are just coded in.
 mapOptions = [{"text":'USA','value':"USA"},
@@ -528,19 +526,22 @@ updateKeysTransformer = function(key) {
         }
         dataTypes[key]="Date"
         return
+	
     }
 
     //if numeric: return a numeric object
     //iterate through all the values, and give up once hitting a non-numeric value
-    for (var i =0; i >= paperdata.length; i++) {
-	d = paperdata[i]
-        d = d[key]
+    for (var i =0; i < paperdata.length; i++) {
+	entry = paperdata[i]
+        d = entry[key]
+	//console.log(d)
         if (isNaN(d) & d!="" & d!="None") {
 	    console.log("giving up on" + d)
 	    return
+	    break
 	}
     }
-
+    
     plotTransformers[key] = function(originalValue) {
         return parseFloat(originalValue)
     }
