@@ -12,21 +12,21 @@
 
     <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
-    
+
     <script type="text/javascript" src="searchWindow.js"></script>
     <script type="text/javascript" src="chartTypes/newmapchart.js"></script>
     <script type="text/javascript" src="chartTypes/heatMap.js"></script>
     <script type="text/javascript" src="legends.js"></script>
     <script type="text/javascript">
-</script>
+    </script>
     </head>
 
     <body>
     <div id="topSelectors"></div>
     <label for="amount">Year:</label>
     <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
-    
-    </script>
+
+</script>
     <div id="slider-range" width=400></div>
     <div id="chart"></div>
     <div id="bottomBoxes"></div>
@@ -35,9 +35,12 @@
 
 
     <script type="text/javascript">
-    
+
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
-//This is the cardinal rule of the architecture here: absolutely any state must draw from and update the query variable.
+//This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable.
+//If anyone violates this rule...
+
+var query = {};
 
 var defaultQuery = {
     "method":"return_json",
@@ -87,7 +90,7 @@ var projection = {"mapname":"none"}
 var stateItems;
 
 // Prepare the paper points.
-// These variables should be renamed for clarity: 'paper' refers to newspapers, for historical reasons.
+// These variables should be renamed for clarity: 'paper' refers to newspapers, for legacy reasons.
 var paperdata = [];
 
 var paperpoints = paperdiv
@@ -97,40 +100,47 @@ var paperpoints = paperdiv
 var gridRects = paperdiv
     .selectAll('rect')
 
+
+//Pull query from hash location iff supplied
 if(window.location.hash) {
     var hash = window.location.hash.substring(1);
     decoded = decodeURIComponent(hash)
     query =  JSON.parse(decoded)
 } else {
-    var query = defaultQuery
+    query = defaultQuery
 }
 
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
-var APIbox = d3.selectAll('#chart')
+var APIbox = d3.select('#chart')
     .append('input')
     .attr('id','APIbox')
     .attr('type', String)
     .attr('value', JSON.stringify(query))
     .attr('style', 'width: 1400px;')
     .on('keyup',function() {
-	query = JSON.parse(d3.select("#APIbox").property('value'));
-	wordBox.update()
+        query = JSON.parse(d3.select("#APIbox").property('value'));
+        wordBox.update()
     })
 
 
 //Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
+
 var wordBox= d3.select('#topSelectors')
     .append('input')
     .attr('id','wordBox')
     .attr('type', String)
-    .attr('value', query['search_limits']['word'][0])
     .attr('style', 'width: 350px;')
     .on('keyup',function() {
-	query['search_limits']['word'][0] = d3.select("#wordBox").property('value');
-	APIbox.update()
+        query['search_limits']['word'][0] = d3.select("#wordBox").property('value');
+        APIbox.update()
     });
 
+try {
+    wordBox.attr('value', query['search_limits']['word'][0])
+} catch (e) {
+    wordBox.attr('value',"")
+}
 wordBox.update=function() {
     d3.select('#wordBox').property('value',function() {return query['search_limits']['word'][0]});
 }
@@ -146,37 +156,37 @@ APIbox.update = function() {
 }
 
 $(function() {
-	$( "#slider-range" ).slider({
-	    id:"timeSelector",
-	    range: true,
-	    min: 1800,
-	    max: 2000,
-	    values: [query.search_limits[yearValue]['$gte'], query.search_limits[yearValue]['$lte']],
-	    slide: function( event, ui ) {
-	    },
-	    change: function(event,ui) {
-		$( "#amount" ).val( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
-		query.search_limits[yearValue]['$gte'] = ui.values[0]
-		query.search_limits[yearValue]['$lte'] = ui.values[1]
-		APIbox.update()
-	    }
-	    
-	});
-	$( "#amount" ).val( $( "#slider-range" ).slider( "values", 0 ) +
-			    " - " + $( "#slider-range" ).slider( "values", 1 ) );
+    $( "#slider-range" ).slider({
+        id:"timeSelector",
+        range: true,
+        min: 1800,
+        max: 2000,
+        values: [query.search_limits[yearValue]['$gte'], query.search_limits[yearValue]['$lte']],
+        slide: function( event, ui ) {
+        },
+        change: function(event,ui) {
+            $( "#amount" ).val( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+            query.search_limits[yearValue]['$gte'] = ui.values[0]
+            query.search_limits[yearValue]['$lte'] = ui.values[1]
+            APIbox.update()
+        }
+
     });
+    $( "#amount" ).val( $( "#slider-range" ).slider( "values", 0 ) +
+                        " - " + $( "#slider-range" ).slider( "values", 1 ) );
+});
 
 advanceSlider = function(step) {
-	if (step==null) {step=10}
-	current = $('#slider-range').slider('values'); 
-	range = current[1]-current[0];
-	$('#slider-range').slider('values',[current[0]+step,current[1]+step]);
-	currentPlot();
+    if (step==null) {step=10}
+    current = $('#slider-range').slider('values');
+    range = current[1]-current[0];
+    $('#slider-range').slider('values',[current[0]+step,current[1]+step]);
+    currentPlot();
 }
 
 myPlot = function() {
     if (query.plotType=='heatMap') {return heatMapFactory() }
-    if (query.plotType=='map') {return mapQuery()} 
+    if (query.plotType=='map') {return mapQuery()}
 }
 
 var executeButtons = $('<div />');
@@ -194,8 +204,6 @@ $('<button />').text('Heatgrid chart').click(function(){
 
 var lastOptions = $('<div />');
 
-
-
 //The types of maps are just coded in.
 mapOptions = [{"text":'USA','value':"USA"},
               {'text':'World','value':"World"},
@@ -212,7 +220,7 @@ pointSelector.enter()
 
 //var scaleTypeSelector = $('<div />').attr('id','scaleTypeSelector').appendTo(lastOptions);
 scaleTypes = [{'text':'Linear','value':"linear"},
-	      {"text":'Logarithmic','value':"log"}]
+              {"text":'Logarithmic','value':"log"}]
 
 
 scaleSelector = d3.select("#lastOptions")
@@ -296,13 +304,13 @@ drawMap = function (mapname) {
         }
 
         if (mapname=="Asia") {
-	    projection = d3.geo.azimuthalEqualArea()
+            projection = d3.geo.azimuthalEqualArea()
                 .scale([300])
                 .center([0,0])
                 .translate([700,350])
                 .rotate([0,0,0])
         }
-	
+
         if (mapname=="Europe") {
             projection = d3.geo.albers()
                 .center([45,45])
@@ -386,7 +394,7 @@ returnScale = function() {
         } else if (scaleType==d3.scale.linear) {
             scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n)}))
         }
-	scale.clamp()
+        scale.clamp()
         return (scale)
     }
 
@@ -448,7 +456,7 @@ function parseBookwormData(json,locQuery) {
             }
             else {
                 vals = flatten(hash[key],newpend)
-		//is this doing anything different from return (vals)?
+                //is this doing anything different from return (vals)?
                 return(
                     vals.map(function(array) {
                         return(array)
@@ -478,9 +486,69 @@ function parseBookwormData(json,locQuery) {
     results = flat.map(function(localdata){
         return(toObject(names,localdata));
     })
+    paperdata = results
+    
+    d3.keys(results[0]).map(function(key) {
+	updateKeysTransformer(key)
+    })
     return(results)
 }
 
+//Have to keep the data the same for subsequent calls, but this will transform them
+plotTransformers = {};
+dataTypes = {};
+
+updateKeysTransformer = function(key) {
+    //This is called for its side-effect: assigning a function to each key in plotTransformers
+    //default: return as is.
+    plotTransformers[key] = function(key) {return(key)}
+    dataTypes[key]="Categorical"
+    //if a date: return a dateTime object
+    isADate = false
+    key.split("_").map(function(part) {
+        if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(part) >=0) {isADate=true}
+    })
+
+    if (isADate) {
+        plotTransformers[key] = function(originalValue) {
+            datedValue = new Date()
+            extractRelevantField = function(dateKey) {
+                strings = dateKey.split("_")
+                if (strings.length>1) {return strings[1]}
+                return strings[0]
+            }
+            relevantField = extractRelevantField(key)
+            if (['month','day','week'].indexOf(relevantField) >=0) {
+                datedValue.setFullYear(0,0,originalValue)
+            } else {
+                datedValue.setFullYear(originalValue,1,1)
+            }
+	    return datedValue
+            //originalValue = datedValue
+        }
+        dataTypes[key]="Date"
+        return
+	
+    }
+
+    //if numeric: return a numeric object
+    //iterate through all the values, and give up once hitting a non-numeric value
+    for (var i =0; i < paperdata.length; i++) {
+	entry = paperdata[i]
+        d = entry[key]
+	//console.log(d)
+        if (isNaN(d) & d!="" & d!="None") {
+	    console.log("giving up on" + d)
+	    return
+	    break
+	}
+    }
+    
+    plotTransformers[key] = function(originalValue) {
+        return parseFloat(originalValue)
+    }
+    dataTypes[key]="Numeric"
+}
 
 
 
@@ -569,9 +637,9 @@ prettyName = function(number) {
             suffix = 'K'
             break;
         }
-	if (number < .1) {
+        if (number < .1) {
             return(Math.round(number*100)/100+suffix)
-	}
+        }
         return(Math.round(number*10)/10+suffix)
     }
     if (comparisontype()=='comparison') {

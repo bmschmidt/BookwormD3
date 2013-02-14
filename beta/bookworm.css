@@ -13,3 +13,14 @@ svg {
   stroke: #000;
   stroke-width: 1px;
 }
+
+.axis line,.axis path {
+    fill: none;
+    stroke: beige;
+    shape-rendering: crispEdges;
+}
+.axis text {
+    fill: white;
+    font-family: sans-serif;
+    font-size: 12px;
+}

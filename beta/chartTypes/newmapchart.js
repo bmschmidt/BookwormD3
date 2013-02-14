@@ -22,6 +22,8 @@ function mapQuery() {
     }
 
     function updateChart() {
+
+	paperdiv.selectAll('title').remove()
         paperdata.sort(function(a,b) {return(b[sizeVariable]-a[sizeVariable])} );
 	
         var mypoints = paperdiv.selectAll('circle')
@@ -58,7 +60,7 @@ function mapQuery() {
                 if (comparisontype()=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
                 else {return(colorscale(d.WordCount/d.TotalWords*1000000))}
             })
-
+	
         mypoints.append("svg:title")
             .text(function(d) {return ('Click to read texts from here\n (' +prettyName(d.WordCount) + ' occurences out of ' + prettyName(d.TotalWords) + ' total words)')})
 
@@ -99,7 +101,7 @@ function mapQuery() {
 
             nwords.domain(d3.extent(sizes))
                 .range([0,40])
-
+	    
             nwords.nice()
             updateChart()
         })
