@@ -27,8 +27,8 @@
     <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
 
 </script>
-    <div id="slider-range" width=400></div>
-    <div id="chart"></div>
+    <div id="slider-range" style="width:400"></div>
+    <div id="chart" class="maindiv"></div>
     <div id="bottomBoxes"></div>
     <div id="lastOptions"></div>
     <link type="text/css" rel="stylesheet" href="bookworm.css"/>
@@ -61,7 +61,7 @@ if (window.location.host=="melville.seas.harvard.edu") {
         "words_collation":"All_Words_with_Same_Stem",
         "groups":["lat","lng"],
         "database":"presidio",
-        "counttype":["WordCount","TotalWords"],
+        "counttype":["WordCount","TotalWords","WordsPerMillion"],
         "search_limits":{
             "year":{"$lte":1922,"$gte":1850},
             "word":["natural selection"]
@@ -70,11 +70,20 @@ if (window.location.host=="melville.seas.harvard.edu") {
     }
 }
 
+
 var lastPlotted="None"
+
+//Graphical Elements
+var w = window.innerWidth
+var h = window.innerHeight
 
 //Things for everywhere
 var svg = d3.select("#chart")
     .append("svg")
+    .attr('width',w)
+    .attr('height',h)
+
+var width = 'f'
 
 //These are the things to delete when a new chart is refreshed.
 //They contain the various aspects of the actual plot
@@ -83,7 +92,9 @@ var paperdiv = svg.append("g").attr("id","#paperdiv");
 var yaxis = svg.append("g").attr("id","#yaxis");
 var xaxis = svg.append("g").attr("id","#xaxis");
 var legend = svg.append('g').attr('id','#legend');
-var title = svg.append('g').attr('id','#title');
+var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
+var sizeLegend = legend.append('g').attr('id','sizeLegend').attr('transform','translate('+(w/25 + 100) +','+(h/5) + ')');
+var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 50  +')');
 
 // Things for the background map
 var projection = {"mapname":"none"}
@@ -110,6 +121,18 @@ if(window.location.hash) {
     query = defaultQuery
 }
 
+if (!('aesthetic' in query)) {
+    query['aesthetic']= {
+	"color":"WordsPerMillion",
+	"size":"WordCount",
+	"filterByTop":"WordCount"
+    }
+}
+
+var aesthetic = query['aesthetic'] //Just a shortcut
+
+
+
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 var APIbox = d3.select('#chart')
@@ -117,7 +140,7 @@ var APIbox = d3.select('#chart')
     .attr('id','APIbox')
     .attr('type', String)
     .attr('value', JSON.stringify(query))
-    .attr('style', 'width: 1400px;')
+    .attr('style', 'width: 95%;')
     .on('keyup',function() {
         query = JSON.parse(d3.select("#APIbox").property('value'));
         wordBox.update()
@@ -222,7 +245,6 @@ pointSelector.enter()
 scaleTypes = [{'text':'Linear','value':"linear"},
               {"text":'Logarithmic','value':"log"}]
 
-
 scaleSelector = d3.select("#lastOptions")
     .append('select')
     .attr('id',"scaleType")
@@ -240,6 +262,9 @@ scaleSelector.on("change",function(d){
 
 
 createDropbox = function(category) {
+    //Drops in a new query box for a categorical value:
+    //going to be useful for other applications, but not implemented here. Possibly the first part should just return the data.
+   
     myQuery = JSON.parse(JSON.stringify(query));
     myQuery['search_limits']['word'] = []
     myQuery['groups'] = [category]
@@ -256,8 +281,7 @@ createDropbox = function(category) {
 
         myData.sort(function(a,b) {return(a.WordCount<b.WordCount)})
 
-
-        thisGuy = d3.select("#categorySelector")
+        thisGuy = d3.select("body")
             .append('select').attr('id',category).attr('multiple','multiple')
         thisSelection = thisGuy.selectAll('option').data(myData)
         thisSelection.enter()
@@ -313,17 +337,17 @@ drawMap = function (mapname) {
 
         if (mapname=="Europe") {
             projection = d3.geo.albers()
-                .center([45,45])
+                .center([15,45])
                 .parallels([30,55.5])
                 .rotate([-10,0])
-                .translate([1200,350])
-                .scale([1500])
+                .translate([w/2,h/2])
+                .scale([d3.min([w,h*2])]);
         }
 
         if (mapname=="USA") {
             projection = d3.geo.albersUsa()
-                .translate([700,350])
-                .scale([1500]);
+                .translate([w/2,h/2])
+                .scale([d3.min([w,h*2])]);
             sourceJson = "../data/us-states.json"
         }
 
@@ -353,12 +377,9 @@ drawMap = function (mapname) {
 }
 
 removeElements = function() {
-    vals = ['rect','text','path','circle'].map(function(type) {svg.selectAll(type).transition().remove()})
+    vals = ['rect','text','path','circle','line','tick'].map(function(type) {svg.selectAll(type).transition().remove()})
 }
 
-
-//A gaussian filter fails under firefox
-//filter = svg.append("svg:defs").append("svg:filter").attr("id", "blur").append("svg:feGaussianBlur").attr("stdDeviation", 0);
 
 //I like this pallette--I think we usually need two tones to really discriminate,
 //even though dataviz wisdom seems to say that's not kosher.
@@ -419,14 +440,7 @@ returnScale = function() {
 }
 
 
-//commented for deletion.
-//colors = d3.scale.log().range(greenToRed)
-// PuOr pallette from colorBrewer2.org designed to be color-blind compatible
-//logcolors = d3.scale.log().range(PuOr)
-
-
-
-nwords = d3.scale.sqrt().range([3,25]);
+nwords = d3.scale.sqrt().range([0,100]);
 var sizescale = nwords
 var colorscale = d3.scale.log().range(greenToRed);
 
@@ -600,6 +614,7 @@ function comparisontype() {
 function updateQuery() {
     //make sure the box and the internal state are aligned
     APIbox.update()
+
     //assign comparison limits if necessary
     comparetype = comparisontype()
     query = JSON.parse($("#APIbox").val())
@@ -607,9 +622,10 @@ function updateQuery() {
 
 
 topn = function(n,key,dataset) {
+    //passed a full, parsed dataset, this filters by 'key' down to only the top n items. Useful for long-tail categorical distributions.
     vals = d3.nest().key(function(d) {return(d[key]);}).entries(dataset)
     perm = vals.map(function(val) {
-        val.total = d3.sum(val.values,function(d) {return(d.TotalWords)})
+        val.total = d3.sum(val.values,function(d) {return(d[aesthetic['filterByTop']])})
         return(val)
     })
     perm.sort(function(a,b) {return(b.total-a.total)})
@@ -648,15 +664,12 @@ prettyName = function(number) {
     }
 }
 
-var legendPoints = legend.append('g').attr('id','legendPoints')
-var ylab = legend.append('g').attr('id','ylab');
-var xlab = legend.append('g').attr('id','xlab');
-var title = legend.append('g').attr('id','title');
+//var legendPoints = legend.append('g').attr('id','legendPoints')
+//var ylab = legend.append('g').attr('id','ylab');
+//var xlab = legend.append('g').attr('id','xlab');
 var legendData = [];
-var colorLegend = legend.append('g').attr('id','colorLegend');
-var sizeLegend = legend.append('g').attr('id','sizeLegend');
 
-//Goofy d3 stuff:
+//Goofy d3 stuff doesn't work yet:
 function click(d) {
     var centroid = path.centroid(d),
     translate = projection.translate();

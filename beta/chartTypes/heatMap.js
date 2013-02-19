@@ -4,7 +4,7 @@ var xAxis;
 var x,y;
 
 function heatMapFactory() {
-    var limits = {'x':[100,900],'y':[75,690]}
+    var limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
     var myQuery = query
     var colorScaler = returnScale().scaleType(d3.scale.linear)
     var sizeScaler  = returnScale()
@@ -20,7 +20,7 @@ function heatMapFactory() {
 	    yaxis.selectAll('text').remove()
 	}
 
-	paperdiv.selectAll('title').remove()
+	//paperdiv.selectAll('title').remove()
 
         updateQuery()
 
@@ -55,20 +55,17 @@ function heatMapFactory() {
 		vals = d3.nest().key(function(d) {return d[variableName] }).entries(paperdata).map(function(d) {
 		    return(plotTransformers[variableName](d.key))})
 
-		//if (paperdata[0][myQuery['groups'][pos]] instanceof Date) {
-		//    vals = vals.map(function(d) {return new Date(d)})
-		//}
-		
-		//datatype = function() {
-		//    if (vals[1] instanceof Date) {return "Date"}
-		//    if (!d3.sum(vals.map(function(d) {return (isNaN(d) & d!="" & d!="None")}))) {return ("Numeric")}
-		//    return("Categorical")
-		//}()
 		datatype = dataTypes[variableName]
 
 		if (datatype=="Categorical") {
 		    console.log(axis + " is categorical")
-		    names = topn(50,variableName,paperdata)
+		    n = function() {
+			//home many elements to display depends on the width: no more than ten pixels vertically, and 30 pixels horizontally
+			if (axis=='y') {minSize=11}
+			if (axis=='x') {minSize=60}
+			return Math.round((limits[axis][1]-limits[axis][0])/minSize)
+		    }()
+		    names = topn(n,variableName,paperdata)
 		    paperdata = paperdata.filter(function(entry) {
 			return(names.indexOf(entry[variableName]) > -1)
 		    })
@@ -79,7 +76,6 @@ function heatMapFactory() {
 		    pointsToLabel = vals
 		    thisAxis = d3.svg.axis()
 			.scale(scale)
-		    
 		}
 
 		
@@ -93,7 +89,6 @@ function heatMapFactory() {
 		    if (axis=='y') {
 			vals.sort(function(a,b){return(b-a)})
 		    }
-		    //scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
 		    scale = d3.scale.linear().domain(d3.extent(vals)).range(limits[axis])
 		    thisAxis = d3.svg.axis()
 			.scale(scale)
@@ -119,8 +114,6 @@ function heatMapFactory() {
 		scale.pixels = (limits[axis][1]-limits[axis][0])/vals.length;
 		return({"scale":scale,"axis":thisAxis})		
 	    }
-
-
 	    
 	    xstuff = scaleAndAxis('x')
 	    xAxis = xstuff.axis.orient("top")
@@ -140,22 +133,22 @@ function heatMapFactory() {
 
 	    //x-axis
 	    d3.selectAll('#x-axis').remove()
-	    
 	    svg.append("g")
 		.attr('id','x-axis')
 		.call(xAxis)
 		.attr("class","axis") // note new class name
-		.attr("transform","translate("+x.pixels/2+"," + (limits['y'][0])  +")") 
+		.attr("transform","translate("+x.pixels*.5+ "," + (limits['y'][0])  +")") 
 
 	    //Key the data against the actual interaction it is, so transitions will work.
 	    paperdata = paperdata.map(function(d) {
 		d.key = d[myQuery['groups'][0]] + d[myQuery['groups'][1]]
 		return(d)
 	    })
-            values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords*1000000)});
-            totals = paperdata.map(function(d) {return(d.TotalWords)});
-	    
-            colorscale = colorScaler.values(values).scaleType(d3.scale[$("#scaleType").val()])()
+
+//            values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords*1000000)});
+//            totals = paperdata.map(function(d) {return(d.TotalWords)});
+	    colorValues = paperdata.map(function(d) {return(d[aesthetic['color']])})
+            colorscale = colorScaler.values(colorValues).scaleType(d3.scale[$("#scaleType").val()])()
 
             gridPoint = paperdiv.selectAll('rect')
 		.data(paperdata,function(d) {
@@ -179,17 +172,14 @@ function heatMapFactory() {
 	    gridPoint
                 .attr('stroke-width',0)
                 .attr('stroke','black')
-//                .attr('onmouseover', function(d) {return "evt.target.setAttribute('stroke-width','2');" + "colorLegendPointer.transition().duration(500).attr('opacity',1).attr('transform','translate(0,legendScale(' + d.WordCount/d.TotalWords*1000000+ '))')"})
 		.on("mouseover",function(d) {
 		    this.setAttribute('stroke-width','2');
-		    updatePointer(d.WordCount/d.TotalWords*1000000)
-//		    colorLegendPointer.transition().duration(750).attr('opacity',1).attr('transform',"translate(0," + legendScale(d.WordCount/d.TotalWords*1000000)+ ')')
+		    updatePointer(d[aesthetic['color']])
 		})
 		.on('mouseout',function(d) {
 		    this.setAttribute('stroke-width',0);
 		    colorLegendPointer.transition().duration(2500).attr('opacity',0)
 		})
-	    //                .attr('onmouseout',  "evt.target.setAttribute('stroke-width','0');")
                 .attr('x',function(d) {return x(plotTransformers[xVariable](d[xVariable]))})
                 .attr('y',function(d) {return Math.round(y(plotTransformers[yVariable](d[yVariable])))})
 	    
@@ -202,8 +192,8 @@ function heatMapFactory() {
                     if (comparisontype()=='comparison') {
                         color = colorscale(d.WordCount/d.CompareWords)}
                     else {
-			color = colorscale(d.WordCount/d.TotalWords*1000000);
-			if (d.WordCount==0) {color='#393939'}
+			color = colorscale(d[aesthetic['color']]);
+			if (d[aesthetic['color']]==0) {color='#393939'}
 		    }
 		    if (color=="#000000") {color='#393939'}
 
@@ -212,10 +202,10 @@ function heatMapFactory() {
 
             gridPoint
                 .append("svg:title")
-                .text(function(d) { return ('Click for texts \n' + prettyName(d.WordCount) + ' occurrences out of ' + prettyName(d.TotalWords) + ' words (' + Math.round(d.WordCount/d.TotalWords*1000000*100)/100 + ' per million)')});
-	    
-
-            a = fillLegendMaker(colorscale).yrange(limits.y)
+                .text(function(d) { 
+		    return ('Click for texts \n' + prettyName(d.WordCount) + ' occurrences out of ' + prettyName(d.TotalWords) + ' words (' + Math.round(d['WordsPerMillion']*100)/100 + ' per million)')
+		});
+            a = fillLegendMaker(colorscale)//.yrange(limits.y)
             a()
 
         })

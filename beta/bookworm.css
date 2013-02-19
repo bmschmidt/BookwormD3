@@ -1,9 +1,10 @@
 svg {
   background: #000;
-  width: 1600px;
-  height: 800px;
 }
 
+#maindiv div {
+    width:20
+}
 #counties path {
   stroke: #fff;
   stroke-width: .25px;
@@ -19,8 +20,13 @@ svg {
     stroke: beige;
     shape-rendering: crispEdges;
 }
+
 .axis text {
     fill: white;
     font-family: sans-serif;
     font-size: 12px;
+}
+
+#legend text {
+    fill:white;
 }

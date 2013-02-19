@@ -1,20 +1,33 @@
-var colorLegendPointer,updatePointer,legendScale = d3.scale.linear();
+var colorLegendPointer,
+  updatePointer,
+  legendScale = d3.scale.linear(),
+sizeAxis,
+titleText;
+var 	nameSubstitutions={
+	    "WordsPerMillion":"Uses per Million Words",
+	    "WordCount":"# of matches",
+	    "TextPercent":"% of texts",
+	    "TotalWords":"Total # of words",
+	    "TextCount":"# of Texts",
+	    "TotalTexts":"Total # of Texts"
+	}
+
+
+console.log("trying to load")
+updatePointer = function() {console.log("updatePointer is undefined")}
 
 fillLegendMaker = function(colorscale) {
-    var yrange = [75,500]
+    var yrange = [0,h*.75]
     colorticks = colorscale.ticks(15);
 
     width = 25
-    xpos  = 20
     plot = true
-    title = "Per Million Words"
     colorpoints = colorLegend.selectAll('rect')
     colorlabels = colorLegend.selectAll('text')
 
     function my() {
-
 	var data1 = d3.range(yrange[0],yrange[1]);
-	
+
 	scaleRects = colorLegend.selectAll("rect")
 	    .data(data1,function(d){return(d)});
 
@@ -26,8 +39,7 @@ fillLegendMaker = function(colorscale) {
 	    .attr({
 		width: width,
 		height:1,
-		y: function(d) { return d},//return colorAxisScale(d)},
-		x: xpos,
+		y: function(d) { return d},
 		fill: function(d) {
 		    return colorscale(legendScale.invert(d));
 		}
@@ -41,39 +53,93 @@ fillLegendMaker = function(colorscale) {
 	    var x = Math.log(d) / Math.log(10) + 1e-6;
 	    return Math.abs(x - Math.floor(x)) < .7 ? prettyName(d) : "";
 	}
+	
 	if ($('#scaleType').val() != "log") {
 	    formatter=prettyName
 	}
+	
 	d3.selectAll("#color-axis").remove()
-	colorAxis = d3.svg.axis().scale(legendScale).orient("right").tickFormat(formatter)
-	svg.append("g")
+	
+	colorAxis = d3.svg.axis()
+	    .scale(legendScale)
+	    .orient("right")
+	    .tickFormat(formatter)
+
+	colorLegend.selectAll('text').remove()
+	
+	colorLegend.append("g")
             .attr('id','color-axis')
             .call(colorAxis)
             .attr("class","axis") // note new class name
-	    .attr("transform","translate (" + (xpos + width) + ",0)") 
+	    .attr("transform","translate (" + (width) + ",0)") 
+	
 
-	colorLegend.selectAll('text').remove()
-        text1 = "Usage of '" + query['search_limits']['word'][0] + "'" +   " per Million Words"
+	writeTitle = function() {
+	    //Figure out what they're trying to plot, for the title.
+	    //starredKeys are the numerator in a ratio query.
+	    starredKeys = d3.keys(query['search_limits']).filter(function(d) {
+		return d.search("\\*") > 0
+	    })
 
-        if (comparisontype()=='comparison') {
-            text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
-        }
-        colorLegend.append('text').attr('x',xpos+375).attr('y',yrange[0]-25).text(text1).attr('fill','white').attr('font-size',35).attr('font-family',"Arial")
+	    if (starredKeys.length==0) {starredKeys=["word"]}
+	    
+	    text1 = starredKeys.map(function(key) {
+
+	    values = query['search_limits'][key].join('"/"')
+		var pretty = key.replace("\*","")
+		console.log(pretty)
+		return pretty + ' "' +values + '"'
+	    }).join(' and ')
+
+
+	    text1 = "Share of " + text1
+	    if (query['plotType']!="map") {
+		text1 = text1.replace("Share","Usage") +  " by " + query['groups'].join(' and ')
+	    }
+	    
+	    if (comparisontype()=='comparison') {
+		text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
+            }
+	    title.selectAll('text').remove()
+	    title
+		.append('text')
+		.attr('text-anchor','middle')
+		.text(text1)
+		.attr('fill','white')
+		.attr('font-size',35)
+		.attr('font-family',"Arial")
+		.attr('transform','translate(10,0)')
+	}
+
+	writeTitle()
+
+	colorLegend.append('text')
+	    .attr('transform','translate (0,-10)')
+	    .attr('class','axis')
+	    .text(nameSubstitutions[aesthetic['color']])
+	    .attr('fill','white')
+	    .attr('font-size','12')
+	    .attr('text-anchor','middle')
+	    .attr('font-family','sans-serif')
 
 	//set up pointer
+	
 	d3.selectAll('#pointer').remove()
+	
+	console.log("Trying to set up pointer")
 
-
+	//The pointer is 14 pixels wide. That's what all the 14s here are doing.
 	colorLegendPointer = colorLegend
 	    .append('path')
 	    .attr('id','pointer')
 	    .attr('d', function(d) { 
-		var y = 0, x = xpos+width-14;
+		var y = 0, x = width-14;
 		return 'M ' + x +' '+ y + ' l 14 14 l -14 14 z';
 	    })
 	    .attr('fill','grey')
 	    .attr("transform","translate(0," + 200 + ")") //can start wherever
 	    .attr("opacity","0") //Start invisible: mouseover events will turn it on.
+
 	updatePointer=function(inputNumbers) {
 	    colorLegendPointer
 		.transition()
@@ -93,133 +159,40 @@ fillLegendMaker = function(colorscale) {
 }
 
 
-makeSizeLegend = function() {
+
+drawSizeLegend = function() {
+    sizeLegend.selectAll('text').remove()
+    sizeLegend.selectAll('circle').remove()
+
+    sizeAxis = d3.svg.axis().scale(sizescale).orient("right").tickValues(function() {
+	nestedScale = d3.scale.linear().range(nwords.range()).domain(nwords.range());
+	nestedScale.nice();
+	return nestedScale.ticks(6).map(function(n) {return nwords.invert(n)})
+    }).tickFormat(prettyName)
+
+    sizeLegend.append('g').attr('id','size-axis').call(sizeAxis).attr('class','axis')
+
+    sizescale.ticks(6)
     
-    thisLegend = sizeLegend
-    thisLegend.yrange = [100,450]
-
-    thisLegend.xpos  = 1500-100
+    sizeLegendPoints = sizeLegend.selectAll('circle').data(sizeAxis.tickValues()())
     
-    originScale = nwords
-
-    thisLegend.sourceScale = sizescale
+    sizeLegendPoints.enter().append('circle')
+	.attr('r',function(d) {return nwords(d)/2 })
+	.attr('class','axis')
+	.attr('stroke','white')
+	.attr('fill','white')
+	.attr('opacity',.2)
+	.attr('transform',function(d) {
+	    return('translate(0,' + nwords(d)/2+')')
+	})
     
-    myticks = thisLegend.sourceScale.ticks(7);
-    //an ugly way to return evenly spaced values by the size of the circles, not by the size of the corresponding value.
-    myticks = d3.scale.linear().domain(nwords.range()).ticks(6).map(function(n) {return nwords.invert(n)})
-
-    thisLegend.boxheight = (thisLegend.yrange[1]-thisLegend.yrange[0])/myticks.length +1.5
-    thisLegend.width = originScale.range()[1]*.5 + 10
-    thisLegend.plot = true
-    thisLegend.title = "Total size of corpus"
-    thisLegend.points = thisLegend.selectAll('circle')
-    thisLegend.labels = thisLegend.selectAll('text')
-
-    thisLegend.scale = d3.scale.linear()
-        .range(thisLegend.yrange)
-        .domain(d3.extent(d3.range(myticks.length)))
-
-    thisLegend.update = function() {
-        thisLegend.data = d3.range(myticks.length).map(function(n) {
-            value =
-                {"label":prettyName(myticks[n]),
-                 "scaled":thisLegend.sourceScale(myticks[n]),
-                 'y':thisLegend.scale(n),
-                }
-            return(value)
-        })
-	
-        thisLegend.points.remove()
-        thisLegend.points = thisLegend.selectAll('circle').data(thisLegend.data,function(d) {return(d.y)})
-        thisLegend.points.enter()
-            .append('circle')
-            .attr('y',function(d) {return(d.y)})
-            .attr('cy',function(d) {return(d.y)})
-               .attr('height',thisLegend.boxheight)
-            .attr('x',thisLegend.xpos)
-            .attr('cx',thisLegend.xpos)
-                    .attr('width',thisLegend.width)
-                    .attr('fill',function(d) {return(d.color)})
-            .attr('fill','white')
-            .attr('r',function(d) {return(d.scaled)})
-
-        thisLegend.labels
-            .remove()
-
-        thisLegend.labels = thisLegend.selectAll('text').data(thisLegend.data,function(d) {return(d.y)})
-        thisLegend.labels.enter().append('text')
-            .attr('y',function(d) {return(d.y)})//+thisLegend.boxheight/2)})
-            .attr('x',thisLegend.xpos + thisLegend.width *1.5)
-            .attr('fill','white')
-            .text(function(d) {return(d.label)})
-        text1 = "Raw Number of Occurrences"
-        if (comparisontype()=='comparison') {text1="Uses of both words"}
-        thisLegend.append('text').attr('x',thisLegend.xpos).attr('y',thisLegend.yrange[0]-25).text(text1).attr('fill','white')
-    }
-    thisLegend = sizeLegend
-    thisLegend.update()
-}
-
-
-sizeLegendMaker = function(originScale) {
-    thisLegend = sizeLegend
-    yrange = [100,450]
-    xpos  = 1500-100
-    //an ugly way to return evenly spaced values by the size of the circles, not by the size of the corresponding value.
-    myticks = d3.scale.linear().domain(originScale.range()).ticks(6).map(function(n) {return originScale.invert(n)})
-
-    boxheight = (yrange[1]-yrange[0])/myticks.length +1.5
-    width = originScale.range()[1]*.5 + 10
-
-    title = "Total size of corpus"
-
-    points = thisLegend.selectAll('circle')
-    labels = thisLegend.selectAll('text')
-
-    scale = d3.scale.linear()
-        .range(yrange)
-        .domain(d3.extent(d3.range(myticks.length)))
-
-    my = function() {
-	myticks = originScale.ticks(7);
-        thisLegend.data = d3.range(myticks.length).map(function(n) {
-            value =
-                {"label":prettyName(myticks[n]),
-                 "scaled":thisLegend.sourceScale(myticks[n]),
-                 'y':thisLegend.scale(n),
-                }
-            return(value)
-        })
-	
-        thisLegend.points.remove()
-        thisLegend.points = thisLegend.selectAll('circle').data(thisLegend.data,function(d) {return(d.y)})
-
-        thisLegend.points.enter()
-            .append('circle')
-
-	thisLegend.points
-            .attr('y',function(d) {return(d.y)})
-            .attr('cy',function(d) {return(d.y)})
-               .attr('height',thisLegend.boxheight)
-            .attr('x',thisLegend.xpos)
-            .attr('cx',thisLegend.xpos)
-                    .attr('width',thisLegend.width)
-                    .attr('fill',function(d) {return(d.color)})
-            .attr('fill','white')
-            .attr('r',function(d) {return(d.scaled)})
-
-        thisLegend.labels
-            .remove()
-
-        thisLegend.labels = thisLegend.selectAll('text').data(thisLegend.data,function(d) {return(d.y)})
-        thisLegend.labels.enter().append('text')
-            .attr('y',function(d) {return(d.y)})//+thisLegend.boxheight/2)})
-            .attr('x',thisLegend.xpos + thisLegend.width *1.5)
-            .attr('fill','white')
-            .text(function(d) {return(d.label)})
-        text1 = "Raw Number of Occurrences"
-        if (comparisontype()=='comparison') {text1="Uses of both words"}
-        thisLegend.append('text').attr('x',thisLegend.xpos).attr('y',thisLegend.yrange[0]-25).text(text1).attr('fill','white')
-    }
-    return my
+    sizeLegend
+	.append('text')
+	.attr('transform','translate(0,-10)')
+	.attr('class','axis')
+	.text(nameSubstitutions[aesthetic['size']])
+	.attr('fill','white')
+	.attr('font-size','12')
+	.attr('font-family','sans-serif')
+	.attr('text-anchor','middle')
 }

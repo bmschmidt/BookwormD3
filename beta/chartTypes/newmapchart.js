@@ -9,27 +9,21 @@ function mapQuery() {
     var colorScaler = returnScale()
     var sizeScaler  = returnScale()
 
-    var sizeVariable = 'WordCount'
-
     function mapTransition() {
-//        paperdiv.selectAll('text').attr('filter','url(#blur)')
-//        filter.transition().duration(2500).attr('stdDeviation',8)
-                paperdiv.selectAll('circle')
-                    .transition()
-                    .duration(4500)
-                    .attr('r',2)
-                    .attr('fill','white');
+        paperdiv.selectAll('circle')
+            .transition()
+            .duration(4500)
+            .attr('r',2)
+            .attr('fill','white');
     }
 
     function updateChart() {
 
 	paperdiv.selectAll('title').remove()
-        paperdata.sort(function(a,b) {return(b[sizeVariable]-a[sizeVariable])} );
+        paperdata.sort(function(a,b) {return(b[aesthetic['size']]-a[aesthetic['size']])} );
 	
         var mypoints = paperdiv.selectAll('circle')
             .data(paperdata,function(d) {return([d.lat,d.lng])});
-	
-        //filter.transition().duration(750).attr('stdDeviation',0)
 	
         mypoints
             .enter()
@@ -54,7 +48,7 @@ function mapQuery() {
             .transition()
             .duration(2500)
             .attr('r',function(d) {
-                return nwords(d[sizeVariable])
+                return nwords(d[aesthetic['size']])/2 //Divided by two b/c the scale wants to return diameter, not radius.
             })
             .attr('fill',function(d) {
                 if (comparisontype()=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
@@ -69,7 +63,7 @@ function mapQuery() {
         fillLegend=fillLegendMaker(colorscale)
         fillLegend()
 	
-        makeSizeLegend();
+        drawSizeLegend();
         //svg.selectAll('text').attr('filter','url(#blur)')
     }
     
@@ -97,10 +91,10 @@ function mapQuery() {
 
             colorscale = colorScaler.values(values).scaleType(d3.scale[$("#scaleType").val()])()
 
-            sizes = paperdata.map(function(d) {return(d[sizeVariable])});
+            sizes = paperdata.map(function(d) {return(d[aesthetic['size']])});
 
             nwords.domain(d3.extent(sizes))
-                .range([0,40])
+                .range([0,100])
 	    
             nwords.nice()
             updateChart()
