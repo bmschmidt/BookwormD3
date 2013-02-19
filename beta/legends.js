@@ -32,8 +32,8 @@ fillLegendMaker = function(colorscale) {
 	    .data(data1,function(d){return(d)});
 
 	legendScale=colorscale.copy()
-	legendScale.range(d3.range(yrange[0],yrange[1]+1,by=(yrange[1]-yrange[0])/(legendScale.domain().length-1)))
-
+	legendScale.range(d3.range(yrange[0],yrange[1]+yrange[1]*.001,by=(yrange[1]-yrange[0])/(legendScale.domain().length-1)))
+	
 	scaleRects.enter()
 	    .append("rect")
 	    .attr({

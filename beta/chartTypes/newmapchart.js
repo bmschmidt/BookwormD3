@@ -4,7 +4,7 @@ function mapQuery() {
 
     var baseMap = drawMap(document.getElementById('mapChoice').value)
     var initialOpacity = .7
-    var additionalGroupings = [] //allow multiple circles on the same point?
+    var additionalGroupings = query['groups'].filter(function(d) {if (d!='lat' & d!='lng') {return true}}) //allow multiple circles on the same point?
 
     var colorScaler = returnScale()
     var sizeScaler  = returnScale()
@@ -43,17 +43,26 @@ function mapQuery() {
                 return "translate(" + coords[0] +","+ coords[1] + ")"})
             .attr('id',function(d) {return(d.paperid)})
             .attr('opacity',initialOpacity)
-            .attr('onmouseover', "evt.target.setAttribute('opacity', '1');")
-            .attr('onmouseout',  "evt.target.setAttribute('opacity', " + initialOpacity + ");")
+
+            .on("mouseover",function(d) {
+                this.setAttribute('opacity','1');
+                updatePointer(d[aesthetic['color']])
+            })
+            .on('mouseout',function(d) {
+                this.setAttribute('opacity',initialOpacity);
+                colorLegendPointer.transition().duration(2500).attr('opacity',0)
+            })
+
+//            .attr('onmouseover', "evt.target.setAttribute('opacity', '1');")
+//            .attr('onmouseout',  "evt.target.setAttribute('opacity', " + initialOpacity + ");")
             .transition()
             .duration(2500)
             .attr('r',function(d) {
-                return nwords(d[aesthetic['size']])/2 //Divided by two b/c the scale wants to return diameter, not radius.
+                return sizescale(d[aesthetic['size']])/2 //Divided by two b/c the scale wants to return diameter, not radius.
             })
             .attr('fill',function(d) {
-                if (comparisontype()=='comparison') {return(colorscale(d.WordCount/d.CompareWords))}
-                else {return(colorscale(d.WordCount/d.TotalWords*1000000))}
-            })
+                return colorscale(d[aesthetic['color']])
+	    })
 	
         mypoints.append("svg:title")
             .text(function(d) {return ('Click to read texts from here\n (' +prettyName(d.WordCount) + ' occurences out of ' + prettyName(d.TotalWords) + ' total words)')})
@@ -64,7 +73,6 @@ function mapQuery() {
         fillLegend()
 	
         drawSizeLegend();
-        //svg.selectAll('text').attr('filter','url(#blur)')
     }
     
     my.updateChart=updateChart
@@ -81,13 +89,8 @@ function mapQuery() {
         webpath = destinationize(query);
         d3.json(webpath,function(json) {
             paperdata = parseBookwormData(json,query);
-            if (comparisontype()=='comparison') {
-                paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
-            }
-            values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords)});
-            if (comparisontype()!='comparison') {
-                values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords*1000000)});
-            }
+
+            values = paperdata.map(function(d) {return(d[aesthetic['color']])});
 
             colorscale = colorScaler.values(values).scaleType(d3.scale[$("#scaleType").val()])()
 

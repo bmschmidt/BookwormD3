@@ -323,8 +323,9 @@ drawMap = function (mapname) {
 
         if (mapname=="World") {
             projection = d3.geo.equirectangular()
-                .scale([300])
-                .center([-50,30])
+                .scale([280])
+		.translate([w/2,h/2])
+                .center([0,0])
         }
 
         if (mapname=="Asia") {
@@ -409,11 +410,11 @@ returnScale = function() {
         if (scaleType==d3.scale.log) {
             min = Math.log(numbers[0])
             max = Math.log(numbers[1])
-            scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
+            scale.domain(d3.range(min,max,(max-min)/(colorscale.range().length)).map(function(n) {return(Math.exp(n))}))
         }else if (scaleType==d3.scale.sqrt) {
-            scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n^2)}))
+            scale.domain(d3.range(min,max,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n^2)}))
         } else if (scaleType==d3.scale.linear) {
-            scale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(n)}))
+            scale.domain(d3.range(min,max+max*.0001,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n)}))
         }
         scale.clamp()
         return (scale)
