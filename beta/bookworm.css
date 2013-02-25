@@ -2,6 +2,14 @@ svg {
   background: #000;
 }
 
+.d3Selector {
+    position: absolute;
+    color: #fff;
+    top: 25px;
+    left: 25px;
+    padding: 20px;
+}
+
 #maindiv div {
     width:20
 }

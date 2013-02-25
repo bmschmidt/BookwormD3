@@ -3,14 +3,16 @@ var colorLegendPointer,
   legendScale = d3.scale.linear(),
 sizeAxis,
 titleText;
-var 	nameSubstitutions={
-	    "WordsPerMillion":"Uses per Million Words",
-	    "WordCount":"# of matches",
-	    "TextPercent":"% of texts",
-	    "TotalWords":"Total # of words",
-	    "TextCount":"# of Texts",
-	    "TotalTexts":"Total # of Texts"
-	}
+
+var nameSubstitutions = {
+    "WordsPerMillion":"Uses per Million Words",
+    "WordCount":"# of matches",
+    "TextPercent":"% of texts",
+    "TotalWords":"Total # of words",
+    "TextCount":"# of Texts",
+    "TotalTexts":"Total # of Texts"
+}
+
 
 
 console.log("trying to load")

@@ -20,21 +20,34 @@
     <script type="text/javascript">
     </script>
     </head>
-
+    
     <body>
-    <div id="topSelectors"></div>
-    <label for="amount">Year:</label>
-    <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
-
+      <div id="topSelectors"></div>
+      <label for="amount">Year:</label>
+      <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
+      
 </script>
-    <div id="slider-range" style="width:400"></div>
-    <div id="chart" class="maindiv"></div>
-    <div id="bottomBoxes"></div>
-    <div id="lastOptions"></div>
-    <link type="text/css" rel="stylesheet" href="bookworm.css"/>
+<div id="slider-range" style="width:400"></div>
+<div id="chartAndSuperpositions">
+  <div id="chart" class="maindiv"></div>
+  
+<!--  <div id="colorSelectorDropdown" class="d3Selector">
+   <select name="menu1">
+      <option value="/index.html" selected>Home Page</option>
+      <option value="/internet/index.html">Internet Tutorials</option>
+      <option value="/internet/javascript/index.html">JavaScript Tutorials</option>
+    </select>
+  </div> -->
+
+</div>
+<div id="bottomBoxes"></div>
+<div id="lastOptions"></div>
 
 
-    <script type="text/javascript">
+<link type="text/css" rel="stylesheet" href="bookworm.css"/>
+
+
+<script type="text/javascript">
 
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
 //This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable.
