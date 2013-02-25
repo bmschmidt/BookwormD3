@@ -45,9 +45,9 @@ var query = {};
 var defaultQuery = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
-    "groups":["state","date_year"],
+    "groups":["lat","lng"],
     "database":"ChronAm",
-    "counttype":["WordCount","TotalWords"],
+    "counttype":["WordCount","TotalWords","WordsPerMillion"],
     "search_limits":{
         "date_year":{"$lte":1922,"$gte":1850},
         "word":["Ohio river"]
@@ -241,7 +241,6 @@ pointSelector.enter()
     .attr('value',function(d){return d.value})
     .text(function(d) {return(d.text)})
 
-//var scaleTypeSelector = $('<div />').attr('id','scaleTypeSelector').appendTo(lastOptions);
 scaleTypes = [{'text':'Linear','value':"linear"},
               {"text":'Logarithmic','value':"log"}]
 
@@ -396,25 +395,31 @@ returnScale = function() {
     function my() {
         scale = scaleType().range(colors)
         numbers = d3.extent(values)
+        //If we're using a log scale, the minimum can't be zero. So it's 0.1. Or actually a tiny bit less to get .1 inside the range.
 
-        //If we're using a log scale, the minimum can't be zero. So it's 0.1
         if (scaleType==d3.scale.log) {
             numbers[0] = d3.max([(1/101),d3.min(values)])
         }
         if (comparisontype()=='comparison') {
+	    // Make it symmetric for ratios.
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
         }
         min = numbers[0]
         max = numbers[1]
         if (scaleType==d3.scale.log) {
+
             min = Math.log(numbers[0])
             max = Math.log(numbers[1])
             scale.domain(d3.range(min,max,(max-min)/(colorscale.range().length)).map(function(n) {return(Math.exp(n))}))
-        }else if (scaleType==d3.scale.sqrt) {
+        } else if (scaleType==d3.scale.sqrt) {
             scale.domain(d3.range(min,max,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n^2)}))
         } else if (scaleType==d3.scale.linear) {
+
+
             scale.domain(d3.range(min,max+max*.0001,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n)}))
+
+	    
         }
         scale.clamp()
         return (scale)
