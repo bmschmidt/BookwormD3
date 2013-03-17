@@ -18,7 +18,6 @@ function mapQuery() {
     }
 
     function updateChart() {
-
 	paperdiv.selectAll('title').remove()
         paperdata.sort(function(a,b) {return(b[aesthetic['size']]-a[aesthetic['size']])} );
 	
@@ -52,9 +51,6 @@ function mapQuery() {
                 this.setAttribute('opacity',initialOpacity);
                 colorLegendPointer.transition().duration(2500).attr('opacity',0)
             })
-
-//            .attr('onmouseover', "evt.target.setAttribute('opacity', '1');")
-//            .attr('onmouseout',  "evt.target.setAttribute('opacity', " + initialOpacity + ");")
             .transition()
             .duration(2500)
             .attr('r',function(d) {

@@ -3,15 +3,12 @@
     <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <title>Advanced Bookworm Browser</title>
-    <script type="text/javascript" src="../d3.v2.js"></script>
     <script src="http://d3js.org/d3.v3.min.js"></script>
-
     <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
     <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
-
-
+    
     <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
-    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
 
     <script type="text/javascript" src="searchWindow.js"></script>
     <script type="text/javascript" src="chartTypes/newmapchart.js"></script>
@@ -20,34 +17,34 @@
     <script type="text/javascript">
     </script>
     </head>
-    
+
     <body>
-      <div id="topSelectors"></div>
-      <label for="amount">Year:</label>
-      <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
-      
+    <div id="topSelectors"></div>
+    <label for="amount">Year:</label>
+    <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
+
 </script>
-<div id="slider-range" style="width:400"></div>
-<div id="chartAndSuperpositions">
-  <div id="chart" class="maindiv"></div>
-  
-<!--  <div id="colorSelectorDropdown" class="d3Selector">
-   <select name="menu1">
-      <option value="/index.html" selected>Home Page</option>
-      <option value="/internet/index.html">Internet Tutorials</option>
-      <option value="/internet/javascript/index.html">JavaScript Tutorials</option>
+    <div id="slider-range" style="width:400"></div>
+    <div id="chartAndSuperpositions">
+    <div id="chart" class="maindiv"></div>
+
+    <!--  <div id="colorSelectorDropdown" class="d3Selector">
+    <select name="menu1">
+    <option value="/index.html" selected>Home Page</option>
+    <option value="/internet/index.html">Internet Tutorials</option>
+    <option value="/internet/javascript/index.html">JavaScript Tutorials</option>
     </select>
-  </div> -->
-
+    </div> -->
+    
 </div>
-<div id="bottomBoxes"></div>
-<div id="lastOptions"></div>
+    <div id="bottomBoxes"></div>
+    <div id="lastOptions"></div>
 
 
-<link type="text/css" rel="stylesheet" href="bookworm.css"/>
+    <link type="text/css" rel="stylesheet" href="bookworm.css"/>
 
 
-<script type="text/javascript">
+    <script type="text/javascript">
 
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
 //This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable.
@@ -83,7 +80,6 @@ if (window.location.host=="melville.seas.harvard.edu") {
     }
 }
 
-
 var lastPlotted="None"
 
 //Graphical Elements
@@ -108,6 +104,7 @@ var legend = svg.append('g').attr('id','#legend');
 var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
 var sizeLegend = legend.append('g').attr('id','sizeLegend').attr('transform','translate('+(w/25 + 100) +','+(h/5) + ')');
 var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 50  +')');
+
 
 // Things for the background map
 var projection = {"mapname":"none"}
@@ -136,13 +133,52 @@ if(window.location.hash) {
 
 if (!('aesthetic' in query)) {
     query['aesthetic']= {
-	"color":"WordsPerMillion",
-	"size":"WordCount",
-	"filterByTop":"WordCount"
+        "color":"WordsPerMillion",
+        "size":"WordCount",
+        "filterByTop":"WordCount"
     }
 }
 
 var aesthetic = query['aesthetic'] //Just a shortcut
+
+chooseVariable = function(parentNode,nodeName) {
+    height=300
+    parentNode.selectAll('.selector').remove()
+    dropdown = parentNode.append('g').attr('class','selector').attr('id',nodeName)
+    dropdown
+        .append('rect').attr('width',100)
+	.attr('x','-25')
+        .attr('fill','#DDDDDD')
+        .attr('opacity','.95').transition().duration(1000).attr('height',height)
+    possibilities = d3.scale.ordinal()
+        .range(d3.range(0,height+1, height/quantitativeVariables.length))
+        .domain(quantitativeVariables.map(function(d) {return(d.variable)}))
+    
+    labels = dropdown.selectAll('text').data(quantitativeVariables)
+    labels
+        .enter()
+        .append('text')
+        .text(function(d) {return(d.label)}).style('font-family','sans-serif').style('font-size',11)
+        .attr('y',function(d) {
+            return(possibilities(d.variable))})
+        .attr('x',5)
+        .on('click',function(d) {
+            query['aesthetic']['color'] = d.variable;
+            d3.select('#' + nodeName).selectAll('rect')
+                .transition().duration(1000)
+                .attr('height',0)
+                .transition().remove();
+	    updateQuery();
+            labels
+                .transition().duration(1000)
+                .attr('y',0)
+                .transition()
+                .remove()
+	    myPlot()()
+	})
+}
+
+
 
 
 
@@ -188,7 +224,9 @@ defaultYear = {"presidio":"year","OL":"publish_year","ChronAm":"date_year","arxi
 yearValue = defaultYear[query['database']]
 
 APIbox.update = function() {
-    d3.select('#APIbox').property('value',function() {return JSON.stringify(query)});
+    d3.select('#APIbox')
+        .property('value',function() {return JSON.stringify(query)}
+                 );
 }
 
 $(function() {
@@ -276,7 +314,7 @@ scaleSelector.on("change",function(d){
 createDropbox = function(category) {
     //Drops in a new query box for a categorical value:
     //going to be useful for other applications, but not implemented here. Possibly the first part should just return the data.
-   
+
     myQuery = JSON.parse(JSON.stringify(query));
     myQuery['search_limits']['word'] = []
     myQuery['groups'] = [category]
@@ -336,7 +374,7 @@ drawMap = function (mapname) {
         if (mapname=="World") {
             projection = d3.geo.equirectangular()
                 .scale([280])
-		.translate([w/2,h/2])
+                .translate([w/2,h/2])
                 .center([0,0])
         }
 
@@ -414,7 +452,7 @@ returnScale = function() {
             numbers[0] = d3.max([(1/101),d3.min(values)])
         }
         if (comparisontype()=='comparison') {
-	    // Make it symmetric for ratios.
+            // Make it symmetric for ratios.
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
         }
@@ -432,7 +470,7 @@ returnScale = function() {
 
             scale.domain(d3.range(min,max+max*.0001,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n)}))
 
-	    
+
         }
         scale.clamp()
         return (scale)
@@ -520,9 +558,9 @@ function parseBookwormData(json,locQuery) {
         return(toObject(names,localdata));
     })
     paperdata = results
-    
+
     d3.keys(results[0]).map(function(key) {
-	updateKeysTransformer(key)
+        updateKeysTransformer(key)
     })
     return(results)
 }
@@ -556,27 +594,27 @@ updateKeysTransformer = function(key) {
             } else {
                 datedValue.setFullYear(originalValue,1,1)
             }
-	    return datedValue
+            return datedValue
             //originalValue = datedValue
         }
         dataTypes[key]="Date"
         return
-	
+
     }
 
     //if numeric: return a numeric object
     //iterate through all the values, and give up once hitting a non-numeric value
     for (var i =0; i < paperdata.length; i++) {
-	entry = paperdata[i]
+        entry = paperdata[i]
         d = entry[key]
-	//console.log(d)
+        //console.log(d)
         if (isNaN(d) & d!="" & d!="None") {
-	    console.log("giving up on" + d)
-	    return
-	    break
-	}
+            console.log("giving up on" + d)
+            return
+            break
+        }
     }
-    
+
     plotTransformers[key] = function(originalValue) {
         return parseFloat(originalValue)
     }
@@ -636,6 +674,18 @@ function updateQuery() {
 
     //assign comparison limits if necessary
     comparetype = comparisontype()
+
+    dummy = {};
+    if ('aesthetic' in query) {
+	m = d3.keys(aesthetic)
+	m.map(function(d) {
+           dummy[query['aesthetic'][d]] = 1
+	}
+	     );
+	query['counttype'] = d3.keys(dummy);
+	APIbox.update();
+    }
+
     query = JSON.parse($("#APIbox").val())
 }
 

@@ -1,8 +1,9 @@
 var colorLegendPointer,
-  updatePointer,
-  legendScale = d3.scale.linear(),
+updatePointer,
 sizeAxis,
-titleText;
+titleText,
+legendScale = d3.scale.linear()
+;
 
 var nameSubstitutions = {
     "WordsPerMillion":"Uses per Million Words",
@@ -13,15 +14,21 @@ var nameSubstitutions = {
     "TotalTexts":"Total # of Texts"
 }
 
+var quantitativeVariables = [
+    {"variable":"WordsPerMillion","label":"Uses per Million Words"},
+    {"variable": "WordCount","label":"# of matches"},
+    {"variable":"TextPercent","label":"% of texts"},
+    {"variable":"TotalWords","label":"Total # of words"},
+    {"variable":"TextCount","label":"# of Texts"},
+    {"variable":"TotalTexts","label":"Total # of Texts"}
+]
 
-
-console.log("trying to load")
 updatePointer = function() {console.log("updatePointer is undefined")}
 
 fillLegendMaker = function(colorscale) {
     var yrange = [0,h*.75]
     colorticks = colorscale.ticks(15);
-
+    
     width = 25
     plot = true
     colorpoints = colorLegend.selectAll('rect')
@@ -105,6 +112,7 @@ fillLegendMaker = function(colorscale) {
 	    title.selectAll('text').remove()
 	    title
 		.append('text')
+		.attr('id','colorLegendTitle')
 		.attr('text-anchor','middle')
 		.text(text1)
 		.attr('fill','white')
@@ -123,7 +131,8 @@ fillLegendMaker = function(colorscale) {
 	    .attr('font-size','12')
 	    .attr('text-anchor','middle')
 	    .attr('font-family','sans-serif')
-
+	    .on('click',function(d){chooseVariable(colorLegend,"colorSelector")})
+	
 	//set up pointer
 	
 	d3.selectAll('#pointer').remove()
