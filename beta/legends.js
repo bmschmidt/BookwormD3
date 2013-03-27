@@ -126,13 +126,13 @@ fillLegendMaker = function(colorscale) {
 	colorLegend.append('text')
 	    .attr('transform','translate (0,-10)')
 	    .attr('class','axis')
-	    .text(nameSubstitutions[aesthetic['color']])
+	    .text(nameSubstitutions[query['aesthetic']['color']])
 	    .attr('fill','white')
 	    .attr('font-size','12')
 	    .attr('text-anchor','middle')
 	    .attr('font-family','sans-serif')
-	    .on('click',function(d){chooseVariable(colorLegend,"colorSelector")})
-	
+	    .on('click',function(d){chooseVariable(colorLegend,"colorSelector",quantitativeVariables,'aesthetic','color')})
+	//function(parentNode,nodeName,quantitativeVariables,queryPartBeingUpdated,partOfQueryPartBeingUpdated)
 	//set up pointer
 	
 	d3.selectAll('#pointer').remove()
@@ -201,9 +201,10 @@ drawSizeLegend = function() {
 	.append('text')
 	.attr('transform','translate(0,-10)')
 	.attr('class','axis')
-	.text(nameSubstitutions[aesthetic['size']])
+	.text(nameSubstitutions[query['aesthetic']['size']])
 	.attr('fill','white')
 	.attr('font-size','12')
 	.attr('font-family','sans-serif')
 	.attr('text-anchor','middle')
+	.on('click',function(d){chooseVariable(sizeLegend,"sizeSelector",quantitativeVariables,'aesthetic','size')})
 }

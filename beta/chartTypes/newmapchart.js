@@ -1,5 +1,4 @@
 function mapQuery() {
-
     var myQuery = query
 
     var baseMap = drawMap(document.getElementById('mapChoice').value)
@@ -19,7 +18,7 @@ function mapQuery() {
 
     function updateChart() {
 	paperdiv.selectAll('title').remove()
-        paperdata.sort(function(a,b) {return(b[aesthetic['size']]-a[aesthetic['size']])} );
+        paperdata.sort(function(a,b) {return(b[query['aesthetic']['size']]-a[query['aesthetic']['size']])} );
 	
         var mypoints = paperdiv.selectAll('circle')
             .data(paperdata,function(d) {return([d.lat,d.lng])});
@@ -45,7 +44,7 @@ function mapQuery() {
 
             .on("mouseover",function(d) {
                 this.setAttribute('opacity','1');
-                updatePointer(d[aesthetic['color']])
+                updatePointer(d[query['aesthetic']['color']])
             })
             .on('mouseout',function(d) {
                 this.setAttribute('opacity',initialOpacity);
@@ -54,10 +53,10 @@ function mapQuery() {
             .transition()
             .duration(2500)
             .attr('r',function(d) {
-                return sizescale(d[aesthetic['size']])/2 //Divided by two b/c the scale wants to return diameter, not radius.
+                return sizescale(d[query['aesthetic']['size']])/2 //Divided by two b/c the scale wants to return diameter, not radius.
             })
             .attr('fill',function(d) {
-                return colorscale(d[aesthetic['color']])
+                return colorscale(d[query['aesthetic']['color']])
 	    })
 	
         mypoints.append("svg:title")
@@ -86,11 +85,11 @@ function mapQuery() {
         d3.json(webpath,function(json) {
             paperdata = parseBookwormData(json,query);
 
-            values = paperdata.map(function(d) {return(d[aesthetic['color']])});
+            values = paperdata.map(function(d) {return(d[query['aesthetic']['color']])});
 
             colorscale = colorScaler.values(values).scaleType(d3.scale[$("#scaleType").val()])()
 
-            sizes = paperdata.map(function(d) {return(d[aesthetic['size']])});
+            sizes = paperdata.map(function(d) {return(d[query['aesthetic']['size']])});
 
             nwords.domain(d3.extent(sizes))
                 .range([0,100])

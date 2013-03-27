@@ -147,7 +147,7 @@ function heatMapFactory() {
 
 //            values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords*1000000)});
 //            totals = paperdata.map(function(d) {return(d.TotalWords)});
-	    colorValues = paperdata.map(function(d) {return(d[aesthetic['color']])})
+	    colorValues = paperdata.map(function(d) {return(d[query['aesthetic']['color']])})
             colorscale = colorScaler.values(colorValues).scaleType(d3.scale[$("#scaleType").val()])()
 
             gridPoint = paperdiv.selectAll('rect')
@@ -174,7 +174,7 @@ function heatMapFactory() {
                 .attr('stroke','black')
 		.on("mouseover",function(d) {
 		    this.setAttribute('stroke-width','2');
-		    updatePointer(d[aesthetic['color']])
+		    updatePointer(d[query['aesthetic']['color']])
 		})
 		.on('mouseout',function(d) {
 		    this.setAttribute('stroke-width',0);
@@ -192,8 +192,8 @@ function heatMapFactory() {
                     if (comparisontype()=='comparison') {
                         color = colorscale(d.WordCount/d.CompareWords)}
                     else {
-			color = colorscale(d[aesthetic['color']]);
-			if (d[aesthetic['color']]==0) {color='#393939'}
+			color = colorscale(d[query['aesthetic']['color']]);
+			if (d[query['aesthetic']['color']]==0) {color='#393939'}
 		    }
 		    if (color=="#000000") {color='#393939'}
 
