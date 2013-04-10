@@ -1,7 +1,7 @@
 svg {
-  background: #eee;
-  width: 960px;
-  height: 500px;
+  background: #000;
+  width: 1400px;
+  height: 700px;
 }
 
 #counties path {
@@ -10,6 +10,6 @@ svg {
 }
 
 #states path {
-  stroke: #fff;
+  stroke: #000;
   stroke-width: 1px;
 }

@@ -1,42 +1,3 @@
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>Advanced Bookworm Browser</title>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
-    <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
-    
-    <link type="text/css" rel="stylesheet" href="../lib/colorbrewer/colorbrewer.css"/>
-    <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
-
-    <script type="text/javascript" src="searchWindow.js"></script>
-    <script type="text/javascript" src="chartTypes/newmapchart.js"></script>
-    <script type="text/javascript" src="chartTypes/heatMap.js"></script>
-    <script type="text/javascript" src="legends.js"></script>
-    <script type="text/javascript">
-    </script>
-    </head>
-
-    <body>
-    <div id="topSelectors"></div>
-    <label for="amount">Year:</label>
-    <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold" />
-
-</script>
-    <div id="slider-range" style="width:400"></div>
-    <div id="chartAndSuperpositions">
-      <div id="chart" class="maindiv"></div>
-    </div>
-    <div id="bottomBoxes"></div>
-    <div id="lastOptions"></div>
-    
-
-    <link type="text/css" rel="stylesheet" href="bookworm.css"/>
-
-
-    <script type="text/javascript">
-
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
 //This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable.
 //If anyone violates this rule...
@@ -60,7 +21,7 @@ if (window.location.host=="melville.seas.harvard.edu") {
     defaultQuery = {
         "method":"return_json",
         "words_collation":"Case_Sensitive",
-        "groups":["decade","classification"],
+        "groups":["year","classification"],
         "database":"presidio",
         "counttype":["WordCount","TotalWords","WordsPerMillion"],
         "search_limits":{
@@ -200,7 +161,6 @@ chooseVariable = function(parentNode,nodeName,variableSet,queryPartBeingUpdated,
         .attr('y',function(d) {
             return(possibilities(d.variable))})
         .attr('x',5)
-//	.attr('text-anchor','middle')
 
     shutWindow = function() {
         d3.select('#' + nodeName).selectAll('rect')
@@ -230,11 +190,6 @@ chooseVariable = function(parentNode,nodeName,variableSet,queryPartBeingUpdated,
 	})
 }
 
-
-
-
-
-
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 var APIbox = d3.select('#chart')
     .append('input')
@@ -249,7 +204,6 @@ var APIbox = d3.select('#chart')
 
 
 //Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
-
 var wordBox= d3.select('#topSelectors')
     .append('input')
     .attr('id','wordBox')
@@ -268,7 +222,6 @@ try {
 wordBox.update=function() {
     d3.select('#wordBox').property('value',function() {return query['search_limits']['word'][0]});
 }
-
 
 var yearValue;
 //could be defined in the database somehow. (But how??)
@@ -385,7 +338,8 @@ createDropbox = function(category) {
 
         thisGuy = d3.select("body")
             .append('select').attr('id',category).attr('multiple','multiple')
-        thisSelection = thisGuy.selectAll('option').data(myData)
+        
+	thisSelection = thisGuy.selectAll('option').data(myData)
         thisSelection.enter()
             .append('option')
             .attr('value',function(d){
@@ -437,7 +391,7 @@ drawMap = function (mapname) {
                 .translate([700,350])
                 .rotate([0,0,0])
         }
-
+	
         if (mapname=="Europe") {
             projection = d3.geo.albers()
                 .center([15,45])
@@ -518,28 +472,24 @@ returnScale = function() {
         } else if (scaleType==d3.scale.sqrt) {
             scale.domain(d3.range(min,max,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n^2)}))
         } else if (scaleType==d3.scale.linear) {
-
-
             scale.domain(d3.range(min,max+max*.0001,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n)}))
-
-
         }
         scale.clamp()
         return (scale)
     }
-
+    
     my.values = function(value) {
         if (!arguments.length) return values;
         values = value;
         return my;
     };
-
+    
     my.colors = function(value) {
         if (!arguments.length) return colors;
         colors = value;
         return my;
     };
-
+    
     my.scaleType = function(value) {
         if (!arguments.length) return scaleType;
         scaleType = value;
@@ -549,6 +499,7 @@ returnScale = function() {
 }
 
 
+//define some default scales
 nwords = d3.scale.sqrt().range([0,100]);
 var sizescale = nwords
 var colorscale = d3.scale.log().range(greenToRed);
@@ -562,6 +513,7 @@ function popitup(url) {
 }
 
 function destinationize(query) {
+    //Constructs a cgi-bin request to local host.
     return( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
 };
 
@@ -673,48 +625,19 @@ updateKeysTransformer = function(key) {
     dataTypes[key]="Numeric"
 }
 
-
-
-///NOT ACTIVATED
-function changeWord() {
-
-    // The idea here is that we can have a dynamic title option that prompts you for new values when you click on it.
-    //It's not working quite yet, and maybe it shouldn't
-    $('#word_box').val(prompt("Enter new word","Ohio River"))
-
-    myPlot = mapQuery()
-    myPlot()()
-
-    textdata = [{"id":"title","label":words[0],'x':550,'y':50,'fill':'white'}];
-
-    textLegend =
-        title.selectAll('text')
-        .data(textdata);
-
-    textLegend.enter()
-        .append('text')
-        .attr('fill','white')
-        .attr('x',function(d) {return(d.x)})
-        .attr('y',function(d) {return(d.y)})
-        .attr("font-family", "sans-serif")
-        .attr("font-size", "70px")
-        .text(function(d) {return(d.label)})
-
-    words = query['search_limits']['word']
-
-    textLegend.exit().remove()
-
-}
-
-
 function comparisontype() {
     //This just tells various functions whether it's using a log scale centered around 1 (for comparisons between two words) or some other type of scale.
     //Maybe this function should also match up constraints between the two?
     //There are some differences in the legends and the titles depending if we're comparing to all
     //books or to certain ones. This should be useful for that.
-    if ('compare_limits' in query) {
+    if ('aesthetic' in query) {
         //This should just test length, not for this particular key as it does.
-        if ('word' in query['compare_limits']) {
+
+        if (
+	    (query['aesthetic']['color'] == 'WordsRatio')
+	    | 
+	    (query['aesthetic']['color']=='TextRatio')
+	) {
             return('comparison');
         }
     } else {return("absolute")}
@@ -785,32 +708,7 @@ prettyName = function(number) {
     }
 }
 
-//var legendPoints = legend.append('g').attr('id','legendPoints')
-//var ylab = legend.append('g').attr('id','ylab');
-//var xlab = legend.append('g').attr('id','xlab');
 var legendData = [];
-
-//Goofy d3 stuff doesn't work yet:
-function click(d) {
-    var centroid = path.centroid(d),
-    translate = projection.translate();
-    projection.translate([
-        translate[0] - centroid[0] + width / 2,
-        translate[1] - centroid[1] + height / 2
-    ]);
-    zoom.translate(projection.translate());
-    states.selectAll("path").transition()
-        .duration(1000)
-        .attr("d", path);
-}
 
 var currentPlot=myPlot()
 currentPlot()
-
-
-</script>
-    </body>
-    </html>
-
-
-
