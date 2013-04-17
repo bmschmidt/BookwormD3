@@ -3,8 +3,9 @@ function mapQuery() {
 
     var baseMap = drawMap(document.getElementById('mapChoice').value)
     var initialOpacity = .7
-    var additionalGroupings = query['groups'].filter(function(d) {if (d!='lat' & d!='lng') {return true}}) //allow multiple circles on the same point?
 
+    //This breaks in some cases, so I'm just removing it. The additional groups will have to specified in 'aesthetic' somehow
+    var additionalGroupings = query['groups'].filter(function(d) {if (d!='lat' & d!='lng') {return false}}) //allow multiple circles on the same point?
     var colorScaler = returnScale()
     var sizeScaler  = returnScale()
 
