@@ -211,12 +211,14 @@ $('<button />').text('Redraw Plot').click(function(){
 var lastOptions = $('<div />');
 
 //The types of maps are just coded in.
-mapOptions = [{"text":'USA','value':"USA"},
+mapOptions = [
+    {"text":'USA','value':"USA"},
               {'text':'World','value':"World"},
               {'text':'Europe','value':"Europe"},
-              {'text':'Asia','value':"Asia"}]
+              {'text':'Asia','value':"Asia"}
+	     ]
 
-mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice")
+mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice").attr('class',"chartSpecific mapChart")
 pointSelector = mapSelector.selectAll('option').data(mapOptions)
 
 pointSelector.enter()

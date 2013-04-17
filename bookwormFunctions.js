@@ -241,18 +241,21 @@ fillLegendMaker = function(colorscale) {
                 .attr('transform',"translate(0," + (legendScale(inputNumbers) -14)+ ')')
         }
     }
-
     my.yrange = function(value) {
         if (!arguments.length) return yrange;
         yrange = value;
         return my;
     };
-
     return my
 }
 
 myPlot = function() {
     updateAxisOptionBoxes()
+
+    d3.selectAll(".chartSpecific").style('display','none')
+    d3.selectAll(".debugging").style('display','none')
+    d3.selectAll("." + query.plotType).style('display','inline')
+
     if (query.plotType=='heatMap') {return heatMapFactory() }
     if (query.plotType=='map') {return mapQuery()}
 }
@@ -484,8 +487,8 @@ function parseBookwormData(json,locQuery) {
     return(results)
 }
 
-updateAxisOptionBoxes = function() {
-    masterOptions = [
+variableOptions = {
+    defaultOptions : [
         {"name":"Year","dbname":"year","database":"presidio","type":"time"},
         {"name":"Author age","dbname":"author_age","database":"presidio","type":"time"},
         {"name":"LC classification","dbname":"classification","database":"presidio","type":"categorical"},
@@ -497,35 +500,58 @@ updateAxisOptionBoxes = function() {
         {"name":"Broad Subject","dbname":"BenSubject","database":"presidio","type":"categorical"},
         {"name":"Originating Library","dbname":"library","database":"presidio","type":"categorical"},
         {"name":"Location in Stacks","dbname":"lc2","database":"presidio","type":"categorical"},
+	{"name":"Page Number","dbname":"page","database":"ChronAm","type":"categorical"},
+	{"name":"Paper Name","dbname":"paper","database":"ChronAm","type":"categorical"},
+	{"name":"State","dbname":"state","database":"ChronAm","type":"categorical"},
+	{"name":"Census Region","dbname":"region","database":"ChronAm","type":"categorical"},
+	{"name":"Calendar Date","dbname":"date_day_year","database":"ChronAm","type":"time"},
+	{"name":"Calendar Date (by week)","dbname":"date_week_year","database":"ChronAm","type":"time"},
+	{"name":"Date (monthly resolution)","dbname":"date_month","database":"ChronAm","type":"time"},
+	{"name":"Date (yearly resolution)","dbname":"date_year","database":"ChronAm","type":"time"}
     ]
+,
+    options : [],
+    update : function(database,followupFunction) {
+	variableOptions.options = []
+	localQuery = {"method":"returnPossibleFields","database":database}
+	d3.json(destinationize(localQuery), function(error, json) {
+            if (error)        console.warn(error);
+	    console.log("hi")
+	    variableOptions.defaultOptions.map(
+		function(row) {
+		    variableOptions.options.push(row)
+		})
+            json.map(function(row) {
+		row['database'] = query['database']
+		variableOptions.options.push(row)
+	    })
+	    
+	    variableOptions.options = variableOptions.options.filter(function(row){
+		if (row.database==query.database ) return true
+	    })
+	    
+	    followupFunction() 
 
-    localquery = JSON.parse(JSON.stringify(query))
-    localquery['method'] = 'returnPossibleFields'
+	});	
+    }
+}
 
-    d3.json(destinationize(localquery), function(error, json) {
-        if (error)        console.warn(error);
-	console.log("hi")
-        json.map(function(row) {
-	    row['database'] = query['database']
-	    masterOptions.push(row)
-	})
-
-	masterOptions = masterOptions.filter(function(row){if (row.database==query.database )return true})
-
-        axes = d3.selectAll(".categoricalOptions")
-        axes.selectAll('option').remove()
-	console.log(json)
-
-        selected = axes.selectAll('option').data(masterOptions)
-        selected.exit().remove()
-
-        newdata = selected.enter()
-
-        newdata.append('option')
-            .attr('value',function(d) {return d.dbname})
-            .text(function(d) {return d.name})
-        queryAligner.updateQuery()
-    });
+updateAxisOptionBoxes = function() {
+    followup = function() {
+            axes = d3.selectAll(".categoricalOptions")
+            axes.selectAll('option').remove()
+	    
+            selected = axes.selectAll('option').data(variableOptions.options)
+            selected.exit().remove()
+	    
+            newdata = selected.enter()
+	    
+            newdata.append('option')
+		.attr('value',function(d) {return d.dbname})
+		.text(function(d) {return d.name})
+            queryAligner.updateQuery()
+    }
+    variableOptions.update(query['database'],followup)
 }
 
 
@@ -885,8 +911,6 @@ function heatMapFactory() {
             yaxis.selectAll('text').remove()
         }
 
-        //paperdiv.selectAll('title').remove()
-
         queryAligner.updateQuery()
 
         myQuery=query
@@ -1023,8 +1047,6 @@ function heatMapFactory() {
                 return(d)
             })
 
-            //            values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords*1000000)});
-            //            totals = paperdata.map(function(d) {return(d.TotalWords)});
             colorValues = paperdata.map(function(d) {return(d[query['aesthetic']['color']])})
             colorscale = colorScaler.values(colorValues).scaleType(d3.scale[$("#scaleType").val()])()
 
