@@ -253,7 +253,6 @@ myPlot = function() {
     updateAxisOptionBoxes()
 
     d3.selectAll(".chartSpecific").style('display','none')
-    d3.selectAll(".debugging").style('display','none')
     d3.selectAll("." + query.plotType).style('display','inline')
 
     if (query.plotType=='heatMap') {return heatMapFactory() }
@@ -507,7 +506,12 @@ variableOptions = {
 	{"name":"Calendar Date","dbname":"date_day_year","database":"ChronAm","type":"time"},
 	{"name":"Calendar Date (by week)","dbname":"date_week_year","database":"ChronAm","type":"time"},
 	{"name":"Date (monthly resolution)","dbname":"date_month","database":"ChronAm","type":"time"},
-	{"name":"Date (yearly resolution)","dbname":"date_year","database":"ChronAm","type":"time"}
+	{"name":"Date (yearly resolution)","dbname":"date_year","database":"ChronAm","type":"time"},
+	{"name":"Publication Month","dbname":"month","database":"arxiv","type":"time"},
+	{"name":"Archive section","dbname":"archive","database":"arxiv","type":"categorical"},
+	{"name":"Subject Classification (narrower)","dbname":"subclass","database":"arxiv","type":"categorical"},
+	{"name":"Submitter top-level e-mail domain","dbname":"tld","database":"arxiv","type":"categorical"},
+	{"name":"Submitter lower-level e-mail domain","dbname":"mld","database":"arxiv","type":"categorical"}
     ]
 ,
     options : [],

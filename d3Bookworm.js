@@ -218,10 +218,65 @@ advanceSlider = function(step) {
 
 
 var executeButtons = $('<div />');
+
 $('<button />').text('Redraw Plot').click(function(){
     currentPlot = myPlot()
     currentPlot()
 }).appendTo(executeButtons);
+
+
+d3.select("#AdvancedOptions")
+//Make advanced Options into a toggler.
+    .on("click",function() {
+	display = d3.select(".debugging")
+	display = (display.style("display"))
+	
+	if (display=="none") {
+	    
+	    d3.selectAll(".debugging").style("display","inline")
+	    d3.select(this).text("Hide Advanced")
+	}
+	if (display=="inline") {
+	    d3.selectAll(".debugging").style("display","none")
+	    d3.select(this).text("Show Advanced")
+	}
+    })
+
+d3.select("#ExportData")
+//Make advanced Options into a toggler.
+    .on("click",function() {
+	function post_to_url(path, params, method) {
+	    //Function From http://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
+	    method = method || "post"; // Set method to post by default, if not specified.
+
+	    // The rest of this code assumes you are not using a library.
+	    // It can be made less wordy if you use one.
+	    var form = document.createElement("form");
+	    form.setAttribute("method", method);
+	    form.setAttribute("action", path);
+
+	    for(var key in params) {
+		if(params.hasOwnProperty(key)) {
+		    var hiddenField = document.createElement("input");
+		    hiddenField.setAttribute("type", "hidden");
+		    hiddenField.setAttribute("name", key);
+		    hiddenField.setAttribute("value", params[key]);
+
+		    form.appendChild(hiddenField);
+		}
+	    }
+	    console.log(params)
+	    document.body.appendChild(form);
+	    form.submit();
+	}
+
+	localquery = JSON.parse(JSON.stringify(query))
+	localquery['method'] = "return_tsv"
+
+	post_to_url("/cgi-bin/dbbindings.py",	{"queryTerms":JSON.stringify(localquery)})
+    })
+
+
 
 var lastOptions = $('<div />');
 
@@ -294,3 +349,4 @@ var legendData = [];
 
 var currentPlot=myPlot()
 currentPlot()
+d3.selectAll(".debugging").style('display','none')
