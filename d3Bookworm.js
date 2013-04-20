@@ -32,6 +32,21 @@ if (window.location.host=="melville.seas.harvard.edu") {
     }
 }
 
+if (window.location.host=="localhost:8080") {		
+	console.log("yo, localhost!")			
+    defaultQuery = {	
+        "method":"return_json",
+        "words_collation":"Case_Sensitive",
+        "groups":["publication_date_year","publication_date_month_year"],
+        "database":"tenPercent",
+        "counttype":["WordCount","TotalWords","WordsPerMillion"],
+        "search_limits":{
+            "word":["Nixon"]
+        },
+        "plotType":"heatMap"
+    }
+}
+
 var lastPlotted="None"
 
 //Graphical Elements
