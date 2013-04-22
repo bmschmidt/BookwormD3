@@ -575,13 +575,18 @@ updateKeysTransformer = function(key) {
         plotTransformers[key] = function(originalValue) {
             datedValue = new Date()
             extractRelevantField = function(dateKey) {
-                strings = dateKey.split("_")
-                if (strings.length>1) {return strings[1]}
-                return strings[0]
+
+
+	output = undefined
+	key.split("_").reverse().map(function(phrase) {
+	//The first date phrase to appear is the one we're using.
+		if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(phrase) >=0) {output=phrase}
+	})	
+	return output	
             }
             relevantField = extractRelevantField(key)
             if (['month','day','week'].indexOf(relevantField) >=0) {
-                datedValue.setFullYear(0,0,originalValue)
+                datedValue.setFullYear(1,-1,originalValue)
             } else {
                 datedValue.setFullYear(originalValue,1,1)
             }
