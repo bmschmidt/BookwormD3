@@ -366,6 +366,46 @@ removeElements = function() {
     vals = ['rect','text','path','circle','line','tick'].map(function(type) {svg.selectAll(type).transition().remove()})
 }
 
+lineChart = function() {
+
+    query['aesthetic']['y'] = 'WordsPerMillion'
+    removeElements()
+    paperdata.sort(function(a,b) {
+	return parseFloat(a[query['groups'][0]]) - parseFloat(b[query['groups'][0]])
+    })
+
+
+    x = d3.scale.linear()
+	.domain(
+	    d3.extent(paperdata.map(function(d) {
+		return parseFloat(d[query['groups'][0]])}))
+	)
+	.range([0,1200]);
+    y=d3.scale.linear()
+	.domain(d3.extent(paperdata.map(function(d) {
+	    return parseFloat(d[query['aesthetic']['y']])})))
+	.range([400,00]);
+
+
+    var lineGenerator = d3.svg.line()
+	.x(function(d) { value = x(parseFloat(d[query['groups'][0]])); return value })
+	.y(function(d) { value = y(parseFloat(d[query['aesthetic']['y']]));return value })
+
+    
+    points = svg
+	.selectAll('.line');
+
+    points
+	.data(paperdata).enter()
+
+    //This isn't the best way. But how to make it draw on the data?
+    svg.append("path").attr('d',lineGenerator(paperdata))
+	.style("fill","none")
+	.style("stroke","white")
+	.style("stroke-width","1.5px")
+
+
+}
 
 returnScale = function() {
     var colors = greenToRed,

@@ -164,12 +164,19 @@ var APIbox = d3.select('#APIbox')
 //Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
 
 d3.selectAll("[bindTo]")
+    .on('change',function() { 
+	console.log("change registered")
+        queryAligner.updateQuery(d3.select(this)) 
+})
     .on('keyup',function() {  
+	console.log("keyup registered")
         queryAligner.updateQuery(d3.select(this)) 
 })
-    .on('mouseup',function() {  
-        queryAligner.updateQuery(d3.select(this)) 
-})
+//    .on('select',function() {  
+//	console.log("select registered")
+//        queryAligner.updateQuery(d3.select(this)) 
+//})
+
 
 queryAligner.updateQuery()
 
