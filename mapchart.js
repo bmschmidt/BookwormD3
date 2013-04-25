@@ -21,16 +21,12 @@ function mapQuery() {
     d3.json(webpath,function(json) {
         paperdata = parseBookwormData(json,query);
 
-        if (comparisontype()=='comparison') {
-            // This probably isn't the best place to do this: what is? Maybe the API somewhere?                                                                     
-            paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
-        }
-
         values = paperdata.map(function(d) {return(d.WordCount/d.TotalWords)});
         totals = paperdata.map(function(d) {return(d.TotalWords)});
         
         
-        // Set domains across what we have                                                                                                                                 numbers = d3.extent(values)
+        // Set domains across what we have
+	numbers = d3.extent(values)
 	
         numbers[0] = d3.max([(1/10)/1000000,d3.min(values)])
 
@@ -39,27 +35,21 @@ function mapQuery() {
             numbers = [1/outerbound,outerbound]
 	    colorscale=logcolors
         }
-
+	
         min = Math.log(numbers[0])
         max = Math.log(numbers[1])
-
+	
         colorscale.domain(d3.range(min,max,(max-min)/colorscale.range().length).map(function(n) {return(Math.exp(n))}))
         colorscale.nice()
         nwords.domain(d3.extent(totals))
         nwords.nice()
-
-        $("#max_x").text(' maximum value: ' + Math.round( 100*1000000*colors.domain()[2],2)/100 );
-
-
-
-        //paperdiv.selectAll('circle').remove()                                                                                                                     
 	
+	//sorting to make the smaller circles appear on top.
         paperdata.sort(function(a,b) {return(b.TotalWords-a.TotalWords)} );
-
+	
         var mypoints = paperdiv.selectAll('circle')
             .data(paperdata,function(d) {return(d.paperid)});
-
-
+	
         mypoints
             .enter()
             .append('circle')

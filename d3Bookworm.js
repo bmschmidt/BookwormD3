@@ -7,13 +7,12 @@ var query = {};
 var defaultQuery = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
-    "groups":["lat","lng"],
     "database":"ChronAm",
-    "counttype":["WordCount","TotalWords","WordsPerMillion"],
     "search_limits":{
         "date_year":{"$lte":1922,"$gte":1850},
         "word":["Ohio river"]
     },
+    "aesthetic":{'x':'lng','y':'lat',"size":"TotalWords","color":"WordsPerMillion"},
     "plotType":"map"
 };
 
@@ -28,6 +27,7 @@ if (window.location.host=="melville.seas.harvard.edu") {
             "year":{"$lte":1922,"$gte":1850},
             "word":["library","libraries"]
         },
+	"aesthetic":{"x":"year","y":"classification","color":"WordsPerMillion"},
         "plotType":"heatMap"
     }
 }

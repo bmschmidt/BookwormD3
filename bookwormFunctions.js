@@ -257,6 +257,7 @@ myPlot = function() {
 
     if (query.plotType=='heatMap') {return heatMapFactory() }
     if (query.plotType=='map') {return mapQuery()}
+    if (query.plotType=='line') {return linePlot()}
 }
 
 createDropbox = function(category) {
@@ -362,50 +363,110 @@ drawMap = function (mapname) {
     return my
 }
 
+x = 1
+
+linePlot = function() {
+    removeElements()
+    
+//    iff query aesthetic isn't a counttype, do this:
+	query['aesthetic']['y'] = 'WordsPerMillion'
+//    }
+
+
+    if ('undefined' == typeof(query['aesthetic']['x'])) {
+	query['aesthetic']['x'] = query['groups'][0]	
+    }
+    if("undefined" == typeof(query['aesthetic']['group'])) {
+	if ("undefined" != typeof(query['groups'][1])) {
+	    query['aesthetic']['group'] = query['groups'][1]
+	}
+    }
+    queryAligner.alignAesthetic()
+
+    my = function() {
+
+        d3.json(destinationize(query),function(json) {
+
+            paperdata = parseBookwormData(json,query);
+	    
+	    //got to be sorted or the line's a mess.
+            paperdata.sort(function(a,b) {
+                return parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
+            })
+
+            xstuff = makeAxisAndScale('x')
+            ystuff = makeAxisAndScale('y')
+            x = xstuff.scale
+            y = ystuff.scale
+
+            svg.append('g').attr('id','y-axis').call(ystuff.axis)
+                .attr('class','axis')
+                .attr('transform','translate(' +ystuff.limits['x'][0] + ',0)')
+
+            svg.append('g').attr('id','x-axis').call(xstuff.axis)
+                .attr('class','axis')
+                .attr('transform','translate(0,' + xstuff.limits['y'][1] + ')')
+
+
+            //make the lines
+            var lineGenerator = d3.svg.line()
+                .x(function(d) { 
+		    name = query['aesthetic']['x']
+
+		    value = x(plotTransformers[name](d[name]));
+		    return value})
+                .y(function(d) { value = y(plotTransformers[query['aesthetic']['y']](d[query['aesthetic']['y']]));return value })
+	    
+            nestedData = d3.nest().key(function(d) {return d[query['aesthetic']['group']]}).entries(paperdata)
+	    
+            points = svg
+                .selectAll('.line');
+
+            newpoints = points
+                .data(nestedData).enter()
+
+            newpoints
+                .append("path")
+                .attr('class','line')
+                .attr('d',function(d) {
+                    return lineGenerator(d.values)})
+                .attr('stroke','white')
+                .attr('fill','none')
+                .on('mouseover',function(d) {
+                    d3.select(this).attr('stroke-width','5')
+                })
+                .on('mouseout',function(d) {
+                    d3.select(this).attr('stroke-width','1.5')
+                })
+
+            //Make the points
+
+            points = svg.selectAll('.circle').data(paperdata).enter()
+
+	    //these need to belong to the line somehow.
+
+            points.append('circle')
+                .attr('opacity','.01')
+                .on('mouseover',function(d) {d3.select(this).attr('opacity','1')})
+                .on('mouseout',function(d) {d3.select(this).attr('opacity','.01')})
+                .attr('cx',function(d) {
+                    name = query['aesthetic']['x']
+		    return x(plotTransformers[name](d[query['aesthetic']['x']]))})
+                .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
+                .on('click',function(d) {runSearch(d)})
+                .attr('r',5)
+                .attr('fill','white')
+
+        })
+    }
+
+    return my
+}
+
 removeElements = function() {
     vals = ['rect','text','path','circle','line','tick'].map(function(type) {svg.selectAll(type).transition().remove()})
 }
 
-lineChart = function() {
-
-    query['aesthetic']['y'] = 'WordsPerMillion'
-    removeElements()
-    paperdata.sort(function(a,b) {
-	return parseFloat(a[query['groups'][0]]) - parseFloat(b[query['groups'][0]])
-    })
-
-
-    x = d3.scale.linear()
-	.domain(
-	    d3.extent(paperdata.map(function(d) {
-		return parseFloat(d[query['groups'][0]])}))
-	)
-	.range([0,1200]);
-    y=d3.scale.linear()
-	.domain(d3.extent(paperdata.map(function(d) {
-	    return parseFloat(d[query['aesthetic']['y']])})))
-	.range([400,00]);
-
-
-    var lineGenerator = d3.svg.line()
-	.x(function(d) { value = x(parseFloat(d[query['groups'][0]])); return value })
-	.y(function(d) { value = y(parseFloat(d[query['aesthetic']['y']]));return value })
-
-    
-    points = svg
-	.selectAll('.line');
-
-    points
-	.data(paperdata).enter()
-
-    //This isn't the best way. But how to make it draw on the data?
-    svg.append("path").attr('d',lineGenerator(paperdata))
-	.style("fill","none")
-	.style("stroke","white")
-	.style("stroke-width","1.5px")
-
-
-}
 
 returnScale = function() {
     var colors = greenToRed,
@@ -539,61 +600,61 @@ variableOptions = {
         {"name":"Broad Subject","dbname":"BenSubject","database":"presidio","type":"categorical"},
         {"name":"Originating Library","dbname":"library","database":"presidio","type":"categorical"},
         {"name":"Location in Stacks","dbname":"lc2","database":"presidio","type":"categorical"},
-	{"name":"Page Number","dbname":"page","database":"ChronAm","type":"categorical"},
-	{"name":"Paper Name","dbname":"paper","database":"ChronAm","type":"categorical"},
-	{"name":"State","dbname":"state","database":"ChronAm","type":"categorical"},
-	{"name":"Census Region","dbname":"region","database":"ChronAm","type":"categorical"},
-	{"name":"Calendar Date","dbname":"date_day_year","database":"ChronAm","type":"time"},
-	{"name":"Calendar Date (by week)","dbname":"date_week_year","database":"ChronAm","type":"time"},
-	{"name":"Date (monthly resolution)","dbname":"date_month","database":"ChronAm","type":"time"},
-	{"name":"Date (yearly resolution)","dbname":"date_year","database":"ChronAm","type":"time"},
-	{"name":"Publication Month","dbname":"month","database":"arxiv","type":"time"},
-	{"name":"Archive section","dbname":"archive","database":"arxiv","type":"categorical"},
-	{"name":"Subject Classification (narrower)","dbname":"subclass","database":"arxiv","type":"categorical"},
-	{"name":"Submitter top-level e-mail domain","dbname":"tld","database":"arxiv","type":"categorical"},
-	{"name":"Submitter lower-level e-mail domain","dbname":"mld","database":"arxiv","type":"categorical"}
+        {"name":"Page Number","dbname":"page","database":"ChronAm","type":"categorical"},
+        {"name":"Paper Name","dbname":"paper","database":"ChronAm","type":"categorical"},
+        {"name":"State","dbname":"state","database":"ChronAm","type":"categorical"},
+        {"name":"Census Region","dbname":"region","database":"ChronAm","type":"categorical"},
+        {"name":"Calendar Date","dbname":"date_day_year","database":"ChronAm","type":"time"},
+        {"name":"Calendar Date (by week)","dbname":"date_week_year","database":"ChronAm","type":"time"},
+        {"name":"Date (monthly resolution)","dbname":"date_month","database":"ChronAm","type":"time"},
+        {"name":"Date (yearly resolution)","dbname":"date_year","database":"ChronAm","type":"time"},
+        {"name":"Publication Month","dbname":"month","database":"arxiv","type":"time"},
+        {"name":"Archive section","dbname":"archive","database":"arxiv","type":"categorical"},
+        {"name":"Subject Classification (narrower)","dbname":"subclass","database":"arxiv","type":"categorical"},
+        {"name":"Submitter top-level e-mail domain","dbname":"tld","database":"arxiv","type":"categorical"},
+        {"name":"Submitter lower-level e-mail domain","dbname":"mld","database":"arxiv","type":"categorical"}
     ]
-,
+    ,
     options : [],
     update : function(database,followupFunction) {
-	variableOptions.options = []
-	localQuery = {"method":"returnPossibleFields","database":database}
-	d3.json(destinationize(localQuery), function(error, json) {
+        variableOptions.options = []
+        localQuery = {"method":"returnPossibleFields","database":database}
+        d3.json(destinationize(localQuery), function(error, json) {
             if (error)        console.warn(error);
-	    console.log("hi")
-	    variableOptions.defaultOptions.map(
-		function(row) {
-		    variableOptions.options.push(row)
-		})
+            console.log("hi")
+            variableOptions.defaultOptions.map(
+                function(row) {
+                    variableOptions.options.push(row)
+                })
             json.map(function(row) {
-		row['database'] = query['database']
-		variableOptions.options.push(row)
-	    })
-	    
-	    variableOptions.options = variableOptions.options.filter(function(row){
-		if (row.database==query.database ) return true
-	    })
-	    
-	    followupFunction() 
+                row['database'] = query['database']
+                variableOptions.options.push(row)
+            })
 
-	});	
+            variableOptions.options = variableOptions.options.filter(function(row){
+                if (row.database==query.database ) return true
+            })
+
+            followupFunction()
+
+        });
     }
 }
 
 updateAxisOptionBoxes = function() {
     followup = function() {
-            axes = d3.selectAll(".categoricalOptions")
-            axes.selectAll('option').remove()
-	    
-            selected = axes.selectAll('option').data(variableOptions.options)
-            selected.exit().remove()
-	    
-            newdata = selected.enter()
-	    
-            newdata.append('option')
-		.attr('value',function(d) {return d.dbname})
-		.text(function(d) {return d.name})
-            queryAligner.updateQuery()
+        axes = d3.selectAll(".categoricalOptions")
+        axes.selectAll('option').remove()
+
+        selected = axes.selectAll('option').data(variableOptions.options)
+        selected.exit().remove()
+
+        newdata = selected.enter()
+
+        newdata.append('option')
+            .attr('value',function(d) {return d.dbname})
+            .text(function(d) {return d.name})
+        queryAligner.updateQuery()
     }
     variableOptions.update(query['database'],followup)
 }
@@ -602,7 +663,12 @@ updateAxisOptionBoxes = function() {
 
 updateKeysTransformer = function(key) {
     //This is called for its side-effect: assigning a function to each key in plotTransformers
-    //default: return as is.
+
+    //That function will--for example--take a date and reformat it as a javascript date object.
+    //default behavior: return the value as is.
+
+    queryAligner.alignAesthetic()
+
     plotTransformers[key] = function(key) {return(key)}
     dataTypes[key]="Categorical"
     //if a date: return a dateTime object
@@ -617,12 +683,12 @@ updateKeysTransformer = function(key) {
             extractRelevantField = function(dateKey) {
 
 
-	output = undefined
-	key.split("_").reverse().map(function(phrase) {
-	//The first date phrase to appear is the one we're using.
-		if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(phrase) >=0) {output=phrase}
-	})	
-	return output	
+                output = undefined
+                key.split("_").reverse().map(function(phrase) {
+                    //The first date phrase to appear is the one we're using.
+                    if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(phrase) >=0) {output=phrase}
+                })
+                return output
             }
             relevantField = extractRelevantField(key)
             if (['month','day','week'].indexOf(relevantField) >=0) {
@@ -709,14 +775,40 @@ queryAligner = {
     },
 
     alignAesthetic: function() {
-        dummy={}
-        if ('aesthetic' in query) {
-            m = d3.keys(query['aesthetic'])
-            m.map(function(d) {
-                dummy[query['aesthetic'][d]] = 1
+        //pushes the aesthetic values into the appropriate boxes.
+
+
+        //back compatability: this block can be erased eventually,
+        //it just makes some of Ben's old links works.
+        {
+            if (typeof(query['aesthetic']['x']) == 'undefined') {
+                query['aesthetic']['x'] = groups[0]
             }
-                 );
-            query['counttype'] = d3.keys(dummy);
+
+            if (typeof(query['aesthetic']['y']) == 'undefined') {
+                query['aesthetic']['y'] = groups[1]
+            }
+        }
+
+        //begin the real big.
+        counttypes = {}
+        groups     = {}
+        if ('aesthetic' in query) {
+            aesthetics = d3.keys(query['aesthetic'])
+
+            aesthetics.map(function(aesthetic) {
+                possibleQuants = quantitativeVariables
+                    .map(function(counttype) {return counttype.variable})
+                if (possibleQuants.indexOf(query['aesthetic'][aesthetic]) > -1) {
+                    counttypes[query['aesthetic'][aesthetic]] = 1
+                } else {
+                    groups[query['aesthetic'][aesthetic]] = 1
+                }
+
+            }
+                          );
+            query['counttype'] = d3.keys(counttypes);
+            query['groups'] = d3.keys(groups)
         }
     }
 }
@@ -804,6 +896,18 @@ drawSizeLegend = function() {
         .on('click',function(d){chooseVariable(sizeLegend,"sizeSelector",quantitativeVariables,'aesthetic','size')})
 }
 
+
+runSearch = function(d) {
+    //takes an element that has attributes corresponding to groups:
+    //opens up a search window with the full query restrictions, plus the particular restrictions
+    //for which it is grouped.
+    myQuery = JSON.parse(JSON.stringify(query))
+    myQuery['groups'].map(function(group) {
+        myQuery['search_limits'][group] = [d[group]]
+    })
+    searchWindow(myQuery)
+}
+
 searchWindow = function(local) {
     //This takes a query string and opens up a new window with search results. Pretty bare-bones for now, but could be a lot, lot better.
     local.method="search_results"
@@ -853,10 +957,11 @@ function mapQuery() {
 
         mypoints
             .on('click',function(d) {
-                searchTemplate = JSON.parse(JSON.stringify(query))
-                searchTemplate['search_limits']['lat'] = [d.lat]
-                searchTemplate['search_limits']['lng'] = [d.lng]
-                searchWindow(searchTemplate)
+                runSearch(d)
+                //                searchTemplate = JSON.parse(JSON.stringify(query))
+                //               searchTemplate['search_limits']['lat'] = [d.lat]
+                //              searchTemplate['search_limits']['lng'] = [d.lng]
+                //             searchWindow(searchTemplate)
             });
 
         mypoints
@@ -905,8 +1010,8 @@ function mapQuery() {
         }
         projection = baseMap()
         queryAligner.updateQuery()
-        webpath = destinationize(query);
-        d3.json(webpath,function(json) {
+
+        d3.json(destinationize(query),function(json) {
             paperdata = parseBookwormData(json,query);
 
             values = paperdata.map(function(d) {return(d[query['aesthetic']['color']])});
@@ -943,6 +1048,106 @@ function mapQuery() {
     return my
 }
 
+
+makeAxisAndScale = function(axis,limits) {
+    if ('undefined'==typeof limits) {
+        limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
+    }
+
+    variableName = query['aesthetic'][axis]
+
+    vals = d3.nest()
+        .key(function(d) {
+            return d[variableName]
+        }
+            )
+        .entries(paperdata).map(function(d) {
+            //Some variables will have transformers defined for them
+            transformer = plotTransformers[variableName]
+            if ('undefined'==typeof transformer) {
+                return d
+            } else {
+                m = (transformer(d.key))
+                return(m)
+            }
+        })
+    
+    datatype = dataTypes[variableName]
+
+    if (datatype=="Categorical") {
+        console.log(axis + " is categorical")
+        n = function() {
+            //home many elements to display depends on the width: no more than ten pixels
+            //vertically, and 30 pixels horizontally
+            if (axis=='y') {minSize=11}
+            if (axis=='x') {minSize=100}
+            return Math.round((limits[axis][1]-limits[axis][0])/minSize)
+        }()
+        names = topn(n,variableName,paperdata)
+        paperdata = paperdata.filter(function(entry) {
+            return(names.indexOf(entry[variableName]) > -1)
+        })
+
+        names.sort()
+        vals = names
+        scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
+        pointsToLabel = vals
+        thisAxis = d3.svg.axis()
+            .scale(scale)
+        scale.pixels = (limits[axis][1]-limits[axis][0])/vals.length;
+    }
+
+    if (datatype=="Numeric") {
+        //this code currently misbehaves with non-consecutive ranges
+        console.log(axis + " is numeric")
+        vals = vals.map(function(d) {return parseFloat(d)})
+        if (axis=='x') {
+            vals.sort(function(a,b){return(a-b)})
+            testing = vals
+        }
+        if (axis=='y') {
+            vals.sort(function(a,b){return(b-a)})
+        }
+        pixels = (limits[axis][1]-limits[axis][0])/vals.length;
+	domain = d3.extent(vals)
+	domain.reverse()
+	
+        scale = d3.scale.linear().domain(domain).range([limits[axis][0],limits[axis][1]-pixels])
+        thisAxis = d3.svg.axis()
+            .scale(scale)
+            .tickFormat(d3.format('g'))
+            .tickSubdivide(1)
+        scale.pixels = pixels
+    }
+
+    if (datatype=="Date") {
+        console.log(axis + " is date")
+        if (axis=='x') {
+            vals.sort(function(a,b){return(a-b)})
+            testing = vals
+        }
+        if (axis=='y') {
+            vals.sort(function(a,b){return(b-a)})
+        }
+        pixels = (limits[axis][1]-limits[axis][0])/vals.length;
+        scale = d3.time.scale().domain(d3.extent(vals)).range([limits[axis][0],limits[axis][1]-pixels])
+        thisAxis = d3.svg.axis()
+            .scale(scale)
+            .tickSubdivide(1)
+        scale.pixels = pixels
+    }
+    if (axis=='x')
+    {
+        thisAxis = thisAxis.orient("bottom")
+    }
+    if (axis=='y')
+    {thisAxis = thisAxis.orient("left")}
+
+    return({"scale":scale,"axis":thisAxis,"datatype":datatype,"limits":limits})
+}
+
+
+
 function heatMapFactory() {
     var limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
     var myQuery = query
@@ -978,10 +1183,6 @@ function heatMapFactory() {
 
 
             //Frequency stats are calculated from raw data here.
-            if (comparisontype()=='comparison') {
-                // This probably isn't the best place to do this: what is?
-                paperdata = paperdata.map(function(d) {d.CompareWords = d.TotalWords; d.TotalWords = d.WordCount+d.TotalWords;return(d)})
-            }
 
             nwords.nice()
 
@@ -1000,7 +1201,7 @@ function heatMapFactory() {
                     console.log(axis + " is categorical")
                     n = function() {
                         //home many elements to display depends on the width: no more than ten pixels
-			//vertically, and 30 pixels horizontally
+                        //vertically, and 30 pixels horizontally
                         if (axis=='y') {minSize=11}
                         if (axis=='x') {minSize=60}
                         return Math.round((limits[axis][1]-limits[axis][0])/minSize)
@@ -1009,7 +1210,7 @@ function heatMapFactory() {
                     paperdata = paperdata.filter(function(entry) {
                         return(names.indexOf(entry[variableName]) > -1)
                     })
-		    
+
                     names.sort()
                     vals = names
                     scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
@@ -1022,7 +1223,7 @@ function heatMapFactory() {
 
 
                 if (datatype=="Numeric") {
-		    //this code currently misbehaves with non-consecutive ranges
+                    //this code currently misbehaves with non-consecutive ranges
                     console.log(axis + " is numeric")
                     vals = vals.map(function(d) {return parseFloat(d)})
                     if (axis=='x') {
@@ -1032,13 +1233,13 @@ function heatMapFactory() {
                     if (axis=='y') {
                         vals.sort(function(a,b){return(b-a)})
                     }
-		    pixels = (limits[axis][1]-limits[axis][0])/vals.length;
+                    pixels = (limits[axis][1]-limits[axis][0])/vals.length;
                     scale = d3.scale.linear().domain(d3.extent(vals)).range([limits[axis][0],limits[axis][1]-pixels])
                     thisAxis = d3.svg.axis()
                         .scale(scale)
                         .tickFormat(d3.format('g'))
                         .tickSubdivide(1)
-		    scale.pixels = pixels
+                    scale.pixels = pixels
                 }
 
                 if (datatype=="Date") {
@@ -1050,14 +1251,13 @@ function heatMapFactory() {
                     if (axis=='y') {
                         vals.sort(function(a,b){return(b-a)})
                     }
-		    pixels = (limits[axis][1]-limits[axis][0])/vals.length;
+                    pixels = (limits[axis][1]-limits[axis][0])/vals.length;
                     scale = d3.time.scale().domain(d3.extent(vals)).range([limits[axis][0],limits[axis][1]-pixels])
                     thisAxis = d3.svg.axis()
                         .scale(scale)
                         .tickSubdivide(1)
                     scale.pixels = pixels
                 }
-
 
                 return({"scale":scale,"axis":thisAxis,"datatype":datatype})
             }
@@ -1070,7 +1270,7 @@ function heatMapFactory() {
             yAxis = ystuff.axis.orient("right")
             y = ystuff.scale
 
-	    offsets = {'Date':.5,'Categorical':0,'Numeric':.5}
+            offsets = {'Date':.5,'Categorical':0,'Numeric':.5}
             //yaxis
             d3.selectAll('#y-axis').remove()
             svg.append("g")
@@ -1081,9 +1281,7 @@ function heatMapFactory() {
 
             //x-axis
             d3.selectAll('#x-axis').remove()
-	    
 
-	    
             svg.append("g")
                 .attr('id','x-axis')
                 .call(xAxis)
@@ -1111,20 +1309,21 @@ function heatMapFactory() {
 
             gridPoint
                 .on('click',function(d) {
-                    searchTemplate = JSON.parse(JSON.stringify(myQuery))
-                    searchTemplate['search_limits'][group2] = [d[group2]]
-                    searchTemplate['search_limits'][group1] = [d[group1]]
-                    searchWindow(searchTemplate)
+                    runSearch(d)
                 })
+
             xVariable = myQuery['groups'][0]
             yVariable = myQuery['groups'][1]
+
             gridPoint
                 .attr('stroke-width',0)
                 .attr('stroke','black')
+
                 .on("mouseover",function(d) {
                     this.setAttribute('stroke-width','2');
                     updatePointer(d[query['aesthetic']['color']])
                 })
+
                 .on('mouseout',function(d) {
                     this.setAttribute('stroke-width',0);
                     colorLegendPointer.transition().duration(2500).attr('opacity',0)
