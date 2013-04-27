@@ -44,3 +44,15 @@ svg {
 #legend text {
     fill:white;
 }
+
+circle.plot {
+    opacity:0.8;
+    color:white;
+    fill:white;
+}
+
+circle.highlit {
+    r:18;
+    opacity:1;
+}
+

@@ -120,6 +120,9 @@ var quantitativeVariables = [
     {"variable":"TotalTexts","label":"Total # of Texts"}
 ]
 
+for (item in quantitativeVariables) {
+    nameSubstitutions[item.variable] = item.label
+}
 
 
 
