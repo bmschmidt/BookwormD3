@@ -26,7 +26,7 @@ chooseVariable = function(parentNode,nodeName,variableSet,queryPartBeingUpdated,
         .attr('id','overlay')
         .attr('width',w)
         .attr('height',h)
-        .attr('fill','white')
+        .style('fill','white')
         .attr('opacity',0)
         .on('click',function(){
             removeOverlay();
@@ -98,17 +98,10 @@ chooseVariable = function(parentNode,nodeName,variableSet,queryPartBeingUpdated,
         })
 }
 
-
-updatePointer = function() {
-    //this function will be defined by the pointer when it's created.
-    //That seems wrong, doesn't it
-    console.log("updatePointer is undefined")
-}
-
 fillLegendMaker = function(colorscale) {
     var yrange = [0,h*.75]
     colorticks = colorscale.ticks(15);
-
+    
     width = 25
     plot = true
     colorpoints = colorLegend.selectAll('rect')
@@ -133,9 +126,11 @@ fillLegendMaker = function(colorscale) {
                     return colorscale(legendScale.invert(d));
                 }
             })
-
-        scaleRects.exit().remove()
-
+	
+        scaleRects
+	    .exit()
+	    .remove()
+	
         //'formatter' pretties the name, and drops certain ticks for
         // a log scale.
 
@@ -148,7 +143,9 @@ fillLegendMaker = function(colorscale) {
             formatter=prettyName
         }
 
-        d3.selectAll("#color-axis").remove()
+        d3
+	    .selectAll("#color-axis")
+	    .remove()
 
         colorAxis = d3.svg.axis()
             .scale(legendScale)
@@ -162,7 +159,7 @@ fillLegendMaker = function(colorscale) {
             .call(colorAxis)
             .attr("class","axis") // note new class name
             .attr("transform","translate (" + (width) + ",0)")
-
+	
 
         writeTitle = function() {
             //Figure out what they're trying to plot, for the title.
@@ -170,14 +167,12 @@ fillLegendMaker = function(colorscale) {
             starredKeys = d3.keys(query['search_limits']).filter(function(d) {
                 return d.search("\\*") > 0
             })
-
+	    
             if (starredKeys.length==0) {starredKeys=["word"]}
-
+	    
             text1 = starredKeys.map(function(key) {
-
                 values = query['search_limits'][key].join('"/"')
                 var pretty = key.replace("\*","")
-                console.log(pretty)
                 return pretty + ' "' +values + '"'
             }).join(' and ')
 
@@ -196,10 +191,10 @@ fillLegendMaker = function(colorscale) {
                 .attr('id','colorLegendTitle')
                 .attr('text-anchor','middle')
                 .text(text1)
-                .attr('fill','white')
-                .attr('font-size',35)
-                .attr('font-family',"Arial")
-                .attr('transform','translate(10,0)')
+                .style('fill','white')
+                .style('font-size',35)
+                .style('font-family',"Arial")
+                .style('transform','translate(10,0)')
         }
 
         writeTitle()
@@ -208,7 +203,7 @@ fillLegendMaker = function(colorscale) {
             .attr('transform','translate (0,-10)')
             .attr('class','axis')
             .text(nameSubstitutions[query['aesthetic']['color']])
-            .attr('fill','white')
+            .style('fill','white')
             .attr('font-size','12')
             .attr('text-anchor','middle')
             .attr('font-family','sans-serif')
@@ -216,14 +211,13 @@ fillLegendMaker = function(colorscale) {
         //function(parentNode,nodeName,quantitativeVariables,queryPartBeingUpdated,partOfQueryPartBeingUpdated)
         //set up pointer
 
-        d3.selectAll('#pointer').remove()
-
-        console.log("Trying to set up pointer")
+//        d3.selectAll('#pointer').remove()
 
         //The pointer is 14 pixels wide. That's what all the 14s here are doing.
         colorLegendPointer = colorLegend
             .append('path')
             .attr('id','pointer')
+	    .classed("pointer",true)
             .attr('d', function(d) {
                 var y = 0, x = width-14;
                 return 'M ' + x +' '+ y + ' l 14 14 l -14 14 z';
@@ -231,21 +225,42 @@ fillLegendMaker = function(colorscale) {
             .attr('fill','grey')
             .attr("transform","translate(0," + 200 + ")") //can start wherever
             .attr("opacity","0") //Start invisible: mouseover events will turn it on.
-
-        updatePointer=function(inputNumbers) {
-            colorLegendPointer
-                .transition()
-                .duration(750)
-                .attr('opacity',1)
-                .attr('transform',"translate(0," + (legendScale(inputNumbers) -14)+ ')')
-        }
+	
     }
     my.yrange = function(value) {
         if (!arguments.length) return yrange;
         yrange = value;
         return my;
     };
-    return my
+    return my;
+}
+
+
+updatePointer=function(inputNumbers) {
+
+    pointers = colorLegend
+	.selectAll('.pointer')
+	.data([inputNumbers])
+    
+    pointers
+	.enter()
+	.append('path')
+	.attr('transform',"translate(0," + (legendScale(inputNumbers) -14)+ ')')
+	.classed("pointer",true)
+	.attr('d', function(d) {
+            var y = 0, x = width-14;
+            return 'M ' + x +' '+ y + ' l 14 14 l -14 14 z';
+	})
+	.style('fill','grey')
+	.attr("transform","translate(0," + 200 + ")") //can start wherever
+	.attr("opacity","0")
+    //Start invisible: mouseover events will turn it on.
+    
+    pointers
+        .transition()
+        .duration(950)
+        .attr('opacity',1)
+        .attr('transform',"translate(0," + (legendScale(inputNumbers) -14)+ ')')
 }
 
 myPlot = function() {
@@ -258,7 +273,7 @@ myPlot = function() {
     if (query.plotType=='map') {return mapQuery()}
     if (query.plotType=='line') {return linePlot()}
     if (query.plotType=='barPlot') {return barPlot()}
-
+    
 }
 
 createDropbox = function(category) {
@@ -369,20 +384,20 @@ x = 1
 
 linePlot = function() {
     removeElements()
-    
-//    iff query aesthetic isn't a counttype, do this:
-	query['aesthetic']['y'] = 'WordsPerMillion'
-//    }
+
+    //    iff query aesthetic isn't a counttype, do this:
+    query['aesthetic']['y'] = 'WordsPerMillion'
+    //    }
 
 
     if ('undefined' == typeof(query['aesthetic']['x'])) {
-	query['aesthetic']['x'] = query['groups'][0]	
+        query['aesthetic']['x'] = query['groups'][0]
     }
 
     if ("undefined" == typeof(query['aesthetic']['group'])) {
-	if ("undefined" != typeof(query['groups'][1])) {
-	    query['aesthetic']['group'] = query['groups'][1]
-	}
+        if ("undefined" != typeof(query['groups'][1])) {
+            query['aesthetic']['group'] = query['groups'][1]
+        }
     }
 
     queryAligner.alignAesthetic()
@@ -392,8 +407,8 @@ linePlot = function() {
         d3.json(destinationize(query),function(json) {
 
             paperdata = parseBookwormData(json,query);
-	    
-	    //got to be sorted or the line's a mess.
+
+            //got to be sorted or the line's a mess.
             paperdata.sort(function(a,b) {
                 return parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
             })
@@ -414,15 +429,15 @@ linePlot = function() {
 
             //make the lines
             var lineGenerator = d3.svg.line()
-                .x(function(d) { 
-		    name = query['aesthetic']['x']
+                .x(function(d) {
+                    name = query['aesthetic']['x']
 
-		    value = x(plotTransformers[name](d[name]));
-		    return value})
+                    value = x(plotTransformers[name](d[name]));
+                    return value})
                 .y(function(d) { value = y(plotTransformers[query['aesthetic']['y']](d[query['aesthetic']['y']]));return value })
-	    
+
             nestedData = d3.nest().key(function(d) {return d[query['aesthetic']['group']]}).entries(paperdata)
-	    
+
             points = svg
                 .selectAll('.line');
 
@@ -447,7 +462,7 @@ linePlot = function() {
 
             points = svg.selectAll('.circle').data(paperdata).enter()
 
-	    //these need to belong to the line somehow.
+            //these need to belong to the line somehow.
 
             points.append('circle')
                 .attr('opacity','.01')
@@ -455,7 +470,7 @@ linePlot = function() {
                 .on('mouseout',function(d) {d3.select(this).attr('opacity','.01')})
                 .attr('cx',function(d) {
                     name = query['aesthetic']['x']
-		    return x(plotTransformers[name](d[query['aesthetic']['x']]))})
+                    return x(plotTransformers[name](d[query['aesthetic']['x']]))})
                 .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
                 .on('click',function(d) {runSearch(d)})
                 .attr("r",10)
@@ -468,144 +483,214 @@ linePlot = function() {
 
 function removeElementsFromOtherPlots(geometryName) {
     if (lastPlotted != geometryName) {
-	removeElements()
-	lastPlotted = geometryName
+        removeElements()
+        lastPlotted = geometryName
     }
 }
 
 barPlot = function() {
-
     removeElementsFromOtherPlots("barPlot")
 
     //cludgy
     if ('undefined' == typeof(query['aesthetic']['color'])) {
-	query['aesthetic']['color'] = query['groups'][1]	
+	if ('undefined' != typeof(query['groups'][1])) {
+            query['aesthetic']['color'] = query['groups'][1]
+	}
     }
-
-    if ('undefined' == typeof(query['aesthetic']['x'])) {
-	query['aesthetic']['x'] = query['groups'][0]	
-    }
-
-    queryAligner.alignAesthetic()
     
+    if ('undefined' == typeof(query['aesthetic']['x'])) {
+        query['aesthetic']['x'] = query['groups'][0]
+    }
+    
+    queryAligner.alignAesthetic()
+
     my = function() {
-
         d3.json(destinationize(query),function(json) {
-
             paperdata = parseBookwormData(json,query);
-
-	    //for this, sort by occurrences
+            //for this, sort by occurrences
             paperdata.sort(function(a,b) {
-                return parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
+                return (
+                    parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
+                )
             })
 
-	    //this order matters, because the y-axis is curtailed and can exclude
-	    //elements from the x-axis. Yikes. That's no good.
-            ystuff = makeAxisAndScale('y')	    
+            if (typeof(query['aesthetic']['color']) != 'undefined') {
+                topColors = topn(10,query['aesthetic']['color'],paperdata)
+
+                paperdata = paperdata
+                    .filter(function(d) {
+                        return(topColors.indexOf(d[query['aesthetic']['color']]) > -1)
+                    })
+
+                topColors.sort()
+                colorscale = d3.scale.category10()
+                    .domain(topColors)
+
+            } else {colorscale = function(x) {return("white")} }
+            //this order matters, because the y-axis is curtailed and can exclude
+            //elements from the x-axis. Yikes. That's no good.
+            ystuff = makeAxisAndScale('y')
             xstuff = makeAxisAndScale('x')
 
             x = xstuff.scale
             y = ystuff.scale
-	    console.log(paperdata.map(function(d) {return(d.WordsPerMillion)}))
-	    
-	    
 
-	    topColors = topn(10,query['aesthetic']['color'],paperdata)
-	    
-	    paperdata = paperdata
-		.filter(function(d) {
-		    return(topColors.indexOf(d[query['aesthetic']['color']]) > -1)
-		})
-	    
-	    topColors.sort()
-	    colorscale = d3.scale.category10()
-		.domain(topColors)
-		    
-	    //
-	    yaxis = svg.selectAll('.yaxis').data([ystuff.axis])
-	    
-	    yaxis.enter().append('g')
+            //
+            yaxis = svg.selectAll('.yaxis').data([ystuff.axis])
+            xaxis = svg.selectAll('.xaxis').data([xstuff.axis])
 
-	    //put in a new axis node if it isn't there.
-	    
-	    //axis
-	    yaxis
-		.attr('transform','translate(' +ystuff.limits['x'][0] + ',0)')
-		.transition()
-		.duration(2000)
-		.call(ystuff.axis)
-		.attr("id","y-axis")
-		.attr('class','axis yaxis')
+            yaxis.enter().append('g')
+            xaxis.enter().append('g')
 
+            //put in a new axis node if it isn't there.
 	    
-	    xaxis = svg.selectAll('.xaxis').data([xstuff.axis])
+            //axis creation/updating.
+            yaxis
+                .attr('transform','translate(' +ystuff.limits['x'][0] + ',0)')
+                .transition()
+                .duration(2000)
+                .call(ystuff.axis)
+                .attr("id","y-axis")
+                .attr('class','axis yaxis')
 	    
-	    xaxis.enter().append('g')
-	    
-	    xaxis
+            xaxis
                 .attr('transform','translate(0,' + xstuff.limits['y'][1] + ')')
-		.transition()
-		.duration(2000)
-		.call(xstuff.axis)
-		.attr("id","x-axis")
-		.attr('class','axis xaxis')
+                .transition()
+                .duration(2000)
+                .call(xstuff.axis)
+                .attr("id","x-axis")
+                .attr('class','axis xaxis')
+
+            points = paperdiv.selectAll('circle')
+                .data(paperdata,function(d) {
+                    key = d[query['aesthetic']['y']]
+                    if (typeof(d[query['aesthetic']['color']]) != undefined) {
+                        key = key + d[query['aesthetic']['color']]
+                    }
+                    return key
+                })
+
+	    bars = paperdiv
+		.selectAll('rect')
+                .data(paperdata,function(d) {
+                    key = d[query['aesthetic']['y']]
+                    if (typeof(d[query['aesthetic']['color']]) != undefined) {
+                        key = key + d[query['aesthetic']['color']]
+                    }
+                    return key
+                })
 	    
-	    points = paperdiv.selectAll('circle')
-		.data(paperdata,function(d) {
-		    key = d[query['aesthetic']['y']]
-		    if (typeof(d[query['aesthetic']['color']]) != undefined) {
-			key = key + d[query['aesthetic']['color']]
-		    }
-		    return key
-		})
-
-	    points
+	    bars
 		.enter()
-		.append('circle')
+		.append('rect')
 		.classed("plot",true)
-		.attr("r",5)
-
-	    points
-		.exit()
+	    
+	    bars.exit().remove()
+	    
+	    bars
 		.transition()
 		.duration(2000)
-		.attr('opacity',0)
-		.attr("r",0)
-		.remove()
-
-	    points
-		.attr('fill',function(d) { return colorscale(d[query['aesthetic']['color']])})
-		.transition()
-		.duration(2000)
-		.attr('opacity',.8)
-		.attr('cx',function(d) {
-		    return x(d[query['aesthetic']['x']])
+		.attr("width",function(d) {
+                    return x(d[query['aesthetic']['x']]) - xstuff.limits.x[0]
+                })
+		.attr('x',xstuff.limits.x[0])
+		.attr('y',function(d) {
+                    return y(d[query['aesthetic']['y']])
 		})
-		.attr('cy',function(d) {
-		    return y(d[query['aesthetic']['y']])
-		})
+		.attr("height",10)
 
-	    points
-                .on('mouseover',function(d) {
-                    d3.select(this).classed("highlit",true)
+	    addTitles(bars)
+	    makeClickable(bars)
+
+            points
+                .enter()
+                .append('circle')
+                .classed("plot",true)
+                .attr("r",5)
+
+            points
+                .exit()
+                .transition()
+                .duration(2000)
+                .style('opacity',0)
+                .attr("r",0)
+                .remove()
+
+            points
+                .style('fill',function(d) {
+		    return colorscale(d[query['aesthetic']['color']])})
+                .transition()
+                .duration(2000)
+                .attr('cx',function(d) {
+                    return x(d[query['aesthetic']['x']])
                 })
-                .on('mouseout',function(d) {d3.select(this).classed("highlit",false)
+                .attr('cy',function(d) {
+                    return y(d[query['aesthetic']['y']])
                 })
-                .on('click',function(d) {
-		    runSearch(d)
-                })
-	})
+
+	    addTitles(points)
+	    makeClickable(points)
+
+        })
     }
     return my
-}	       
+}
 
+
+makeClickable = function(selection) {
+    //This can be called on a variety of selections bound
+    //to bookworm data; it restyles them to be 'highlit',
+    //and adds a function to run a search on click
+    //The styles for that particular element have to be set
+    //to recognize highlighting.
+
+    toggleHighlighting = function(d,highlitValue) {
+	//given an axis and a datum
+	["x","y","color","size"].map(function(axis) {
+	    f = d3.selectAll("#" + axis + "-axis")
+		.selectAll('text')
+		.data(
+		    //rather than "string", this should take
+		    //plotTransformer 
+		    [String(d[query['aesthetic'][axis]])],
+		    function(e) {return(e)}
+		)
+
+	    //by not entering, this just acts on the 
+	    //existing elements in the axis
+
+	    f
+		.classed("highlit",highlitValue)
+	})
+    }
+    
+    selection
+        .on('mouseover',function(d) {
+            d3.select(this).classed("highlit",true)
+	    //pointer update only works if there is a color 
+	    //aesthetic; otherwise, nothing happens
+            updatePointer(d[query['aesthetic']['color']])
+	    toggleHighlighting(d,true)
+        })
+    
+        .on('mouseout',function(d) {
+	    d3.select(this).classed("highlit",false)
+            colorLegendPointer.transition().duration(2500).attr('opacity',0)
+	    toggleHighlighting(d,false)
+        })
+
+        .on('click',function(d) {
+            runSearch(d)
+        })
+    
+}
 
 removeElements = function() {
     //just remove everything from the svg.
     vals = ['rect','text','path','circle','line','tick'].map(
-	function(type) {
-	    svg.selectAll(type).transition().remove()
-	}
+        function(type) {
+            svg.selectAll(type).transition().remove()
+        }
     )
 }
 
@@ -664,7 +749,8 @@ returnScale = function() {
     return my
 }
 
-function key(d) {return d.key;};
+// Can this be removed?
+//function key(d) {return d.key;};
 
 function popitup(url) {
     newwindow=window.open(url,'name','height=640,width=1000');
@@ -812,15 +898,15 @@ updateKeysTransformer = function(key) {
     //if a date: return a dateTime object
     isADate = false
     key.split("_").map(function(part) {
+	//I'm just coming up with descriptions, here.
         if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(part) >=0) {isADate=true}
     })
 
     if (isADate) {
         plotTransformers[key] = function(originalValue) {
             datedValue = new Date()
+	    //This code could be useful in the other Bookworm.
             extractRelevantField = function(dateKey) {
-
-
                 output = undefined
                 key.split("_").reverse().map(function(phrase) {
                     //The first date phrase to appear is the one we're using.
@@ -828,6 +914,7 @@ updateKeysTransformer = function(key) {
                 })
                 return output
             }
+
             relevantField = extractRelevantField(key)
             if (['month','day','week'].indexOf(relevantField) >=0) {
                 datedValue.setFullYear(1,-1,originalValue)
@@ -867,7 +954,6 @@ function comparisontype() {
     //books or to certain ones. This should be useful for that.
     if ('aesthetic' in query) {
         //This should just test length, not for this particular key as it does.
-
         if (
             (query['aesthetic']['color'] == 'WordsRatio')
                 |
@@ -887,43 +973,43 @@ queryAligner = {
     updateQuery: function (selection) {
         if (typeof(selection) == "object") {
             //if nothing is passed, move on
-          
-	    //update the query based on the selection:
+
+            //update the query based on the selection:
             value = selection.property('value')
             bindTo = selection.attr('bindTo')
             if (typeof(eval(bindTo))=='string') {
                 //So we don't have to store strings as quoted json;
-		//note this means numbers are passed as strings
-		//That shouldn't matter for SQL evaluation.
+                //note this means numbers are passed as strings
+                //That shouldn't matter for SQL evaluation.
                 value = JSON.stringify(value)
             }
             //reassign the element in the Dom.
-	    eval (bindTo + ' = ' + value)
+            eval (bindTo + ' = ' + value)
         } else {selection = d3.select('body')}//just so it's there next time round
-	
+
         //update based on the aesthetics
         queryAligner.alignAesthetic()
 
         //update all listening boxes based on the query
 
 
-	needsUpdate = d3.selectAll("[bindTo]")
-	needsUpdate = needsUpdate.filter(function(d) {
-	    if (selection[0][0] === d3.select(this)[0][0])
-	    { return false}
+        needsUpdate = d3.selectAll("[bindTo]")
+        needsUpdate = needsUpdate.filter(function(d) {
+            if (selection[0][0] === d3.select(this)[0][0])
+            { return false}
 
-	    return true
-	})
-	needsUpdate
+            return true
+        })
+        needsUpdate
             .property('value', function() {
                 value = eval(d3.select(this).attr("bindTo"))
                 if (typeof(value)=="object") {
-		    return(JSON.stringify(value))
+                    return(JSON.stringify(value))
                 }
                 return(value)
             })
     },
-    
+
     alignAesthetic: function() {
         //pushes the aesthetic values into the appropriate boxes.
 
@@ -954,7 +1040,6 @@ queryAligner = {
                 } else {
                     groups[query['aesthetic'][aesthetic]] = 1
                 }
-
             }
                           );
             query['counttype'] = d3.keys(counttypes);
@@ -1006,19 +1091,27 @@ prettyName = function(number) {
     }
 }
 
-
-
 drawSizeLegend = function() {
     sizeLegend.selectAll('text').remove()
     sizeLegend.selectAll('circle').remove()
-
-    sizeAxis = d3.svg.axis().scale(sizescale).orient("right").tickValues(function() {
-        nestedScale = d3.scale.linear().range(nwords.range()).domain(nwords.range());
-        nestedScale.nice();
-        return nestedScale.ticks(6).map(function(n) {return nwords.invert(n)})
-    }).tickFormat(prettyName)
-
-    sizeLegend.append('g').attr('id','size-axis').call(sizeAxis).attr('class','axis')
+    
+    sizeAxis = d3.svg.axis()
+	.scale(sizescale)
+	.orient("right")
+	.tickValues(function() {
+            nestedScale = d3.scale.linear()
+		.range(nwords.range())
+		.domain(nwords.range());
+            nestedScale.nice();
+            return nestedScale.ticks(6).map(function(n) {return nwords.invert(n)})
+	})
+	.tickFormat(prettyName)
+    
+    sizeLegend
+	.append('g')
+	.attr('id','size-axis')
+	.call(sizeAxis)
+	.attr('class','axis')
 
     sizescale.ticks(6)
 
@@ -1049,6 +1142,8 @@ drawSizeLegend = function() {
 
 function destinationize(query) {
     //Constructs a cgi-bin request to local host.
+    //Can be used with runSearch and searchWindow (below); 
+    //Or to get other things, like lists of variables.
     return( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
 };
 
@@ -1081,25 +1176,25 @@ searchWindow = function(local) {
 
 function mapQuery() {
     //Draws a map chart.
-    
+
 
     //set up some needed fields
     query['aesthetic']['x'] = "lng"
     query['aesthetic']['y'] = "lat"
 
     if (typeof(query['aesthetic']['size'])=="undefined") {
-	query["aesthetic"]["size"] = "WordCount"
+        query["aesthetic"]["size"] = "WordCount"
     }
 
     if (typeof(query['aesthetic']['color'])=="undefined") {
-	query["aesthetic"]["size"] = "WordsPerMillion"
+        query["aesthetic"]["size"] = "WordsPerMillion"
     }
 
     var myQuery = query
-    
+
     var baseMap = drawMap(document.getElementById('mapChoice').value)
     var initialOpacity = .7
-    
+
     //allow multiple circles on the same point?
     var colorScaler = returnScale()
     var sizeScaler  = returnScale()
@@ -1109,58 +1204,54 @@ function mapQuery() {
             .transition()
             .duration(4500)
             .attr('r',2)
-            .attr('fill','white');
+            .style('fill','white');
     }
     
     function updateChart() {
         paperdiv.selectAll('title').remove()
+
         paperdata.sort(function(a,b) {
-	    return(b[query['aesthetic']['size']]-a[query['aesthetic']['size']])} );
-	
+            return(b[query['aesthetic']['size']]-a[query['aesthetic']['size']])} );
+
         var mypoints = paperdiv.selectAll('circle')
             .data(paperdata,function(d) {return([d.lat,d.lng])});
 
         mypoints
             .enter()
             .append('circle')
-	    .classed("plot",true)
+            .classed("plot",true)
+	    .classed("hidden",true)
+	    .attr('r',0)
 
-        mypoints
-            .on('click',function(d) {runSearch(d)});
-	
         mypoints
             .attr('transform',function(d) {
                 coords = projection([d.lng,d.lat]);
                 return "translate(" + coords[0] +","+ coords[1] + ")"})
-            .on("mouseover",function(d) {
-		d3.select(this).classed("highlit",true)
-                updatePointer(d[query['aesthetic']['color']])
-            })
-            .on('mouseout',function(d) {
-		d3.select(this).classed("highlit",false)
-                this.setAttribute('opacity',initialOpacity);
-                colorLegendPointer.transition().duration(2500).attr('opacity',0)
-            })
+
+	makeClickable(mypoints)
+
+	mypoints.classed("hidden",false)
+        addTitles(mypoints)
+
+	mypoints
             .transition()
             .duration(2500)
-
             .attr('r',function(d) {
                 return sizescale(d[query['aesthetic']['size']])/2
-		//Divided by two b/c the scale wants to return diameter, not radius.
+                //Divided by two b/c the scale wants to return diameter, not radius.
             })
             .style('fill',function(d) {
                 return colorscale(d[query['aesthetic']['color']])
             })
 
-	addTitles(mypoints)
 
         mypoints
-	    .exit()
-	    .transition()
-	    .duration(2500)
-	    .attr('r',0)
-	    .remove()
-	
+            .exit()
+            .transition()
+            .duration(2500)
+            .attr('r',0)
+            .remove()
+
         fillLegend=fillLegendMaker(colorscale)
         fillLegend()
 
@@ -1225,6 +1316,10 @@ makeAxisAndScale = function(axis,limits) {
             )
         .entries(paperdata).map(function(d) {
             //Some variables will have transformers defined for them
+	    //that (for example) turn a year into a date.
+	    //It would perhaps be better to build the transformers
+	    //straight into the scales, but I don't know how.
+
             transformer = plotTransformers[variableName]
             if ('undefined'==typeof transformer) {
                 return d
@@ -1233,11 +1328,10 @@ makeAxisAndScale = function(axis,limits) {
                 return(m)
             }
         })
-    
+
     datatype = dataTypes[variableName]
 
     if (datatype=="Categorical") {
-        //console.log(axis + " is categorical")
         n = function() {
             //home many elements to display depends on the width: no more than ten pixels
             //vertically, and 30 pixels horizontally
@@ -1245,11 +1339,13 @@ makeAxisAndScale = function(axis,limits) {
             if (axis=='x') {minSize=100}
             return Math.round((limits[axis][1]-limits[axis][0])/minSize)
         }()
+
         names = topn(n,variableName,paperdata)
+
         paperdata = paperdata.filter(function(entry) {
             return(names.indexOf(entry[variableName]) > -1)
         })
-
+	//order by the names by defaut.
         names.sort()
         vals = names
         scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
@@ -1271,11 +1367,12 @@ makeAxisAndScale = function(axis,limits) {
             vals.sort(function(a,b){return(b-a)})
         }
         pixels = (limits[axis][1]-limits[axis][0])/vals.length;
-	domain = d3.extent(vals)
-	if (axis=='y') {
-	    //because svg is defined from the upper right corner
-	    domain.reverse()
-	}
+        domain = d3.extent(vals)
+        if (axis=='y') {
+            //because svg is defined from the upper right corner,
+	    //but we want lower numbers lower.
+            domain.reverse()
+        }
         scale = d3.scale.linear().domain(domain).range([limits[axis][0],limits[axis][1]-pixels])
         thisAxis = d3.svg.axis()
             .scale(scale)
@@ -1288,7 +1385,6 @@ makeAxisAndScale = function(axis,limits) {
         console.log(axis + " is date")
         if (axis=='x') {
             vals.sort(function(a,b){return(a-b)})
-            testing = vals
         }
         if (axis=='y') {
             vals.sort(function(a,b){return(b-a)})
@@ -1306,7 +1402,7 @@ makeAxisAndScale = function(axis,limits) {
     }
 
     if (axis=='y') {
-	thisAxis = thisAxis.orient("left")
+        thisAxis = thisAxis.orient("left")
     }
 
     return({"scale":scale,"axis":thisAxis,"datatype":datatype,"limits":limits})
@@ -1321,7 +1417,7 @@ function heatMapFactory() {
     var sizeScaler  = returnScale()
 
     function my() {
-	//fix this to use the new method
+        //fix this to use the new method
 
         if (lastPlotted != 'heatMap') {
             lastPlotted = 'heatMap'
@@ -1331,28 +1427,29 @@ function heatMapFactory() {
             xaxis.selectAll('text').remove()
             yaxis.selectAll('text').remove()
         }
-
+	
         queryAligner.updateQuery()
-
+	
         d3.json(destinationize(query),function(json) {
-
+	    
             paperdata = parseBookwormData(json,query);
 
-	    xstuff = makeAxisAndScale('x')
+            xstuff = makeAxisAndScale('x')
             xAxis = xstuff.axis.orient("top")
             x = xstuff.scale
 
-	    ystuff = makeAxisAndScale('y')
+            ystuff = makeAxisAndScale('y')
             yAxis = ystuff.axis.orient("right")
             y = ystuff.scale
 
             offsets = {'Date':.5,'Categorical':0,'Numeric':.5}
             //yaxis
+
             d3.selectAll('#y-axis').remove()
             svg.append("g")
                 .attr('id','y-axis')
                 .call(yAxis)
-                .attr("class","axis") // note new class name
+                .attr("class","axis")
                 .attr("transform","translate(" + (x.pixels+limits['x'][1])  +"," + (y.pixels*offsets[ystuff.datatype]) + ")")
 
             //x-axis
@@ -1361,12 +1458,13 @@ function heatMapFactory() {
             svg.append("g")
                 .attr('id','x-axis')
                 .call(xAxis)
-                .attr("class","axis") // note new class name
+                .attr("class","axis")
                 .attr("transform","translate("+x.pixels*offsets[xstuff.datatype]+ "," + (limits['y'][0])  +")")
 
-            //Key the data against the actual interaction it is, so transitions will work.
+            //Key the data against the actual interaction it is,
+            //so transitions will work.
             paperdata = paperdata.map(function(d) {
-                d.key = d[myQuery['groups'][0]] + d[myQuery['groups'][1]]
+                d.key = d[myQuery['aesthetic']['x']] + d[myQuery['aesthetic']['y']]
                 return(d)
             })
 
@@ -1381,55 +1479,38 @@ function heatMapFactory() {
             gridPoint
                 .enter()
                 .append('rect')
-                .attr('opacity',0)
+		.classed('plot',true)
+		.style("fill","black")
 
-            gridPoint
-                .on('click',function(d) {
-                    runSearch(d)
-                })
-
+	    gridPoint.exit().transition().duration(1000)
+		.style('opacity',0)
+		.remove()
             xVariable = myQuery['groups'][0]
             yVariable = myQuery['groups'][1]
 
-            gridPoint
-                .attr('stroke-width',0)
-                .attr('stroke','black')
 
-                .on("mouseover",function(d) {
-                    this.setAttribute('stroke-width','2');
-                    updatePointer(d[query['aesthetic']['color']])
-                })
-
-                .on('mouseout',function(d) {
-                    this.setAttribute('stroke-width',0);
-                    colorLegendPointer.transition().duration(2500).attr('opacity',0)
-                })
+	    gridPoint
                 .attr('x',function(d) {return x(plotTransformers[xVariable](d[xVariable]))})
                 .attr('y',function(d) {return Math.round(y(plotTransformers[yVariable](d[yVariable])))})
-
                 .attr('height', y.pixels)
                 .attr('width', x.pixels)
                 .transition()
                 .duration(2500)
-                .attr('opacity','1')
-                .attr('fill',function(d) {
-                    if (comparisontype()=='comparison') {
-                        color = colorscale(d.WordCount/d.CompareWords)}
-                    else {
-                        color = colorscale(d[query['aesthetic']['color']]);
-                        if (d[query['aesthetic']['color']]==0) {color='#393939'}
-                    }
+	    
+                .style('fill',function(d) {
+                    color = colorscale(d[query['aesthetic']['color']]);
+                    if (d[query['aesthetic']['color']]==0) {color='#393939'}
                     if (color=="#000000") {color='#393939'}
-
                     return color;
                 })
 
-	    addTitles(gridPoint)
-
+	    makeClickable(gridPoint)
+            addTitles(gridPoint)
+	
             a = fillLegendMaker(colorscale)//.yrange(limits.y)
             a()
         })
-
+    
     }
     return my
 }
@@ -1439,21 +1520,25 @@ addTitles = function(selection) {
     selection
         .append("svg:title")
         .text(function(d) {
-	    text = ["Click to search for top hits",""]
-	    variables = [];
-	    for (key in query['aesthetic']) {
-		variables.push(query['aesthetic'][key]); 
-	    }
-	    variables = variables.filter(
-		function(e) {
-		    return typeof(nameSubstitutions[e]) != "undefined"
-		})
-	    variables.map(function(variable) {
-		text.push(
-			    nameSubstitutions[variable] + ": " + 
-			prettyName(d[variable]))
-	    })
-		    return(text.join("\n"))
+
+	    //the first line tells them to click:
+            text = ["Click to search for top hits",""]
+            variables = [];
+
+	    //Then display all relevant count information
+            for (key in query['aesthetic']) {
+                variables.push(query['aesthetic'][key]);
+            }
+            variables = variables.filter(
+                function(e) {
+                    return typeof(nameSubstitutions[e]) != "undefined"
+                })
+            variables.map(function(variable) {
+                text.push(
+                    nameSubstitutions[variable] + ": " +
+                        prettyName(d[variable]))
+            })
+            return(text.join("\n"))
         });
-    
+
 }

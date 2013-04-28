@@ -65,7 +65,10 @@ var width = 'f'
 
 var bottomLevel = svg.append("g").attr("id", "#bottomLevel")
 var maplevel = svg.append("g").attr("id", "#maplevel")
-var paperdiv = svg.append("g").attr("id","#paperdiv");
+var paperdiv = svg
+    .append("g")
+    .attr("id","#paperdiv")
+    .attr("x",30);
 var yaxis = svg.append("g").attr("id","#yaxis");
 var xaxis = svg.append("g").attr("id","#xaxis");
 var legend = svg.append('g').attr('id','#legend');
@@ -183,56 +186,14 @@ d3.selectAll("[bindTo]")
 
 queryAligner.updateQuery()
 
-var yearValue;
-
 //could be defined in the database somehow. (But how??)
 
-defaultYear = {"presidio":"year","OL":"publish_year","ChronAm":"date_year","arxiv":"year"}
-
-yearValue = defaultYear[query['database']]
-
-APIbox.update = function() {
-//    d3.select('#APIbox')
-//        .property('value',function() {return JSON.stringify(query)}
-//                 );
-}
-
-$(function() {
-    $( "#slider-range" ).slider({
-        id:"timeSelector",
-        range: true,
-        min: 1800,
-        max: 2000,
-        values: [query.search_limits[yearValue]['$gte'], query.search_limits[yearValue]['$lte']],
-        slide: function( event, ui ) {
-        },
-        change: function(event,ui) {
-            $( "#amount" ).val( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
-            query.search_limits[yearValue]['$gte'] = ui.values[0]
-            query.search_limits[yearValue]['$lte'] = ui.values[1]
-            //APIbox.update()
-        }
-
-    });
-    $( "#amount" ).val( $( "#slider-range" ).slider( "values", 0 ) +
-                        " - " + $( "#slider-range" ).slider( "values", 1 ) );
-});
-
-advanceSlider = function(step) {
-    if (step==null) {step=10}
-    current = $('#slider-range').slider('values');
-    range = current[1]-current[0];
-    $('#slider-range').slider('values',[current[0]+step,current[1]+step]);
-    currentPlot();
-}
-
-
-var executeButtons = $('<div />');
-
-$('<button />').text('Redraw Plot').click(function(){
-    currentPlot = myPlot()
-    currentPlot()
-}).appendTo(executeButtons);
+d3.select("body").append("button")
+    .text('Redraw Plot')
+    .on('click',function(){
+	currentPlot = myPlot()
+	currentPlot()
+    })
 
 
 d3.select("#AdvancedOptions")
@@ -243,8 +204,11 @@ d3.select("#AdvancedOptions")
 	
 	if (display=="none") {
 	    
-	    d3.selectAll(".debugging").style("display","inline")
-	    d3.select(this).text("Hide Advanced")
+	    d3.selectAll(".debugging")
+		.style("display","inline")
+	    d3
+		.select(this)
+		.text("Hide Advanced")
 	}
 	if (display=="inline") {
 	    d3.selectAll(".debugging").style("display","none")
@@ -279,10 +243,9 @@ d3.select("#ExportData")
 	    document.body.appendChild(form);
 	    form.submit();
 	}
-
+	
 	localquery = JSON.parse(JSON.stringify(query))
 	localquery['method'] = "return_tsv"
-
 	post_to_url("/cgi-bin/dbbindings.py",	{"queryTerms":JSON.stringify(localquery)})
     })
 
@@ -293,10 +256,10 @@ var lastOptions = $('<div />');
 //The types of maps are just coded in.
 mapOptions = [
     {"text":'USA','value':"USA"},
-              {'text':'World','value':"World"},
-              {'text':'Europe','value':"Europe"},
-              {'text':'Asia','value':"Asia"}
-	     ]
+    {'text':'World','value':"World"},
+    {'text':'Europe','value':"Europe"},
+    {'text':'Asia','value':"Asia"}
+]
 
 mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice").attr('class',"chartSpecific mapChart")
 pointSelector = mapSelector.selectAll('option').data(mapOptions)
@@ -327,7 +290,7 @@ scaleSelector.on("change",function(d){
 
 var options = $('<div />');
 
-executeButtons.appendTo($('body'));
+//executeButtons.appendTo($('body'));
 
 $('body').keypress(function(e){
     if(e.which == 13){
