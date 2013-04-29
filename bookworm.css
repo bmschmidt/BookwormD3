@@ -13,6 +13,7 @@ svg {
 #maindiv div {
     width:20
 }
+
 #counties path {
   stroke: #fff;
   stroke-width: .25px;
@@ -29,12 +30,57 @@ svg {
     shape-rendering: crispEdges;
 }
 
+.title text {
+    fill:white;
+    font-size:35;
+    font-family:Arial
+}
+
 .axis text {
-    fill: white;
+    fill: beige;
     font-family: sans-serif;
     font-size: 12px;
+    text-anchor:middle;
+}
+
+.highlit text {
+    font-style:bold;
+    font-size: 14px;
+    font-family:Arial;
+}
+
+.line line, .line path{
+    fill:none;
+    stroke:white;
+    stroke-width:1.5px
 }
 
 #legend text {
     fill:white;
+}
+
+rect.plot {
+    opacity:1;
+    fill:blue;
+    stroke:black;
+    stroke-width:0px;
+}
+
+rect.highlit {
+    opacity:1;
+    stroke-width:2px;
+}
+
+circle.plot {
+    opacity:0.8;
+    color:white;
+    fill:white;
+}
+
+circle.highlit {
+    opacity:1;
+}
+
+circle.hidden {
+    opacity:0;
 }
