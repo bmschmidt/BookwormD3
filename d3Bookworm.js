@@ -38,7 +38,7 @@ if (window.location.host=="localhost:8080") {
         "method":"return_json",
         "words_collation":"Case_Sensitive",
         "groups":["publication_date_year","publication_date_month_year"],
-        "database":"tenPercent",
+        "database":"halftimes",
         "counttype":["WordCount","TotalWords","WordsPerMillion"],
         "search_limits":{
             "word":["Nixon"]
