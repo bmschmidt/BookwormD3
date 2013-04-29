@@ -189,12 +189,13 @@ fillLegendMaker = function(colorscale) {
             title
                 .append('text')
                 .attr('id','colorLegendTitle')
+		.attr("class","title")
                 .attr('text-anchor','middle')
                 .text(text1)
-                .style('fill','white')
-                .style('font-size',35)
-                .style('font-family',"Arial")
-                .style('transform','translate(10,0)')
+//                .style('fill','white')
+  //              .style('font-size',35)
+    //            .style('font-family',"Arial")
+      //          .style('transform','translate(10,0)')
         }
 
         writeTitle()
@@ -204,9 +205,9 @@ fillLegendMaker = function(colorscale) {
             .attr('class','axis')
             .text(nameSubstitutions[query['aesthetic']['color']])
             .style('fill','white')
-            .attr('font-size','12')
-            .attr('text-anchor','middle')
-            .attr('font-family','sans-serif')
+            .style('font-size','12')
+            .style('text-anchor','middle')
+            .style('font-family','sans-serif')
             .on('click',function(d){chooseVariable(colorLegend,"colorSelector",quantitativeVariables,'aesthetic','color')})
         //function(parentNode,nodeName,quantitativeVariables,queryPartBeingUpdated,partOfQueryPartBeingUpdated)
         //set up pointer
@@ -237,6 +238,10 @@ fillLegendMaker = function(colorscale) {
 
 
 updatePointer=function(inputNumbers) {
+    //Update the color pointer to match the input numbers.
+    //This is a more general problem than I'm casting it here.
+
+    //Also creates a pointer if it doesn't exist yet.
 
     pointers = colorLegend
 	.selectAll('.pointer')
@@ -262,6 +267,7 @@ updatePointer=function(inputNumbers) {
         .attr('opacity',1)
         .attr('transform',"translate(0," + (legendScale(inputNumbers) -14)+ ')')
 }
+
 
 myPlot = function() {
     updateAxisOptionBoxes()
@@ -602,11 +608,11 @@ barPlot = function() {
 	    addTitles(bars)
 	    makeClickable(bars)
 
-            points
-                .enter()
-                .append('circle')
-                .classed("plot",true)
-                .attr("r",5)
+//            points
+  //              .enter()
+    //            .append('circle')
+      //          .classed("plot",true)
+        //        .attr("r",5)
 
             points
                 .exit()
@@ -655,7 +661,7 @@ makeClickable = function(selection) {
 		    [String(d[query['aesthetic'][axis]])],
 		    function(e) {return(e)}
 		)
-
+	    
 	    //by not entering, this just acts on the 
 	    //existing elements in the axis
 
@@ -866,21 +872,44 @@ variableOptions = {
 }
 
 updateAxisOptionBoxes = function() {
+
+    updateQuantitative = function() {
+	axes = d3.selectAll(".metric.options")
+	selected = axes.selectAll('option').data(quantitativeVariables)
+	selected.exit().remove()
+	selected.enter().append('option')
+	selected.attr('value',function(d) {return(d.variable)})
+	    .text(function(d) {return d.label})
+	    
+    }
+    
     followup = function() {
-        axes = d3.selectAll(".categoricalOptions")
+        axes = d3.selectAll(".categorical.options")
         axes.selectAll('option').remove()
-
-        selected = axes.selectAll('option').data(variableOptions.options)
-        selected.exit().remove()
-
-        newdata = selected.enter()
-
-        newdata.append('option')
+	
+        selected = axes
+	    .selectAll('option')
+	    .data(variableOptions.options)
+        selected
+	    .exit()
+	    .remove()
+	
+        selected.enter().append('option')
+	
+	selected
             .attr('value',function(d) {return d.dbname})
             .text(function(d) {return d.name})
+	
+
+	
         queryAligner.updateQuery()
     }
+    // Find out the relevant options from the database, then run this.
     variableOptions.update(query['database'],followup)
+    
+    updateQuantitative()
+
+
 }
 
 

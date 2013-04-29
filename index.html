@@ -18,18 +18,30 @@
 
   <body>
     
-    <div id="mapSelector" class="chartSpecific map barPlot">
+    <div id="mapSelector" class="chartSpecific map">
       Map uses of the word or phrase
       <input id="mapWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
     </div>
+
+    <div id="mapSelector" class="chartSpecific barPlot">
+      Show uses of the word or phrase
+      <input id="barWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
+      by categories of
+
+      <select id="yaxischoice" class="categorical options" bindTo="query['aesthetic']['y']"></select> 
+      and bar length representing
+      <select id="xaxischoice" class="metric options" bindTo="query['aesthetic']['x']"></select> 
+
+    </div>
     
-    <div id="mapSelector" class="chartSpecific heatMap">
+    
+    <div id="heatMapSelector" class="chartSpecific heatMap">
       Show uses of
       <input id="heatMapWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
       by 
-      <select id="xaxischoice" class="categoricalOptions" bindTo="query['aesthetic']['x']"></select> 
+      <select id="xaxischoice" class="categorical options" bindTo="query['aesthetic']['x']"></select> 
       and 
-      <select id="yaxischoice" class="categoricalOptions" bindTo="query['aesthetic']['y']"></select>
+      <select id="yaxischoice" class="categorical options" bindTo="query['aesthetic']['y']"></select>
     </div>
     <!--
     <div id="topSelectors"></div>
@@ -57,18 +69,20 @@
     <option value="linePlot">Basic line plot</option>
     <option value = "barPlot">Point Array</option>
   </select>
-  Database:    <input id="boundDatabase" bindTo = "query['database']">
 </input>
 </div>
 
 <button id="AdvancedOptions" />Show Advanced</button>
 
 <div id="debugging" class = "debugging">
-  API call:
+  <br />API call:
   <input type="text" id="APIbox" bindTo="query"></input>
-  <button id = "ExportData" />Export Data</button>
-
+<br>
+Database:    <input id="boundDatabase" bindTo = "query['database']">
+<br>
 </div>
+
+<button id = "ExportData" />Export Data</button>
 
 <div id="bottomBoxes"></div>
 <div id="lastOptions"></div>

@@ -30,6 +30,12 @@ svg {
     shape-rendering: crispEdges;
 }
 
+.title text {
+    fill:white;
+    font-size:35;
+    font-family:Arial
+}
+
 .axis text {
     fill: beige;
     font-family: sans-serif;
@@ -39,7 +45,8 @@ svg {
 
 .highlit text {
     font-style:bold;
-    font-size: 13px;
+    font-size: 14px;
+    font-family:Arial;
 }
 
 .line line, .line path{
