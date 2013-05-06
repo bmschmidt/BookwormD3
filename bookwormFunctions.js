@@ -514,6 +514,7 @@ barPlot = function() {
         d3.json(destinationize(query),function(json) {
             paperdata = parseBookwormData(json,query);
             //for this, sort by occurrences
+
             paperdata.sort(function(a,b) {
                 return (
                     parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
