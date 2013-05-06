@@ -161,43 +161,6 @@ fillLegendMaker = function(colorscale) {
             .attr("transform","translate (" + (width) + ",0)")
 	
 
-        writeTitle = function() {
-            //Figure out what they're trying to plot, for the title.
-            //starredKeys are the numerator in a ratio query.
-            starredKeys = d3.keys(query['search_limits']).filter(function(d) {
-                return d.search("\\*") > 0
-            })
-	    
-            if (starredKeys.length==0) {starredKeys=["word"]}
-	    
-            text1 = starredKeys.map(function(key) {
-                values = query['search_limits'][key].join('"/"')
-                var pretty = key.replace("\*","")
-                return pretty + ' "' +values + '"'
-            }).join(' and ')
-
-
-            text1 = "Share of " + text1
-            if (query['plotType']!="map") {
-                text1 = text1.replace("Share","Usage") +  " by " + query['groups'].join(' and ')
-            }
-
-            if (comparisontype()=='comparison') {
-                text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
-            }
-            title.selectAll('text').remove()
-            title
-                .append('text')
-                .attr('id','colorLegendTitle')
-		.attr("class","title")
-                .attr('text-anchor','middle')
-                .text(text1)
-//                .style('fill','white')
-  //              .style('font-size',35)
-    //            .style('font-family',"Arial")
-      //          .style('transform','translate(10,0)')
-        }
-
         writeTitle()
 
         colorLegend.append('text')
@@ -235,6 +198,45 @@ fillLegendMaker = function(colorscale) {
     };
     return my;
 }
+    
+    writeTitle = function() {
+	//Figure out what they're trying to plot, for the title.
+	//starredKeys are the numerator in a ratio query.
+	starredKeys = d3.keys(query['search_limits']).filter(function(d) {
+								 return d.search("\\*") > 0
+								     })
+	
+	if (starredKeys.length==0) {starredKeys=["word"]}
+	
+	text1 = starredKeys.map(function(key) {
+				    values = query['search_limits'][key].join('"/"')
+					var pretty = key.replace("\*","")
+					return pretty + ' "' +values + '"'
+					}).join(' and ')
+	
+	
+	text1 = "Share of " + text1
+	if (query['plotType']!="map") {
+	    text1 = text1.replace("Share","Usage") +  " by " + query['groups'].join(' and ')
+            }
+	
+	if (comparisontype()=='comparison') {
+	    text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
+	}
+	title.selectAll('text').remove()
+	title
+	.append('text')
+	.attr('id','colorLegendTitle')
+	.attr("class","title")
+	.attr('text-anchor','middle')
+	.text(text1)
+	.style('fill','white')
+	.style('font-size',35)
+	.style('font-family',"Arial")
+	.style('transform','translate(10,0)')
+    }
+	
+	
 
 
 updatePointer=function(inputNumbers) {
@@ -390,12 +392,12 @@ x = 1
 
 linePlot = function() {
     removeElements()
-
+    
     //    iff query aesthetic isn't a counttype, do this:
     query['aesthetic']['y'] = 'WordsPerMillion'
     //    }
-
-
+    
+    
     if ('undefined' == typeof(query['aesthetic']['x'])) {
         query['aesthetic']['x'] = query['groups'][0]
     }
@@ -409,7 +411,7 @@ linePlot = function() {
     queryAligner.alignAesthetic()
 
     my = function() {
-
+	
         d3.json(destinationize(query),function(json) {
 
             paperdata = parseBookwormData(json,query);
@@ -431,10 +433,10 @@ linePlot = function() {
             svg.append('g').attr('id','x-axis').call(xstuff.axis)
                 .attr('class','axis')
                 .attr('transform','translate(0,' + xstuff.limits['y'][1] + ')')
-
-
-            //make the lines
-            var lineGenerator = d3.svg.line()
+		
+		
+		//make the lines
+		var lineGenerator = d3.svg.line()
                 .x(function(d) {
                     name = query['aesthetic']['x']
 
@@ -476,13 +478,13 @@ linePlot = function() {
                 .on('mouseout',function(d) {d3.select(this).attr('opacity','.01')})
                 .attr('cx',function(d) {
                     name = query['aesthetic']['x']
-                    return x(plotTransformers[name](d[query['aesthetic']['x']]))})
+			return x(plotTransformers[name](d[query['aesthetic']['x']]))})
                 .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
                 .on('click',function(d) {runSearch(d)})
                 .attr("r",10)
                 .attr('fill','white')
-
-        })
+		
+		})
     }
     return my
 }
@@ -1551,9 +1553,9 @@ addTitles = function(selection) {
     selection
         .append("svg:title")
         .text(function(d) {
-
+		  
 	    //the first line tells them to click:
-            text = ["Click to search for top hits",""]
+	    text = ["Click to search for top hits",""]
             variables = [];
 
 	    //Then display all relevant count information
@@ -1562,14 +1564,14 @@ addTitles = function(selection) {
             }
             variables = variables.filter(
                 function(e) {
-                    return typeof(nameSubstitutions[e]) != "undefined"
-                })
+	        	return typeof(nameSubstitutions[e]) != "undefined"
+        	})
             variables.map(function(variable) {
                 text.push(
                     nameSubstitutions[variable] + ": " +
                         prettyName(d[variable]))
             })
-            return(text.join("\n"))
+            return(text.join('                     \t\n'))
         });
 
 }

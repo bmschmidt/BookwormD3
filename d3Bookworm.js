@@ -41,7 +41,7 @@ if (window.location.host=="localhost:8080") {
         "database":"halftimes",
         "counttype":["WordCount","TotalWords","WordsPerMillion"],
         "search_limits":{
-            "word":["Nixon"]
+            "word":["war"]
         },
         "plotType":"heatMap"
     }
