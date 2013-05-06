@@ -1046,12 +1046,13 @@ queryAligner = {
         //back compatability: this block can be erased eventually,
         //it just makes some of Ben's old links works.
         {
-            if (typeof(query['aesthetic']['x']) == 'undefined') {
-                query['aesthetic']['x'] = groups[0]
+        	if (typeof(query['aesthetic']['x']) == 'undefined') {
+			if (typeof(query['groups']) != 'undefined') {
+	        	    query['aesthetic']['x'] = query['groups'][0]}
             }
 
             if (typeof(query['aesthetic']['y']) == 'undefined') {
-                query['aesthetic']['y'] = groups[1]
+                query['aesthetic']['y'] = query['groups'][1]
             }
         }
 
