@@ -948,7 +948,9 @@ updateKeysTransformer = function(key) {
             }
 
             relevantField = extractRelevantField(key)
-            if (['month','day','week'].indexOf(relevantField) >=0) {
+            if (['day','week'].indexOf(relevantField) >=0) {
+                datedValue.setFullYear(1,0,originalValue)
+            } else if (['month'].indexOf(relevantField) >=0) {
                 datedValue.setFullYear(1,-1,originalValue)
             } else {
                 datedValue.setFullYear(originalValue,1,1)
@@ -1031,20 +1033,21 @@ queryAligner = {
             { return false}
 
             return true
-        })
+        })	
         needsUpdate
             .property('value', function() {
-                value = eval(d3.select(this).attr("bindTo"))
+		try{
+	          value = eval(d3.select(this).attr("bindTo"))
                 if (typeof(value)=="object") {
                     return(JSON.stringify(value))
                 }
-                return(value)
+                return(value)}
+	catch(err) {return(err.message)}
             })
     },
 
     alignAesthetic: function() {
         //pushes the aesthetic values into the appropriate boxes.
-
 
         //back compatability: this block can be erased eventually,
         //it just makes some of Ben's old links works.
