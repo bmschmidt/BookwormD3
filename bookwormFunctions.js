@@ -206,7 +206,9 @@ fillLegendMaker = function(colorscale) {
 								 return d.search("\\*") > 0
 								     })
 	
-	if (starredKeys.length==0) {starredKeys=["word"]}
+	if (starredKeys.length==0) {try{starredKeys=["word"];
+				       testing = query['search_limits']['word']
+				       } catch(err) {return}}
 	
 	text1 = starredKeys.map(function(key) {
 				    values = query['search_limits'][key].join('"/"')
@@ -1034,10 +1036,12 @@ queryAligner = {
         })
         needsUpdate
             .property('value', function() {
+		try {
                 value = eval(d3.select(this).attr("bindTo"))
                 if (typeof(value)=="object") {
                     return(JSON.stringify(value))
                 }
+		} catch(err) {return(err)}
                 return(value)
             })
     },
