@@ -826,6 +826,8 @@ variableOptions = {
     //eventually we'll dump the default options--they can just be stored in the database.
     defaultOptions : [
         {"name":"Year","dbname":"year","database":"presidio","type":"time"},
+        {"name":"Publication year (5 year rounding)","dbname":"yearchunk","database":"presidio","type":"time"},
+        {"name":"Author birth year (5 year rounding)","dbname":"agechunk","database":"presidio","type":"time"},
         {"name":"Author age","dbname":"author_age","database":"presidio","type":"time"},
         {"name":"LC classification","dbname":"classification","database":"presidio","type":"categorical"},
         {"name":"Country","dbname":"country","database":"presidio","type":"categorical"},
@@ -950,7 +952,9 @@ updateKeysTransformer = function(key) {
             }
 
             relevantField = extractRelevantField(key)
-            if (['month','day','week'].indexOf(relevantField) >=0) {
+            if (['day','week'].indexOf(relevantField) >=0) {
+                datedValue.setFullYear(1,0,originalValue)
+            } else if (['month'].indexOf(relevantField) >=0) {
                 datedValue.setFullYear(1,-1,originalValue)
             } else {
                 datedValue.setFullYear(originalValue,1,1)
@@ -1033,22 +1037,21 @@ queryAligner = {
             { return false}
 
             return true
-        })
+        })	
         needsUpdate
             .property('value', function() {
-		try {
-                value = eval(d3.select(this).attr("bindTo"))
+		try{
+	          value = eval(d3.select(this).attr("bindTo"))
                 if (typeof(value)=="object") {
-                    return(JSON.stringify(value))
+                    return(js_beautify(JSON.stringify(value)))
                 }
-		} catch(err) {return(err)}
-                return(value)
+                return(value)}
+	catch(err) {return(err.message)}
             })
     },
 
     alignAesthetic: function() {
         //pushes the aesthetic values into the appropriate boxes.
-
 
         //back compatability: this block can be erased eventually,
         //it just makes some of Ben's old links works.
