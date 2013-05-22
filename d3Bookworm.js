@@ -73,7 +73,7 @@ var yaxis = svg.append("g").attr("id","#yaxis");
 var xaxis = svg.append("g").attr("id","#xaxis");
 var legend = svg.append('g').attr('id','#legend');
 var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
-var sizeLegend = legend.append('g').attr('id','sizeLegend').attr('transform','translate('+(w/25 + 100) +','+(h/5) + ')');
+
 var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 50  +')');
 
 
@@ -306,8 +306,10 @@ $('body').keypress(function(e){
 //even though dataviz wisdom seems to say that's not kosher.
 
 greenToRed = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
+RdYlGn = ['rgb(26,152,80)','rgb(255,255,191)','rgb(215,48,39)']
+RdYlGn = greenToRed
 PuOr = ['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)','rgb(230,97,1)']
-
+//RdYlGn = PuOr
 
 //define some default scales
 nwords = d3.scale.sqrt().range([0,100]);

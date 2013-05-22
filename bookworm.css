@@ -2,6 +2,10 @@ svg {
   background: #000;
 }
 
+text {
+    font-family: sans-serif;
+}
+
 .d3Selector {
     position: absolute;
     color: #fff;
@@ -24,44 +28,50 @@ svg {
   stroke-width: 1px;
 }
 
-.axis line,.axis path {
+.axis line, .axis path {
     fill: none;
     stroke: beige;
     shape-rendering: crispEdges;
 }
 
-.title text {
+text.title {
     fill:white;
     font-size:35;
-    font-family:Arial
-}
-
-.axis text {
-    fill: beige;
-    font-family: sans-serif;
-    font-size: 12px;
     text-anchor:middle;
 }
 
-.highlit text {
+.axis text {
+    fill:white;
+    font-size:smaller;
+}
+
+text.axis.title {
+    fill:white;
+    font-size:9;
+    text-anchor:middle;
+}
+
+text.dropdown {
+    font-size: 11px;
+    font-family:Arial;
+    text-anchor:middle;
+}
+
+text.highlit {
     font-style:bold;
     font-size: 14px;
     font-family:Arial;
 }
 
-.line line, .line path{
+line.line, path.line {
     fill:none;
     stroke:white;
     stroke-width:1.5px
 }
 
-#legend text {
-    fill:white;
-}
-
 rect.plot {
     opacity:1;
-    fill:blue;
+    fill:amber;
     stroke:black;
     stroke-width:0px;
 }
@@ -69,6 +79,10 @@ rect.plot {
 rect.highlit {
     opacity:1;
     stroke-width:2px;
+}
+
+path.pointer {
+    fill:grey
 }
 
 circle.plot {
