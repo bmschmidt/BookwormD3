@@ -25,16 +25,16 @@ if (window.location.host=="melville.seas.harvard.edu") {
         "counttype":["WordCount","TotalWords","WordsPerMillion"],
         "search_limits":{
             "year":{"$lte":1922,"$gte":1850},
-            "word":["library","libraries"]
+            "word":["chart"]
         },
-	"aesthetic":{"x":"year","y":"classification","color":"WordsPerMillion"},
+        "aesthetic":{"x":"yearchunk","y":"classification","color":"WordsPerMillion"},
         "plotType":"heatMap"
     }
 }
 
-if (window.location.host=="localhost:8080") {		
-	console.log("yo, localhost!")			
-    defaultQuery = {	
+if (window.location.host=="localhost:8080") {
+    console.log("yo, localhost!")
+    defaultQuery = {
         "method":"return_json",
         "words_collation":"Case_Sensitive",
         "groups":["publication_date_year","publication_date_month_year"],
@@ -69,9 +69,10 @@ var paperdiv = svg
     .append("g")
     .attr("id","#paperdiv")
     .attr("x",30);
-var yaxis = svg.append("g").attr("id","#yaxis");
-var xaxis = svg.append("g").attr("id","#xaxis");
-var legend = svg.append('g').attr('id','#legend');
+
+paperdiv.datum({"x":0,"y":0})
+
+var legend = svg.append('g').attr('id','legend');
 var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
 
 var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 50  +')');
@@ -83,20 +84,18 @@ var stateItems;
 
 // Variables for the grid charts
 var testing;
-var yAxis;
-var xAxis;
 var x,y;
 
 // Prepare the paper points.
 // These variables should be renamed for clarity: 'paper' refers to newspapers, for legacy reasons.
 var paperdata = [];
 
-var paperpoints = paperdiv
-    .selectAll("circle")
-    .data(paperdata,function(d) {d.key})
+//var paperpoints = paperdiv
+  //  .selectAll("circle")
+    //.data(paperdata,function(d) {d.key})
 
-var gridRects = paperdiv
-    .selectAll('rect')
+//var gridRects = paperdiv
+  //  .selectAll('rect')
 
 var colorLegendPointer,
 updatePointer,
@@ -120,7 +119,9 @@ var quantitativeVariables = [
     {"variable":"TextPercent","label":"% of texts"},
     {"variable":"TotalWords","label":"Total # of words"},
     {"variable":"TextCount","label":"# of Texts"},
-    {"variable":"TotalTexts","label":"Total # of Texts"}
+    {"variable":"TotalTexts","label":"Total # of Texts"},
+    {"variable":"WordsRatio","label":"Ratio of group A to B"},
+    {"variable":"SumWords","label":"Total in both sets"}
 ]
 
 for (item in quantitativeVariables) {
@@ -154,8 +155,8 @@ updateAxisOptionBoxes()
 //This makes sure that all entry boxes are listening
 //d3.selectAll(['bindTo'])
 //    .on('keyup',function() {
-//	queryAligner
-//	    .updateQuery(d3.select(this.parentNode))
+//      queryAligner
+//          .updateQuery(d3.select(this.parentNode))
 //    })
 
 var APIbox = d3.select('#APIbox')
@@ -170,17 +171,17 @@ var APIbox = d3.select('#APIbox')
 //Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
 
 d3.selectAll("[bindTo]")
-    .on('change',function() { 
-	console.log("change registered")
-        queryAligner.updateQuery(d3.select(this)) 
-})
-    .on('keyup',function() {  
-	console.log("keyup registered")
-        queryAligner.updateQuery(d3.select(this)) 
-})
-//    .on('select',function() {  
-//	console.log("select registered")
-//        queryAligner.updateQuery(d3.select(this)) 
+    .on('change',function() {
+        console.log("change registered")
+        queryAligner.updateQuery(d3.select(this))
+    })
+    .on('keyup',function() {
+        console.log("keyup registered")
+        queryAligner.updateQuery(d3.select(this))
+    })
+//    .on('select',function() {
+//      console.log("select registered")
+//        queryAligner.updateQuery(d3.select(this))
 //})
 
 
@@ -191,62 +192,62 @@ queryAligner.updateQuery()
 d3.select("body").append("button")
     .text('Redraw Plot')
     .on('click',function(){
-	currentPlot = myPlot()
-	currentPlot()
+        currentPlot = myPlot()
+        currentPlot()
     })
 
 
 d3.select("#AdvancedOptions")
 //Make advanced Options into a toggler.
     .on("click",function() {
-	display = d3.select(".debugging")
-	display = (display.style("display"))
-	
-	if (display=="none") {
-	    
-	    d3.selectAll(".debugging")
-		.style("display","inline")
-	    d3
-		.select(this)
-		.text("Hide Advanced")
-	}
-	if (display=="inline") {
-	    d3.selectAll(".debugging").style("display","none")
-	    d3.select(this).text("Show Advanced")
-	}
+        display = d3.select(".debugging")
+        display = (display.style("display"))
+
+        if (display=="none") {
+
+            d3.selectAll(".debugging")
+                .style("display","inline")
+            d3
+                .select(this)
+                .text("Hide Advanced")
+        }
+        if (display=="inline") {
+            d3.selectAll(".debugging").style("display","none")
+            d3.select(this).text("Show Advanced")
+        }
     })
 
 d3.select("#ExportData")
 //Make advanced Options into a toggler.
     .on("click",function() {
-	function post_to_url(path, params, method) {
-	    //Function From http://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
-	    method = method || "post"; // Set method to post by default, if not specified.
+        function post_to_url(path, params, method) {
+            //Function From http://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
+            method = method || "post"; // Set method to post by default, if not specified.
 
-	    // The rest of this code assumes you are not using a library.
-	    // It can be made less wordy if you use one.
-	    var form = document.createElement("form");
-	    form.setAttribute("method", method);
-	    form.setAttribute("action", path);
+            // The rest of this code assumes you are not using a library.
+            // It can be made less wordy if you use one.
+            var form = document.createElement("form");
+            form.setAttribute("method", method);
+            form.setAttribute("action", path);
 
-	    for(var key in params) {
-		if(params.hasOwnProperty(key)) {
-		    var hiddenField = document.createElement("input");
-		    hiddenField.setAttribute("type", "hidden");
-		    hiddenField.setAttribute("name", key);
-		    hiddenField.setAttribute("value", params[key]);
+            for(var key in params) {
+                if(params.hasOwnProperty(key)) {
+                    var hiddenField = document.createElement("input");
+                    hiddenField.setAttribute("type", "hidden");
+                    hiddenField.setAttribute("name", key);
+                    hiddenField.setAttribute("value", params[key]);
 
-		    form.appendChild(hiddenField);
-		}
-	    }
-	    console.log(params)
-	    document.body.appendChild(form);
-	    form.submit();
-	}
-	
-	localquery = JSON.parse(JSON.stringify(query))
-	localquery['method'] = "return_tsv"
-	post_to_url("/cgi-bin/dbbindings.py",	{"queryTerms":JSON.stringify(localquery)})
+                    form.appendChild(hiddenField);
+                }
+            }
+            console.log(params)
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        localquery = JSON.parse(JSON.stringify(query))
+        localquery['method'] = "return_tsv"
+        post_to_url("/cgi-bin/dbbindings.py",   {"queryTerms":JSON.stringify(localquery)})
     })
 
 
@@ -309,7 +310,10 @@ greenToRed = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
 RdYlGn = ['rgb(26,152,80)','rgb(255,255,191)','rgb(215,48,39)']
 RdYlGn = greenToRed
 PuOr = ['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)','rgb(230,97,1)']
-//RdYlGn = PuOr
+RdYlGn = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
+RdYlGn = colorbrewer["RdYlGn"][5].slice(0,4).reverse()
+
+//RdYlGn = greenToRed
 
 //define some default scales
 nwords = d3.scale.sqrt().range([0,100]);

@@ -58,9 +58,7 @@ text.dropdown {
 }
 
 text.highlit {
-    font-style:bold;
-    font-size: 14px;
-    font-family:Arial;
+    fill:lightblue;
 }
 
 line.line, path.line {
@@ -71,7 +69,7 @@ line.line, path.line {
 
 rect.plot {
     opacity:1;
-    fill:amber;
+    fill:blue;
     stroke:black;
     stroke-width:0px;
 }

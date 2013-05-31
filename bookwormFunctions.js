@@ -113,34 +113,40 @@ drawFillLegend = function(scale,origin,height,width) {
     //It returns ???
 
     // define some defaults
-    if (origin===undefined) { origin = [1400,100] }
+    if (origin===undefined) {
+	try{current = svg.selectAll(".color.legend").datum();
+	    origin = [current.x,current.y] }
+	catch(err) {origin = [144,65]} }
     if (height===undefined) { height = 300 }
     if (width===undefined) { width = 20 }
 
-    
-
     //Create a fill legend entry, if it doesn't exist
-
-    fillLegend = svg.selectAll(".color.legend").data([{"x":origin[0],'y':origin[1]}])
-
+    
+    fillLegend = d3.select("#svg")
+	.selectAll(".color.legend").data([{
+	    "x":origin[0],"y":origin[1]}])
+    
+    
     fillLegend.enter()
         .append('g')
         .attr('id','fill-legend')
+	.classed("legend",true)
         .classed("color",true)
-        .classed("legend",true)
 	.attr("transform", function(d,i){
+	    d.x = origin[0]
+	    console.log("appending a fill legend")
 	    return "translate(" + d.x + ',' + d.y  + ")"
 	})
 	.call(drag)
-
+    
     fillLegendScale = scale.copy()
-
+    
     legendRange = d3.range(0,height,by=height/(fillLegendScale.domain().length-1))
     legendRange.push(height)
 
     fillLegendScale.range(legendRange)
 
-    colorScaleRects = fillLegend.selectAll('rect').data(d3.range(0,height))
+    colorScaleRects = fillLegend.append("g").attr("id","fillLegendRects").selectAll('rect').data(d3.range(0,height))
 
     colorScaleRects.enter()
         .append("rect")
@@ -156,6 +162,7 @@ drawFillLegend = function(scale,origin,height,width) {
         })
 
     colorScaleRects.exit().remove()
+
     //'formatter' pretties the name, and drops certain ticks for
     // a log scale. It's overwritten if it's _not_ a log scale.
 
@@ -185,19 +192,25 @@ drawFillLegend = function(scale,origin,height,width) {
 
     colorAxis
         .transition()
+	.duration(1000)
         .call(colorAxisFunction)
 
     //make a title
-    fillLegend
-	.append('text')
+    
+    titles = fillLegend.selectAll(".axis.title").data([{"label":query["aesthetic"]["color"]}])
+    titles.enter().append("text")
+    
+    titles
 	.attr("id","#colorSelector")
         .attr('transform','translate (0,-10)')
         .classed("axis",true)
 	.classed("title",true)
-        .text(nameSubstitutions[query['aesthetic']['color']])
+        .text(function(d) {return nameSubstitutions[d.label]})
         .on('click',function(d){
 	    chooseVariable(fillLegend,"colorSelector",quantitativeVariables,'aesthetic','color')})
+
     writeTitle()
+    
 }
 
 writeTitle = function() {
@@ -206,11 +219,11 @@ writeTitle = function() {
     starredKeys = d3.keys(query['search_limits']).filter(function(d) {
         return d.search("\\*") > 0
     })
-
+    
     if (starredKeys.length==0) {try{starredKeys=["word"];
                                     testing = query['search_limits']['word']
                                    } catch(err) {return}}
-
+    
     text1 = starredKeys.map(function(key) {
         values = query['search_limits'][key].join('"/"')
         var pretty = key.replace("\*","")
@@ -235,15 +248,19 @@ writeTitle = function() {
         .attr('transform','translate(10,0)')
 }
 
+var fillLegendScale = function() {};
+
 updatePointer=function(inputNumbers) {
     //Update the color pointer to match the input numbers.
-    //This is a more general problem than I'm casting it here.
-
+    //This is a more general problem than I'm casting it here: it could, say also update a circle
+    
     var pointerSize,pointerColor; //undefined and unused: should be passed to function.
-
+    
     var barWidth = 20; //Should be dynamic or responsive.
-    var pointerWidth = 14;
-    pointers = fillLegend
+    var pointerWidth = Math.round(barWidth*3/4);
+
+    pointers = svg
+	.selectAll('.legend.color')
         .selectAll('.pointer')
         .data([inputNumbers])
 
@@ -272,11 +289,12 @@ updatePointer=function(inputNumbers) {
 
 
     //wait 5 seconds, then clear the diamond.
-    setTimeout(function() {
-        pointers.transition()
-            .duration(5000)
-            .attr('opacity',0)
-    },1000)
+	.transition()
+        .duration(1000)
+        .attr('opacity',.9)
+	.transition().duration(5000)
+	.attr('opacity',0)
+	.remove()
 }
 
 
@@ -435,11 +453,11 @@ linePlot = function() {
             x = xstuff.scale
             y = ystuff.scale
 
-            svg.append('g').attr('id','y-axis').call(ystuff.axis)
+            d3.select("#paperdiv").append('g').attr('id','y-axis').call(ystuff.axis)
                 .attr('class','axis')
                 .attr('transform','translate(' +ystuff.limits['x'][0] + ',0)')
 
-            svg.append('g').attr('id','x-axis').call(xstuff.axis)
+            d3.select("#paperdiv").append('g').attr('id','x-axis').call(xstuff.axis)
                 .attr('class','axis')
                 .attr('transform','translate(0,' + xstuff.limits['y'][1] + ')')
 
@@ -662,12 +680,12 @@ makeClickable = function(selection) {
     //to bookworm data; it restyles them to be 'highlit',
     //and adds a function to run a search on click
     //The styles for that particular element have to be set
-    //to recognize highlighting.
-
+    //to recognize highlighting in--get this!--the stylesheet.
+    
     toggleHighlighting = function(d,highlitValue) {
         //given an axis and a datum
         ["x","y","color","size"].map(function(axis) {
-            f = d3.selectAll("#" + axis + "-axis")
+            f = paperdiv.selectAll("#" + axis + "-axis")
                 .selectAll('text')
                 .data(
                     //rather than "string", this should take
@@ -1153,9 +1171,9 @@ drawSizeLegend = function(scale,origin,height,width) {
     //It returns ???
     
     // define some defaults
-    if (origin===undefined) { origin = [w/25+100,h/5] }
-    if (height===undefined) { height = 300 }
-    if (width===undefined) { width = 20 }
+    if (origin===undefined) { origin = [73,132] }
+//    if (height===undefined) { height = 300 }
+//    if (width===undefined) { width = 20 }
     
     sizeAxis = d3.svg.axis()
         .scale(sizescale)
@@ -1170,7 +1188,7 @@ drawSizeLegend = function(scale,origin,height,width) {
         .tickFormat(prettyName)
     
     sizeLegend = svg.selectAll(".legend.size").data([{"x":origin[0],"y":origin[1]}])    
-
+    
     sizeLegend
 	.enter()
 	.append('g')
@@ -1208,6 +1226,7 @@ drawSizeLegend = function(scale,origin,height,width) {
         .attr('transform','translate(0,-10)')
 	.classed("axis",true)
 	.classed("title",true)
+	.attr("id","sizeSelector")
 	.text(nameSubstitutions[query['aesthetic']['size']])
 //        .attr('fill','white')
   //      .attr('font-size','12')
@@ -1503,9 +1522,9 @@ function heatMapFactory() {
             removeElements()
         } else {
             paperdiv.selectAll('rect').transition().duration(2500).attr('opacity',0)
-            xaxis.selectAll('text').remove()
-            yaxis.selectAll('text').remove()
+            paperdiv.selectAll(".axis").selectAll('text').remove()
         }
+	paperdiv.call(drag)
 
         queryAligner.updateQuery()
 
@@ -1525,7 +1544,7 @@ function heatMapFactory() {
             //yaxis
 
             d3.selectAll('#y-axis').remove()
-            svg.append("g")
+            paperdiv.append("g")
                 .attr('id','y-axis')
                 .call(yAxis)
                 .attr("class","axis")
@@ -1534,7 +1553,7 @@ function heatMapFactory() {
             //x-axis
             d3.selectAll('#x-axis').remove()
 
-            svg.append("g")
+            paperdiv.append("g")
                 .attr('id','x-axis')
                 .call(xAxis)
                 .attr("class","axis")
@@ -1619,4 +1638,18 @@ addTitles = function(selection) {
             return(text.join('                     \t\n'))
         });
 
+}
+
+function encode_as_img_and_link(){
+ // Add some critical information
+    //$("svg").attr({ version: '1.1' , xmlns:"http://www.w3.org/2000/svg"});
+
+    var svg = d3.select("#svg").html();
+    var b64 = Base64.encode(svg);
+
+ // Works in recent Webkit(Chrome)
+    $("body").append($("<img src='data:image/svg+xml;base64,\n"+b64+"' alt='file.svg'/>"));
+
+ // Works in Firefox 3.6 and Webit and possibly any browser which supports the data-uri
+    $("body").append($("<a href-lang='image/svg+xml' href='data:image/svg+xml;base64,\n"+b64+"' title='file.svg'>Download</a>"));
 }
