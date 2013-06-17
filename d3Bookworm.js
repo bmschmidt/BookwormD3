@@ -135,6 +135,11 @@ if(window.location.hash) {
     query = defaultQuery
 }
 
+if (query['scaleType']==undefined) {
+    query['scaleType'] = "linear"
+}
+
+
 if (!('aesthetic' in query)) {
     query['aesthetic']= {
         "color":"WordsPerMillion",

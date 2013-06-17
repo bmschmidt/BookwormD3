@@ -116,10 +116,10 @@ drawFillLegend = function(scale,origin,height,width) {
     if (origin===undefined) {
         try{current = svg.selectAll(".color.legend").datum();
             origin = [current.x,current.y] }
-        catch(err) {origin = [125,65]} 
+        catch(err) {origin = [125,65]}
     }
     if (height===undefined) { height = window.innerHeight - 3*origin[1]; console.log(height) }
-    
+
     if (width===undefined) { width = 20 }
 
     //Create a fill legend entry, if it doesn't exist
@@ -148,10 +148,16 @@ drawFillLegend = function(scale,origin,height,width) {
 
     fillLegendScale.range(legendRange)
 
-    colorScaleRects = fillLegend.append("g").attr("id","fillLegendRects").selectAll('rect').data(d3.range(0,height))
+//    fillLegendRects = fillLegend.append("g")
+
+    fillRects = fillLegend.selectAll("#fillLegendRects").data([1])
+    fillRects.enter().append("g").attr("id","fillLegendRects")
+    console.log(fillRects)
+    colorScaleRects = fillRects.selectAll('rect').data(d3.range(0,height))
 
     colorScaleRects.enter()
         .append("rect")
+
 
     colorScaleRects
         .attr({
@@ -169,12 +175,11 @@ drawFillLegend = function(scale,origin,height,width) {
     // a log scale. It's overwritten if it's _not_ a log scale.
 
     function formatter(d) {
-	if (query.scaleType=="log") {
-	    console.log("formatting")
+        if (query.scaleType=="log") {
             var x = Math.log(d) / Math.log(10) + 1e-6;
             return Math.abs(x - Math.floor(x)) < .7 ? prettyName(d) : "";
-	}
-	return prettyName(d)
+        }
+        return prettyName(d)
     }
 
     colorAxis = fillLegend.selectAll(".color.axis").data([1])
@@ -195,28 +200,28 @@ drawFillLegend = function(scale,origin,height,width) {
     d3.select("#fillLegendScale").remove()
 
     fillLegend
-	.append("text")
-	.attr("id","fillLegendScale")
-	.text("linear scale")
-	.style("fill","white")
-	.attr("transform","translate(0," + (height + 25) + ")")
-	.on("mouseover",function(d) {
-	    //make it bold or something to promot clicking.
-	})
-	.on("click",function(d) {
-	    current = d3.select(this).text();
-	    if(current=="log scale") {
-		query['scaleType']="linear"
-		changeColorScale(d3.scale.linear)
-		d3.select("#fillLegendScale").text("linear scale").style("fill","white")
-	    }
-	    if(current=="linear scale") {
-		query['scaleType']="log"
-		changeColorScale(d3.scale.log)
-		d3.select("#fillLegendScale").text("log scale").style("fill","white")
-	    }
-    
-	})
+        .append("text")
+        .attr("id","fillLegendScale")
+        .text("linear scale")
+        .style("fill","white")
+        .attr("transform","translate(0," + (height + 25) + ")")
+        .on("mouseover",function(d) {
+            //make it bold or something to promot clicking.
+        })
+        .on("click",function(d) {
+            current = d3.select(this).text();
+            if(current=="log scale") {
+                query['scaleType']="linear"
+                changeColorScale(d3.scale.linear)
+                d3.select("#fillLegendScale").text("linear scale").style("fill","white")
+            }
+            if(current=="linear scale") {
+                query['scaleType']="log"
+                changeColorScale(d3.scale.log)
+                d3.select("#fillLegendScale").text("log scale").style("fill","white")
+            }
+
+        })
 
     writeTitle()
 
@@ -515,8 +520,8 @@ linePlot = function() {
             .transition()
             .duration(2000)
             .call(xstuff.axis
-		  //.tickSize(-w,0,0)
-		 )
+                  //.tickSize(-w,0,0)
+                 )
             .attr("id","x-axis")
             .attr('class','x axis')
 
@@ -550,12 +555,12 @@ linePlot = function() {
                 return lineGenerator(d.values)})
 
 
-	selection
+        selection
             .attr('stroke','#F0E1BD')
             .attr('fill','#F0E1BD')
 
 
-	selection
+        selection
             .on('mouseover',function(d) {
                 d3.select(this).attr('stroke-width','15')
             })
@@ -571,10 +576,10 @@ linePlot = function() {
 
         circles.exit().remove()
 
-	
+
         //these need to belong to the line somehow.
-	
-	circles
+
+        circles
             .attr('opacity','.01')
             .on('mouseover',function(d) {d3.select(this).attr('opacity','1')})
             .on('mouseout',function(d) {d3.select(this).attr('opacity','.01')})
@@ -825,12 +830,13 @@ removeElements = function() {
 
 changeColorScale = function(scaleType) {
     newscale = returnScale()
-	.values(colorscale.domain())
-	.scaleType(scaleType)();
+        .values(colorscale.domain())
+        .scaleType(scaleType)();
 
     colorscale=newscale
 
     currentPlot.updateChart()
+
 }
 
 returnScale = function() {
@@ -1326,10 +1332,10 @@ drawSizeLegend = function(scale,origin,height,width) {
     sizeLegend
         .append('text')
         .attr('transform','translate(0,-10)')
-	.classed("axis",true)
-	.classed("title",true)
-	.attr("id","sizeSelector")
-	.text(nameSubstitutions[query['aesthetic']['size']])
+        .classed("axis",true)
+        .classed("title",true)
+        .attr("id","sizeSelector")
+        .text(nameSubstitutions[query['aesthetic']['size']])
         .on('click',function(d){chooseVariable(sizeLegend,"sizeSelector",quantitativeVariables,'aesthetic','size')})
 }
 
@@ -1471,7 +1477,7 @@ function mapQuery() {
 
             values = paperdata.map(function(d) {return(d[query['aesthetic']['color']])});
 
-            colorscale = colorScaler.values(values).scaleType(d3.scale[$("#scaleType").val()])()
+            colorscale = colorScaler.values(values).scaleType(d3.scale[query['scaleType']])()
 
             sizes = paperdata.map(function(d) {return(d[query['aesthetic']['size']])});
 
@@ -1563,14 +1569,14 @@ makeAxisAndScale = function(axis,limits) {
             vals.sort(function(a,b){return(b-a)})
         }
 
-	//the binwidth should be minimum difference between points.
-	differences = [];
-	for (var i = 0; i < (vals.length-1); i++) {
-	    differences.push(Math.abs(vals[i+1]-vals[i]));
-	};
-	binwidth = d3.min(differences)
-	binsneeded = (d3.max(vals) - d3.min(vals))/binwidth + 1
-	
+        //the binwidth should be minimum difference between points.
+        differences = [];
+        for (var i = 0; i < (vals.length-1); i++) {
+            differences.push(Math.abs(vals[i+1]-vals[i]));
+        };
+        binwidth = d3.min(differences)
+        binsneeded = (d3.max(vals) - d3.min(vals))/binwidth + 1
+
         pixels = (limits[axis][1]-limits[axis][0])/binsneeded;
 
         domain = d3.extent(vals)
@@ -1622,9 +1628,89 @@ makeAxisAndScale = function(axis,limits) {
 function heatMapFactory() {
     var limits = {'x':[w*.1,w*.75],'y':[75,h*.95]}
     var myQuery = query
-    var colorScaler = returnScale().scaleType(d3.scale.linear)
+    var colorScaler = returnScale()
     var sizeScaler  = returnScale()
 
+    function updateChart() {
+
+
+        xstuff = makeAxisAndScale('x')
+        xAxis = xstuff.axis.orient("top")
+        x = xstuff.scale
+
+        ystuff = makeAxisAndScale('y')
+        yAxis = ystuff.axis.orient("right")
+        y = ystuff.scale
+
+        offsets = {'Date':.5,'Categorical':0,'Numeric':.5}
+        //yaxis
+
+        d3.selectAll('#y-axis').remove()
+        paperdiv.append("g")
+            .attr('id','y-axis')
+            .call(yAxis)
+            .attr("class","axis")
+            .attr("transform","translate(" + (x.pixels+limits['x'][1])  +"," + (y.pixels*offsets[ystuff.datatype]) + ")")
+
+        //x-axis
+        d3.selectAll('#x-axis').remove()
+
+        paperdiv.append("g")
+            .attr('id','x-axis')
+            .call(xAxis)
+            .attr("class","axis")
+            .attr("transform","translate("+x.pixels*offsets[xstuff.datatype]+ "," + (limits['y'][0])  +")")
+
+        //Key the data against the actual interaction it is,
+        //so transitions will work.
+        paperdata = paperdata.map(function(d) {
+            d.key = d[myQuery['aesthetic']['x']] + d[myQuery['aesthetic']['y']]
+            return(d)
+        })
+
+        colorValues = paperdata.map(function(d) {return(d[query['aesthetic']['color']])})
+        colorscale = colorScaler.values(colorValues).scaleType(d3.scale[query['scaleType']])()
+
+        gridPoint = paperdiv.selectAll('rect')
+            .data(paperdata,function(d) {
+                return(d.key)
+            })
+
+        gridPoint
+            .enter()
+            .append('rect')
+            .classed('plot',true)
+            .style("fill","black")
+
+        gridPoint.exit().transition().duration(1000)
+            .style('opacity',0)
+            .remove()
+        xVariable = myQuery['groups'][0]
+        yVariable = myQuery['groups'][1]
+
+
+        gridPoint
+            .attr('x',function(d) {return x(plotTransformers[xVariable](d[xVariable]))})
+            .attr('y',function(d) {return Math.round(y(plotTransformers[yVariable](d[yVariable])))})
+            .attr('height', y.pixels)
+            .attr('width', x.pixels)
+            .transition()
+            .duration(2500)
+
+            .style('fill',function(d) {
+                color = colorscale(d[query['aesthetic']['color']]);
+                if (d[query['aesthetic']['color']]==0) {color='#393939'}
+                if (color=="#000000") {color='#393939'}
+                return color;
+            })
+
+        makeClickable(gridPoint)
+        addTitles(gridPoint)
+        drawFillLegend(colorscale)
+
+
+    }
+    my.updateChart = updateChart
     function my() {
         //fix this to use the new method
 
@@ -1643,84 +1729,14 @@ function heatMapFactory() {
 
             paperdata = parseBookwormData(json,query);
 
-            xstuff = makeAxisAndScale('x')
-            xAxis = xstuff.axis.orient("top")
-            x = xstuff.scale
-
-            ystuff = makeAxisAndScale('y')
-            yAxis = ystuff.axis.orient("right")
-            y = ystuff.scale
-
-            offsets = {'Date':.5,'Categorical':0,'Numeric':.5}
-            //yaxis
-
-            d3.selectAll('#y-axis').remove()
-            paperdiv.append("g")
-                .attr('id','y-axis')
-                .call(yAxis)
-                .attr("class","axis")
-                .attr("transform","translate(" + (x.pixels+limits['x'][1])  +"," + (y.pixels*offsets[ystuff.datatype]) + ")")
-
-            //x-axis
-            d3.selectAll('#x-axis').remove()
-
-            paperdiv.append("g")
-                .attr('id','x-axis')
-                .call(xAxis)
-                .attr("class","axis")
-                .attr("transform","translate("+x.pixels*offsets[xstuff.datatype]+ "," + (limits['y'][0])  +")")
-
-            //Key the data against the actual interaction it is,
-            //so transitions will work.
-            paperdata = paperdata.map(function(d) {
-                d.key = d[myQuery['aesthetic']['x']] + d[myQuery['aesthetic']['y']]
-                return(d)
-            })
-
-            colorValues = paperdata.map(function(d) {return(d[query['aesthetic']['color']])})
-            colorscale = colorScaler.values(colorValues).scaleType(d3.scale[$("#scaleType").val()])()
-
-            gridPoint = paperdiv.selectAll('rect')
-                .data(paperdata,function(d) {
-                    return(d.key)
-                })
-
-            gridPoint
-                .enter()
-                .append('rect')
-                .classed('plot',true)
-                .style("fill","black")
-
-            gridPoint.exit().transition().duration(1000)
-                .style('opacity',0)
-                .remove()
-            xVariable = myQuery['groups'][0]
-            yVariable = myQuery['groups'][1]
-
-
-            gridPoint
-                .attr('x',function(d) {return x(plotTransformers[xVariable](d[xVariable]))})
-                .attr('y',function(d) {return Math.round(y(plotTransformers[yVariable](d[yVariable])))})
-                .attr('height', y.pixels)
-                .attr('width', x.pixels)
-                .transition()
-                .duration(2500)
-
-                .style('fill',function(d) {
-                    color = colorscale(d[query['aesthetic']['color']]);
-                    if (d[query['aesthetic']['color']]==0) {color='#393939'}
-                    if (color=="#000000") {color='#393939'}
-                    return color;
-                })
-
-            makeClickable(gridPoint)
-            addTitles(gridPoint)
-            drawFillLegend(colorscale)
+            updateChart()
         })
 
     }
+
     return my
 }
+
 
 addTitles = function(selection) {
     selection.selectAll('title').remove()
