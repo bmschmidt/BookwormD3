@@ -117,7 +117,7 @@ drawFillLegend = function(scale,origin,height,width) {
 	try{current = svg.selectAll(".color.legend").datum();
 	    origin = [current.x,current.y] }
 	catch(err) {origin = [144,65]} }
-    if (height===undefined) { height = 300 }
+    if (height===undefined) { height = window.innerHeight - 3*origin[1]; console.log(height) }
     if (width===undefined) { width = 20 }
 
     //Create a fill legend entry, if it doesn't exist
@@ -167,12 +167,12 @@ drawFillLegend = function(scale,origin,height,width) {
     // a log scale. It's overwritten if it's _not_ a log scale.
 
     function formatter(d) {
-        var x = Math.log(d) / Math.log(10) + 1e-6;
-        return Math.abs(x - Math.floor(x)) < .7 ? prettyName(d) : "";
-    }
-
-    if ($('#scaleType').val() != "log") {
-        formatter=prettyName
+	if (query.scaleType=="log") {
+	    console.log("formatting")
+            var x = Math.log(d) / Math.log(10) + 1e-6;
+            return Math.abs(x - Math.floor(x)) < .7 ? prettyName(d) : "";
+	}
+	return prettyName(d)
     }
 
     colorAxis = fillLegend.selectAll(".color.axis").data([1])
@@ -188,6 +188,34 @@ drawFillLegend = function(scale,origin,height,width) {
         .orient("right")
         .tickFormat(formatter)
 
+    //Add bit to change the legend type
+
+    d3.select("#fillLegendScale").remove()
+
+    fillLegend
+	.append("text")
+	.attr("id","fillLegendScale")
+	.text("linear scale")
+	.style("fill","white")
+	.attr("transform","translate(0," + (height + 25) + ")")
+	.on("mouseover",function(d) {
+	    //make it bold or something to promot clicking.
+	})
+	.on("click",function(d) {
+	    current = d3.select(this).text();
+	    if(current=="log scale") {
+		query['scaleType']="linear"
+		changeColorScale(d3.scale.linear)
+		d3.select("#fillLegendScale").text("linear scale").style("fill","white")
+	    }
+	    if(current=="linear scale") {
+		query['scaleType']="log"
+		changeColorScale(d3.scale.log)
+		d3.select("#fillLegendScale").text("log scale").style("fill","white")
+	    }
+    
+	})
+
     writeTitle()
 
     colorAxis
@@ -198,6 +226,7 @@ drawFillLegend = function(scale,origin,height,width) {
     //make a title
     
     titles = fillLegend.selectAll(".axis.title").data([{"label":query["aesthetic"]["color"]}])
+
     titles.enter().append("text")
     
     titles
@@ -209,6 +238,7 @@ drawFillLegend = function(scale,origin,height,width) {
         .on('click',function(d){
 	    chooseVariable(fillLegend,"colorSelector",quantitativeVariables,'aesthetic','color')})
 
+    titles.exit().remove()
     writeTitle()
     
 }
@@ -239,6 +269,7 @@ writeTitle = function() {
     if (comparisontype()=='comparison') {
         text1 = "Usage of '" + query['search_limits']['word'][0] + "'" + " per use of '" + query['compare_limits']['word'][0] + "'"
     }
+
     title.selectAll('text').remove()
     title
         .append('text')
@@ -246,6 +277,7 @@ writeTitle = function() {
         .attr("class","title")
         .text(text1)
         .attr('transform','translate(10,0)')
+
 }
 
 var fillLegendScale = function() {};
@@ -731,6 +763,15 @@ removeElements = function() {
     )
 }
 
+changeColorScale = function(scaleType) {
+    newscale = returnScale()
+	.values(colorscale.domain())
+	.scaleType(scaleType)();
+
+    colorscale=newscale
+
+    currentPlot.updateChart()
+}
 
 returnScale = function() {
     var colors = RdYlGn,//greenToRed,
@@ -793,9 +834,6 @@ returnScale = function() {
     };
     return my
 }
-
-// Can this be removed?
-//function key(d) {return d.key;};
 
 function popitup(url) {
     newwindow=window.open(url,'name','height=640,width=1000');
@@ -1221,6 +1259,8 @@ drawSizeLegend = function(scale,origin,height,width) {
             return('translate(0,' + sizescale(d)/2+')')
         })
 
+    sizeLegend.selectAll(".axis.title").remove()
+
     sizeLegend
         .append('text')
         .attr('transform','translate(0,-10)')
@@ -1228,10 +1268,6 @@ drawSizeLegend = function(scale,origin,height,width) {
 	.classed("title",true)
 	.attr("id","sizeSelector")
 	.text(nameSubstitutions[query['aesthetic']['size']])
-//        .attr('fill','white')
-  //      .attr('font-size','12')
-    //    .attr('font-family','sans-serif')
-      //  .attr('text-anchor','middle')
         .on('click',function(d){chooseVariable(sizeLegend,"sizeSelector",quantitativeVariables,'aesthetic','size')})
 }
 

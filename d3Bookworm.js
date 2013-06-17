@@ -10,9 +10,9 @@ var defaultQuery = {
     "database":"ChronAm",
     "search_limits":{
         "date_year":{"$lte":1922,"$gte":1850},
-        "word":["Ohio river"]
+        "word":["Apache"]
     },
-    "aesthetic":{'x':'lng','y':'lat',"size":"TotalWords","color":"WordsPerMillion"},
+    "aesthetic":{'x':'lng','y':'lat',"size":"WordCount","color":"WordsPerMillion"},
     "plotType":"map"
 };
 
@@ -55,8 +55,8 @@ var h = window.innerHeight
 
 //Things for everywhere
 var svg = d3.select("#svg")
-    .attr('width',w)
-    .attr('height',h)
+    .attr('width',window.innerWidth)
+    .attr('height',window.innerHeight*.9)
 
 var width = 'f'
 
@@ -68,34 +68,26 @@ var maplevel = svg.append("g").attr("id", "#maplevel")
 var paperdiv = svg
     .append("g")
     .attr("id","#paperdiv")
-    .attr("x",30);
 
 paperdiv.datum({"x":0,"y":0})
 
-var legend = svg.append('g').attr('id','legend');
-var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
+//var legend = svg.append('g').attr('id','legend');
+//var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
 
 var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 50  +')');
 
 
 // Things for the background map
+
 var projection = {"mapname":"none"}
 var stateItems;
 
 // Variables for the grid charts
-var testing;
-var x,y;
+var testing, x,y;
 
 // Prepare the paper points.
 // These variables should be renamed for clarity: 'paper' refers to newspapers, for legacy reasons.
 var paperdata = [];
-
-//var paperpoints = paperdiv
-  //  .selectAll("circle")
-    //.data(paperdata,function(d) {d.key})
-
-//var gridRects = paperdiv
-  //  .selectAll('rect')
 
 var colorLegendPointer,
 updatePointer,
@@ -285,7 +277,8 @@ scaleOptions.enter()
     .text(function(d) {return(d.text)})
 
 scaleSelector.on("change",function(d){
-    myPlot()()
+    //myPlot()()
+    currentPlot()
 })
 
 
