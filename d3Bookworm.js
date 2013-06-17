@@ -254,26 +254,6 @@ pointSelector.enter()
     .attr('value',function(d){return d.value})
     .text(function(d) {return(d.text)})
 
-scaleTypes = [{'text':'Linear','value':"linear"},
-              {"text":'Logarithmic','value':"log"}]
-
-scaleSelector = d3.select("#lastOptions")
-    .append('select')
-    .attr('id',"scaleType")
-
-scaleOptions = scaleSelector.selectAll('option').data(scaleTypes)
-
-scaleOptions.enter()
-    .append('option')
-    .attr('value',function(d){return d.value})
-    .text(function(d) {return(d.text)})
-
-scaleSelector.on("change",function(d){
-    //myPlot()()
-    currentPlot()
-})
-
-
 var options = $('<div />');
 
 //executeButtons.appendTo($('body'));
