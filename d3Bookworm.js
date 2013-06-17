@@ -1,6 +1,7 @@
 //There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
-//This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable.
-//If anyone violates this rule...
+//This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable if it pertains to any higher-level architecture
+//about what's being displayed.
+//Violating this rule, ever, will pretty much instantly make the code un-maintable. I promise.
 
 var query = {};
 
@@ -58,7 +59,7 @@ var svg = d3.select("#svg")
     .attr('width',w)
     .attr('height',h)
 
-var width = 'f'
+var width;
 
 //These are the things to delete when a new chart is refreshed.
 //They contain the various aspects of the actual plot
@@ -70,12 +71,15 @@ var paperdiv = svg
     .attr("id","#paperdiv")
     .attr("x",30);
 
+//These datums (that's the plural of datum, you know) are there to 
+//make the item draggable using the "drag" function.
+
 paperdiv.datum({"x":0,"y":0})
 
 var legend = svg.append('g').attr('id','legend');
 var colorLegend = legend.append('g').attr('id','colorLegend').attr('transform','translate(' + w/25+ ','+h/7+')');
 
-var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 50  +')');
+var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 25  +')');
 
 
 // Things for the background map
@@ -152,17 +156,7 @@ updateAxisOptionBoxes()
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 
-//This makes sure that all entry boxes are listening
-//d3.selectAll(['bindTo'])
-//    .on('keyup',function() {
-//      queryAligner
-//          .updateQuery(d3.select(this.parentNode))
-//    })
-
 var APIbox = d3.select('#APIbox')
-//    .append('input')
-//    .attr('id','APIbox')
-//    .attr('type', String)
     .property('value', JSON.stringify(query))
     .attr('style', 'width: 95%;')
     .on('keyup',function(){})
@@ -179,15 +173,8 @@ d3.selectAll("[bindTo]")
         console.log("keyup registered")
         queryAligner.updateQuery(d3.select(this))
     })
-//    .on('select',function() {
-//      console.log("select registered")
-//        queryAligner.updateQuery(d3.select(this))
-//})
-
 
 queryAligner.updateQuery()
-
-//could be defined in the database somehow. (But how??)
 
 d3.select("body").append("button")
     .text('Redraw Plot')
@@ -293,12 +280,20 @@ var options = $('<div />');
 
 //executeButtons.appendTo($('body'));
 
-$('body').keypress(function(e){
-    if(e.which == 13){
+d3.select("body").on("keypress",function(e){
+    console.log(e)
+    if(d3.event.keyCode == 13){
         plotting = myPlot();
         plotting()
     }
 });
+
+//$('body').keypress(function(e){
+//    if(e.which == 13){
+//        plotting = myPlot();
+//        plotting()
+//    }
+//});
 
 
 
