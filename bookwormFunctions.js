@@ -116,8 +116,8 @@ drawFillLegend = function(scale,origin,height,width) {
     if (origin===undefined) {
         try{current = svg.selectAll(".color.legend").datum();
             origin = [current.x,current.y] }
-        catch(err) {origin = [144,65]} }
-    if (height===undefined) { height = 300 }
+        catch(err) {origin = [125,65]} }
+    if (height===undefined) { height = 400 }
     if (width===undefined) { width = 20 }
 
     //Create a fill legend entry, if it doesn't exist
@@ -530,8 +530,6 @@ linePlot = function() {
             })
 
         //Make the points
-
-	console.log(points[0].length)
 
         circles = paperdiv.selectAll('circle.selector').data(paperdata,function(d) {return d[query['aesthetic']['x']]})
 
@@ -1679,8 +1677,7 @@ function heatMapFactory() {
 
             makeClickable(gridPoint)
             addTitles(gridPoint)
-
-            a = drawFillLegend(colorscale)
+            drawFillLegend(colorscale)
         })
 
     }
