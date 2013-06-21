@@ -852,13 +852,17 @@ returnScale = function() {
         if (scaleType==d3.scale.log) {
             numbers[0] = d3.max([(1/101),d3.min(values)])
         }
+
         if (comparisontype()=='comparison') {
             // Make it symmetric for ratios.
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
+	    colors = PuOr;
+	    scale = scaleType().range(colorbrewer.PuOr[4])
         }
         min = numbers[0]
         max = numbers[1]
+
         if (scaleType==d3.scale.log) {
 
             min = Math.log(numbers[0])
@@ -876,7 +880,6 @@ returnScale = function() {
         } else if (scaleType==d3.scale.linear) {
             scale.domain(d3.range(min,max+max*.0001,(max-min)/(colorscale.range().length-1)).map(function(n) {return(n)}))
         }
-
         scale.clamp()
         return (scale)
     }
