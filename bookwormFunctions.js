@@ -112,13 +112,15 @@ drawFillLegend = function(scale,origin,height,width) {
     //This either creates, or updates, a fill legend, and drops it on the screen.
     //It returns ???
 
+    //A fill legend includes a pointer that can be updated in response to mouseovers, because that's way cool.
+
     // define some defaults
     if (origin===undefined) {
         try{current = svg.selectAll(".color.legend").datum();
             origin = [current.x,current.y] }
         catch(err) {origin = [125,65]}
     }
-    if (height===undefined) { height = window.innerHeight - 3*origin[1]; console.log(height) }
+    if (height===undefined) { height = d3.min([window.innerHeight - 3*origin[1],window.innerHeight*.75]); console.log(height) }
 
     if (width===undefined) { width = 20 }
 
@@ -424,7 +426,7 @@ drawMap = function (mapname) {
         if (mapname=="USA") {
             projection = d3.geo.albersUsa()
                 .translate([w/2,h/2])
-                .scale([d3.min([w,h*2])]);
+                .scale([d3.min([w,h*1.7])]);
             sourceJson = "data/us-states.json"
         }
 
@@ -445,6 +447,8 @@ drawMap = function (mapname) {
                 .enter()
                 .append("path")
                 .attr("d", path)
+		.classed("mapBlock",true)
+		.attr("id",function(d) {console.log(d.id); return "map-item-" + d.id})
                 .attr('fill',"grey")
         });
 
@@ -1276,7 +1280,7 @@ prettyName = function(number) {
 
 drawSizeLegend = function(scale,origin,height,width) {
 
-    //This either creates, or updates, a fill legend, and drops it on the screen.
+    //This either creates, or updates, a size legend, and drops it on the screen.
     //It returns ???
 
     // define some defaults
