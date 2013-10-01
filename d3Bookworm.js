@@ -17,7 +17,7 @@ var defaultQuery = {
     "plotType":"map"
 };
 
-if (window.location.host=="melville.seas.harvard.edu") {
+if (window.location.host=="melville.seas.harvard.edu" | window.location.host=="benschmidt.org") {
     defaultQuery = {
         "method":"return_json",
         "words_collation":"Case_Sensitive",
@@ -259,7 +259,6 @@ var options = $('<div />');
 //executeButtons.appendTo($('body'));
 
 d3.select("body").on("keypress",function(e){
-    console.log(e)
     if(d3.event.keyCode == 13){
         plotting = myPlot();
         plotting()
