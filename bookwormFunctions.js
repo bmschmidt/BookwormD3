@@ -1512,9 +1512,8 @@ function mapQuery() {
 
 
 makeAxisAndScale = function(axis,limits) {
-    if ('undefined'==typeof limits) {
-        limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
-    }
+
+    limits = {'x':[w*.1,w*.66],'y':[85,h*.9]}
 
     variableName = query['aesthetic'][axis]
 
@@ -1633,13 +1632,12 @@ makeAxisAndScale = function(axis,limits) {
 
 
 function heatMapFactory() {
-    var limits = {'x':[w*.1,w*.75],'y':[75,h*.95]}
+    var limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
     var myQuery = query
     var colorScaler = returnScale()
     var sizeScaler  = returnScale()
 
     function updateChart() {
-
 
         xstuff = makeAxisAndScale('x')
         xAxis = xstuff.axis.orient("top")
@@ -1657,7 +1655,7 @@ function heatMapFactory() {
             .attr('id','y-axis')
             .call(yAxis)
             .attr("class","axis")
-            .attr("transform","translate(" + (x.pixels+limits['x'][1])  +"," + (y.pixels*offsets[ystuff.datatype]) + ")")
+            .attr("transform","translate(" + (limits['x'][1] + x.pixels*offsets[xstuff.datatype])  +"," + (y.pixels*offsets[ystuff.datatype]) + ")")
 
         //x-axis
         d3.selectAll('#x-axis').remove()
@@ -1728,7 +1726,7 @@ function heatMapFactory() {
             paperdiv.selectAll('rect').transition().duration(2500).attr('opacity',0)
             paperdiv.selectAll(".axis").selectAll('text').remove()
         }
-        paperdiv.call(drag)
+        //paperdiv.call(drag)
 
         queryAligner.updateQuery()
 

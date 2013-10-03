@@ -265,15 +265,6 @@ d3.select("body").on("keypress",function(e){
     }
 });
 
-//$('body').keypress(function(e){
-//    if(e.which == 13){
-//        plotting = myPlot();
-//        plotting()
-//    }
-//});
-
-
-
 
 //I like this pallette--I think we usually need two tones to really discriminate,
 //even though dataviz wisdom seems to say that's not kosher.
