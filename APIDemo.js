@@ -23,24 +23,19 @@ if (window.location.host=="melville.seas.harvard.edu" | window.location.host=="b
             "year":{"$lte":1922,"$gte":1850},
             "word":["chart"]
         },
-        "aesthetic":{"x":"yearchunk","y":"classification","color":"WordsPerMillion"},
         "plotType":"heatMap"
     }
-}
 
-if (window.location.host=="localhost:8080") {
-    console.log("yo, localhost!")
     defaultQuery = {
-        "method":"return_json",
-        "words_collation":"Case_Sensitive",
-        "groups":["publication_date_year","publication_date_month_year"],
-        "database":"halftimes",
-        "counttype":["WordCount","TotalWords","WordsPerMillion"],
-        "search_limits":{
-            "word":["war"]
-        },
-        "plotType":"heatMap"
-    }
+		"method": "return_tsv",
+		"words_collation": "Case_Sensitive",
+		"groups": ["year"],
+		"database": "presidio",
+		"counttype": ["TextPercent"],
+		"search_limits": {
+		"word":["natural selection"],"year":{"$gte":1830}
+		}
+		}
 }
 
 var nameSubstitutions = {
@@ -82,8 +77,6 @@ var APIbox = d3.select('#APIbox')
     .attr('style', 'width: 95%;')
     .on('keyup',function(){})
 
-queryAligner.updateQuery()
-
 d3.select("#ExportData")
 //Make advanced Options into a toggler.
     .on("click",function() {
@@ -118,6 +111,12 @@ d3.select("#ExportData")
     })
 
 
+plotTransformers = {};
+dataTypes = {};
+
+var legendData = [];
+
+
 d3.select("body").on("keypress",function(e){
     if(d3.event.keyCode == 13){
         plotting = myPlot();
@@ -125,21 +124,43 @@ d3.select("body").on("keypress",function(e){
     }
 });
 
+d3.selectAll("[bindTo]")
+    .on('change',function() {
+        console.log("change registered")
+        queryAligner.updateQuery(d3.select(this))
+    })
+    .on('keyup',function() {
+        console.log("keyup registered")
+        queryAligner.updateQuery(d3.select(this))
+    })
 
 //This is the only new piece of code:
-var paperdata
-myPlot = function() {
-    query.aesthetic = undefined
+
+
+d3.select("#APIBox").on("change", function() {d3.select("#results").transition().duration(1000).style("opacity",.1)})
+d3.select("#runButton").on("click",function() {myPlot()()})
+myPlot = function() {	
+    if (query.aesthetic !== undefined) {delete query['aesthetic']}
+    queryAligner.updateQuery()
     function my() {
-	d3.select("#results").transition().duration(1000).style("opacity",.1)
-	d3.json(destinationize(query),function(json) {
-	    
-            paperdata = parseBookwormData(json,query);
-	    d3.select("#results").transition().duration(1000).style("opacity",.1)
-	    d3.select("#results").transition().duration(100).style("opacity",1)
-	})
+
+	var response = '';
+	$.ajax({ type: "GET",   
+		 url: destinationize(query),   
+		 async: false,
+		 success : function(text)
+		 {
+             response = text;
+		 }
+	       });
+	if (query.method=="return_json") {
+	    response = js_beautify(response)
+	}
+	d3.select("#results").text(response);
+	d3.select("#results").transition().duration(100).style("opacity",1)
     }
     return my
 }	
 
-queryAligner.updateQuery()
+setTimeout(queryAligner.updateQuery,500)
+myPlot()

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bookworm API Sandbox</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="../../assets/js/html5shiv.js"></script>
+      <script src="../../assets/js/respond.min.js"></script>
+      <![endif]-->
+
+    <script src="d3.v3.min.js"></script>
+    
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="//code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <script src="bookwormFunctions.js"></script>
+    <script src="lib/beautify.js"/></script>
+  </head>
+  <body>
+
+<div class="container-fluid">
+  <div class="jumbotron">
+    <h1> Bookworm API Sandbox </h1>
+    <p>
+      Enter a Bookworm query into the textbox on the left:
+      the fields on the right will display the results.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+
+    <div class="col-lg-2" id="options">
+      <h4>Examples</h4>
+      <br><br>
+      Sensitivity:
+      <select bindTo="query.words_collation">
+	<option value="Case_Sensitive">Case Sensitive</option>
+	<option value="Case_Insensitive">Case Insensitive</option>
+      </select>
+      <br>
+      Result Type:
+      <select bindTo="query.method">
+	<option value="return_json">JSON results</option>
+	<option value="return_tsv">TSV results</option>
+	<option value="search_results">Top search results</option>
+      </select>
+      <br><br>
+      <h4>Sample Queries:</h4>
+      <select bindTo="query" id="sampleQueries">
+	<option value=''>
+	</option>
+	<option value='
+		{
+		"method": "return_tsv",
+		"words_collation": "Case_Sensitive",
+		"groups": ["year"],
+		"database": "presidio",
+		"counttype": ["TextPercent"],
+		"search_limits": {
+		"word":["natural selection"],"year":{"$gte":1830}
+		}
+		}
+		'>Change Over Time</option>
+
+	<option value='
+		{
+		"method": "return_tsv",
+		"words_collation": "Case_Sensitive",
+		"groups": ["year"],
+		"database": "presidio",
+		"counttype": ["TextPercent","WordsPerMillion"],
+		"search_limits": {
+		"word":["natural selection"]
+		}
+		}
+		'>Multiple Statistics at once</option>
+	<option value='
+		{
+		"method": "return_tsv",
+		"words_collation": "Case_Sensitive",
+		"groups": ["decade"],
+		"database": "presidio",
+		"counttype": ["WordsRatio", "SumWords"],
+		"search_limits": {
+		"year": {
+		"$lte": 1922,
+		"$gte": 1850
+		},
+		"word": ["burnt"]
+		},
+		"compare_limits": {
+		"year": {
+		"$lte": 1922,
+		"$gte": 1850
+		},
+		"word": ["burned"]
+		},
+		"plotType": "heatMap"
+		}
+		'>Compare usages of two words</option>
+	<option value='
+		{
+		"method": "return_json",
+		"words_collation": "Case_Sensitive",
+		"groups": ["country", "classification"],
+		"database": "presidio",
+		"counttype": ["TextCount"],
+		"search_limits": {
+		}
+		}
+		'>Overall Counts of a Collection</option>
+	<option value='
+		{
+		"method": "return_tsv",
+		"words_collation": "Case_Sensitive",
+		"groups": ["unigram"],
+		"database": "presidio",
+		"counttype": ["WordCount"],
+		"search_limits": {
+		"year":[1899],
+		"state":["RI"]
+		}
+		}		       
+		'>Returning Words as groups</option>
+	<option value='
+{
+    "method": "return_json",
+    "words_collation": "Case_Sensitive",
+    "groups": ["year", "classification"],
+    "database": "presidio",
+    "counttype": ["WordCount", "TotalWords", "WordsPerMillion"],
+    "search_limits": {
+        "year": {
+            "$lte": 1922,
+            "$gte": 1850
+        },
+        "word": ["chart"]
+    },
+    "plotType": "heatMap"
+}
+		       '>Multiple Search Groupings</option>
+      </select>
+    </div>
+    
+    <div class="col-lg-4" id="queryDiv">
+      <h4>Enter your query here
+      </h4>
+      <textarea class="queryViz" cols=40 rows=20 id="APIbox" bindTo="query"></textarea>
+    </div>
+
+    <div class="col-lg-6" id = "resultDiv">
+      <button type="button" class="btn btn-primary" id="runButton">Display Results</button>    <button id = "ExportData" class = "btn btn-primary">Export Data</button>
+      <br><br>
+      <pre id=results></pre>
+      
+      <div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <p><p>
+
+  </div>
+</div>
+
+    <script src="APIDemo.js"></script>
+
+  </body>
+</html>

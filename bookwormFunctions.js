@@ -1201,25 +1201,25 @@ queryAligner = {
     },
 
     alignAesthetic: function() {
-        //pushes the aesthetic values into the appropriate boxes.
+        //begin the real big.
 
-        //back compatability: this block can be erased eventually,
-        //it just makes some of Ben's old links works.
-        {
+        if ('aesthetic' in query) {
+            counttypes = {}
+            groups     = {}
+	    
+            //pushes the aesthetic values into the appropriate boxes.
+	    
+            //back compatability: this block can be erased eventually,
+            //it just makes some of Ben's old links works.
             if (typeof(query['aesthetic']['x']) == 'undefined') {
-                if (typeof(query['groups']) != 'undefined') {
+		if (typeof(query['groups']) != 'undefined') {
                     query['aesthetic']['x'] = query['groups'][0]}
             }
-
+	    
             if (typeof(query['aesthetic']['y']) == 'undefined') {
-                query['aesthetic']['y'] = query['groups'][1]
+		query['aesthetic']['y'] = query['groups'][1]
             }
-        }
 
-        //begin the real big.
-        counttypes = {}
-        groups     = {}
-        if ('aesthetic' in query) {
             aesthetics = d3.keys(query['aesthetic'])
 
             aesthetics.map(function(aesthetic) {
@@ -1236,6 +1236,7 @@ queryAligner = {
             query['groups'] = d3.keys(groups)
         }
     }
+
 }
 
 topn = function(n,key,dataset) {
@@ -1774,7 +1775,11 @@ addTitles = function(selection) {
 
 }
 
+
+
 function encode_as_img_and_link(){
+    //This is from the Internet--I don't know where I stole it from.
+
     // Add some critical information
     //$("svg").attr({ version: '1.1' , xmlns:"http://www.w3.org/2000/svg"});
 
