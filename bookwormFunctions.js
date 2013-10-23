@@ -342,7 +342,10 @@ updatePointer=function(inputNumbers) {
 myPlot = function() {
     updateAxisOptionBoxes()
 
+    //Don't show any chartSpecific elements at all (including this type)
     d3.selectAll(".chartSpecific").style('display','none')
+
+    //display elements that are classed with this chart type.
     d3.selectAll("." + query.plotType).style('display','inline')
 
     if (query.plotType=='heatMap') {return heatMapFactory() }
@@ -1730,8 +1733,8 @@ function heatMapFactory() {
 
         queryAligner.updateQuery()
 
-        d3.json(destinationize(query),function(json) {
 
+        d3.json(destinationize(query),function(json) {
             paperdata = parseBookwormData(json,query);
 
             updateChart()

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bookworm API Sandbox</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="../../assets/js/html5shiv.js"></script>
+      <script src="../../assets/js/respond.min.js"></script>
+      <![endif]-->
+
+    <script src="d3.v3.min.js"></script>
+    
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="//code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <script src="BookwormFunctions.js"></script>
+    <script src="APIDemo.js"></script>
+    <script src="lib/beautify.js"/></script>
+  </head>
+  <body>
+<div class="container-fluid">
+  <div class="jumbotron">
+    <h1> Bookworm API Sandbox </h1>
+    <p>Enter a Bookworm query into the textbox on the right: the fields on the left will update to display the results.</p>
+  </div>
+</div>
+<div class="container">
+  <div class="row">
+    <div class="col-md-4" id="queryDiv">
+      <p>Enter your query here
+      </p>
+      <textarea class="queryViz" cols=50 rows=40 id="APIbox" bindTo="query"></textarea>
+    </div>
+    
+    <div class="col-md-6" id = "resultDiv">
+      <p>Results will appear here</p>
+      <pre id=results></pre>
+      
+      <div>
+      </div>
+    </div>
+    <button id = "ExportData" />Export Data</button>
+
+    
+  </body>
+</html>

@@ -3,6 +3,9 @@
 //about what's being displayed.
 //Violating this rule, ever, will pretty much instantly make the code un-maintable. I promise.
 
+
+//Really, the query should be factory so we could have multiple ones present at a time--but that would create all sorts of weird visualization cases we don't need actually to worry about.
+
 var query = {};
 
 var defaultQuery = {
