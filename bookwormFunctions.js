@@ -1,6 +1,54 @@
 //Here are a bunch of functions that I'm using in the d3 Bookworms.
 //Individual applications should only need some of them?
 
+
+corpusSelectorFactory = function(selection,bindTo) {
+    //Adds a corpus box to a div passed in.
+    //That would be pretty useful--really, though, this should be
+    //using some of the code that Billy Janitsch wrote.
+
+    that = {}; //the corpus selector that will be pushed out
+
+    if (bindTo==undefined) { bindTo = "search_limits"}
+
+    selector = selection
+        .append("div")
+        .attr("class","corpusSelector " + bindTo)
+ 
+
+    currentLimits = selector
+        .append("div")
+        .classed("currentLimits","true")
+
+
+    possibleOptions = selector
+        .append("div")
+	.classed("limits",true)
+        .classed(bindTo,true)
+        .append("text")
+	.text("Add constraints on")
+        .append("select")
+	.on("change",function(d) {
+	    element = this;
+	    var idx=element.selectedIndex;
+	    var val=element.options[idx].value;
+	    currentLimits.append("text","val: ")
+	    dropbox = createDropbox(val,currentLimits)
+	    dropbox.attr("bindTo","query['" + bindTo  + "']['" +val + "']")
+	    queryAligner.updateQuery()
+	    return
+	})
+	.selectAll("option")
+	.data(variableOptions.options)
+	.enter().append("option")
+        .attr("value",function(d) {return d.dbname})
+        .text(function (d) {return d.name})
+
+
+    return that
+
+}
+
 chooseVariable = function(parentNode,nodeName,variableSet,queryPartBeingUpdated,partOfQueryPartBeingUpdated) {
     //This may be a serious piece of wheel-reinvention: essentially, this is a dropdown menu made of svg elements. It could be
     //replaced by some code that actually creates a dropdown menu: my google-foo didn't suffice to find it.
@@ -150,7 +198,7 @@ drawFillLegend = function(scale,origin,height,width) {
 
     fillLegendScale.range(legendRange)
 
-//    fillLegendRects = fillLegend.append("g")
+    //    fillLegendRects = fillLegend.append("g")
 
     fillRects = fillLegend.selectAll("#fillLegendRects").data([1])
     fillRects.enter().append("g").attr("id","fillLegendRects")
@@ -355,28 +403,29 @@ myPlot = function() {
 
 }
 
-createDropbox = function(category) {
+createDropbox = function(category,parentSelection) {
     //Drops in a new query box for a categorical value:
-    //going to be useful for other applications, but not implemented here. Possibly the first part should just return the data.
+    //going to be useful for other applications, but not implemented in the basic one.
+    //Possibly the first part should just return the data.
 
     myQuery = JSON.parse(JSON.stringify(query));
     myQuery['search_limits']['word'] = []
     myQuery['groups'] = [category]
     myQuery['counttype'] = ['WordCount','TextCount']
-
-    dat = d3.json(destinationize(myQuery),function(json) {
-
+    return d3.json(destinationize(myQuery),function(json) {
         myData = parseBookwormData(json,myQuery);
+
         topChoices = topn(50,category,myData)
 
         myData.filter(function(entry) {
             return(topChoices.indexOf(entry[category]) > -1 & entry.WordCount > 0)
         })
 
-        myData.sort(function(a,b) {return(a.WordCount<b.WordCount)})
+        myData.sort(function(a,b) {return(b.WordCount - a.WordCount)})
 
-        thisGuy = d3.select("body")
-            .append('select').attr('id',category).attr('multiple','multiple')
+        thisGuy = parentSelection
+            .append('select')
+	    .attr('class','selector')//.attr('multiple','multiple')
 
         thisSelection = thisGuy.selectAll('option').data(myData)
         thisSelection.enter()
@@ -388,6 +437,7 @@ createDropbox = function(category) {
                 if( d[category]=="") {text = "[value blank]"}
                 return text + " (" +prettyName(d.WordCount) + " words in " + prettyName(d.TextCount) + " Texts)"
             })
+	return thisGuy;
     })
 }
 
@@ -450,8 +500,8 @@ drawMap = function (mapname) {
                 .enter()
                 .append("path")
                 .attr("d", path)
-		.classed("mapBlock",true)
-		.attr("id",function(d) {console.log(d.id); return "map-item-" + d.id})
+                .classed("mapBlock",true)
+                .attr("id",function(d) {return "map-item-" + d.id})
                 .attr('fill',"grey")
         });
 
@@ -785,6 +835,7 @@ makeClickable = function(selection) {
     //and adds a function to run a search on click
     //The styles for that particular element have to be set
     //to recognize highlighting in--get this!--the stylesheet.
+    //I'll be an HTML 5 programmer yet.
 
     toggleHighlighting = function(d,highlitValue) {
         //given an axis and a datum
@@ -864,8 +915,8 @@ returnScale = function() {
             // Make it symmetric for ratios.
             outerbound = d3.min([100,d3.max([1/d3.min(values),d3.max(values)])])
             numbers = [1/outerbound,outerbound]
-	    colors = PuOr;
-	    scale = scaleType().range(colorbrewer.PuOr[4])
+            colors = PuOr;
+            scale = scaleType().range(colorbrewer.PuOr[4])
         }
         min = numbers[0]
         max = numbers[1]
@@ -1179,15 +1230,13 @@ queryAligner = {
         queryAligner.alignAesthetic()
 
         //update all listening boxes based on the query
-
-
         needsUpdate = d3.selectAll("[bindTo]")
         needsUpdate = needsUpdate.filter(function(d) {
             if (selection[0][0] === d3.select(this)[0][0])
             { return false}
-
             return true
         })
+
         needsUpdate
             .property('value', function() {
                 try{
@@ -1206,18 +1255,18 @@ queryAligner = {
         if ('aesthetic' in query) {
             counttypes = {}
             groups     = {}
-	    
+
             //pushes the aesthetic values into the appropriate boxes.
-	    
+
             //back compatability: this block can be erased eventually,
             //it just makes some of Ben's old links works.
             if (typeof(query['aesthetic']['x']) == 'undefined') {
-		if (typeof(query['groups']) != 'undefined') {
+                if (typeof(query['groups']) != 'undefined') {
                     query['aesthetic']['x'] = query['groups'][0]}
             }
-	    
+
             if (typeof(query['aesthetic']['y']) == 'undefined') {
-		query['aesthetic']['y'] = query['groups'][1]
+                query['aesthetic']['y'] = query['groups'][1]
             }
 
             aesthetics = d3.keys(query['aesthetic'])
