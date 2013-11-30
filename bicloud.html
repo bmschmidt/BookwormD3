@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Bicloud</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://code.jquery.com/jquery-2.0.3.js"></script>
+    <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+    <script src="lib/colorbrewer/colorbrewer.js"/></script>
+    <script src="lib/beautify.js"/></script>
+<link type="text/css" rel="stylesheet" href="lib/colorbrewer/colorbrewer.css"/>
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
+<script type="text/javascript" src="bookworm.js"></script>
+<script type="text/javascript" src="words.json"></script>
+
+<script type="text/javascript">
+</script>
+</head>
+
+<body>
+<div id="query" class="queryViz">
+    <textarea rows=5 cols=40 id="search_limits" type="text" class="wordInput" bindTo="bookworm.query['search_limits']"></textarea>
+    <textarea rows=5 cols=40 id="compare_limits" type="text" class="wordInput" bindTo="bookworm.query['compare_limits']"></textarea>
+</div>
+
+<div id="chart" class="maindiv">
+  <svg id="svg"></svg>
+</div>
+
+
+<div id="debugging" class = "debugging">
+  <br>API call:
+     <textarea rows="10" cols="40" id="APIbox" bindTo="bookworm.query" class="queryViz" /></textarea>
+  <br />
+</div>
+
+<button id = "ExportData" />Export Data</button>
+
+<link type="text/css" rel="stylesheet" href="bookworm.css"/>
+
+<!--This runs after everything else has been set up: it uses some of the elements created above-->
+
+<script type="text/javascript" src = "bicloud.js"></script>
+
+</body>
+</html>
