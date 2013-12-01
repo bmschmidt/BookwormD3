@@ -17,6 +17,7 @@
 <link type="text/css" rel="stylesheet" href="bookworm.css"/>
 
 <script type="text/javascript" src="bookworm.js"></script>
+<script type="text/javascript" src="colorBar.js"></script>
 
 </head>
 
@@ -39,7 +40,7 @@
   </div>
 
 
-  <div id="heatMapSelector" class="chartSpecific heatMap queryViz">
+  <div id="heatMapSelector" class="chartSpecific heatmap queryViz">
     Show uses of
     <input id="heatMapWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
     by
@@ -57,8 +58,8 @@
 <div id="bottomBoxes">
   Plot Type:
   <select id="plotType" bindTo = "query['plotType']">
-    <option value="map">Map</option>
-    <option value="heatMap">Heat Grid</option>
+    <option value="map">Geographic Map</option>
+    <option value="heatmap">2-D Heatmap</option>
     <option value="line">Basic line plot</option>
     <option value="barPlot">Point Array</option>
   </select>

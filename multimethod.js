@@ -7,33 +7,53 @@
 //Really, the query should be factory so we could have multiple ones present at a time--but that would create all sorts of weird visualization cases we don't need actually to worry about.
 
 
-var bookworm = new Bookworm()
-
-bookworm.query = {
+query = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
-    "database":"OL",
+    "database":"ol",
     "search_limits":{
         "lc0":{"$ne":""},
-        "word":"a"
+        "word":["glaube"]
     },
-    "aesthetic":{"x":"lc0","y":"lc1",
-		 "fill":"WordCount"},
-    "plotType":"heatMap"
+    "aesthetic":{"x":"lc0","y":"lc1","color":"WordCount"},
+    "plotType":"heatmap"
 }
 
 
-var width=window.innerWidth,height=window.innerHeight
+
+var width=window.innerWidth,height=window.innerHeight*2
 
 var svg = d3.select("#svg")
     .attr("width", width)
     .attr("height", height)
+    .append("g")
+
+dataTypes = {};
+
+d3.select("body").on("keypress",function(e){
+    if(d3.event.keyCode == 13){
+        bookworm.updatePlot()
+    }
+});
 
 
+
+d3.selectAll("[bindTo]")
+    .on('change',function() {
+        console.log("change registered")
+        bookworm.updateQuery(d3.select(this))
+    })
+    .on('keyup',function() {
+        console.log("keyup registered")
+        bookworm.updateQuery(d3.select(this))
+    })
+
+
+/**
 //bookworm.queryAligner.alignAesthetic();
 //bookworm.updateData()
 
-dataTypes = {};
+
 //A sunburst function that starts with unnested data.
 
 d3.select(self.frameElement).style("height", height + "px");
@@ -59,18 +79,7 @@ var paperdiv = svg
 var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 25  +')');
 
 
-var nameSubstitutions = {
-    "WordsPerMillion":"Uses per Million Words",
-    "WordCount":"# of matches",
-    "TextPercent":"% of texts",
-    "TotalWords":"Total # of words",
-    "TextCount":"# of Texts",
-    "TotalTexts":"Total # of Texts"
-}
 
-for (item in bookworm.quantitativeVariables) {
-    nameSubstitutions[item.variable] = item.label
-}
 
 
 
@@ -110,17 +119,7 @@ var APIbox = d3.select('#APIbox')
 
 //Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
 
-d3.selectAll("[bindTo]")
-    .on('change',function() {
-        console.log("change registered")
-        bookworm.queryAligner.updateQuery(d3.select(this))
-    })
-    .on('keyup',function() {
-        console.log("keyup registered")
-        bookworm.queryAligner.updateQuery(d3.select(this))
-    })
 
-bookworm.queryAligner.updateQuery()
 
 //    mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice").attr('class',"chartSpecific mapChart")
 //    pointSelector = mapSelector.selectAll('option').data(mapOptions)
@@ -134,23 +133,15 @@ var options = $('<div />');
 
 //executeButtons.appendTo($('body'));
 
-d3.select("body").on("keypress",function(e){
-    if(d3.event.keyCode == 13){
-        plotting = myPlot();
-        plotting()
-    }
-});
 
 
 //I like this pallette--I think we usually need two tones to really discriminate,
 //even though dataviz wisdom seems to say that's not kosher.
 
 greenToRed = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
-RdYlGn = ['rgb(26,152,80)','rgb(255,255,191)','rgb(215,48,39)']
 RdYlGn = greenToRed
 PuOr = ['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)','rgb(230,97,1)']
-RdYlGn = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
-RdYlGn = colorbrewer["RdYlGn"][5].slice(0,4).reverse()
+
 
 //define some default scales
 nwords = d3.scale.sqrt().range([0,100]);
@@ -166,3 +157,9 @@ var legendData = [];
 //var currentPlot=myPlot()
 //currentPlot()
 //d3.selectAll(".debugging").style('display','none')
+**/
+
+
+var bookworm = Bookworm(query)
+
+bookworm.updatePlot()
