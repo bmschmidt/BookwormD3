@@ -8,18 +8,11 @@ var drag = d3.behavior.drag()
             return "translate(" + d.x + ',' + d.y  + ")"
         })
     });
+
 var x = 1;
 
 
-Bookworm = function() {
-    that = BookwormClasses;
-    that.myPlot = function() {};
-    that.query = {};
-    that.scales = {};
-    that.plotTransformers = {};
 
-    return that
-}
 
 
 d3.selection.prototype.makeClickable = function() {
@@ -80,23 +73,29 @@ BookwormClasses = {
     //Here are a bunch of functions that I'm using in the d3 Bookworms.
     //Individual applications should only need some of them?
     nothing: function() {},
+
     updateData: function(callback,append) {
-	//callback is an object to call.
+        //callback is a string relative to the layer we're working with here.
         callback = callback || "nothing"
-	var callbackFunction = this[callback]
         append = append || false;
-        var worm = this;
+        var bookworm = this;
         destination = ( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(this.query)))
         d3.json(destination, function(error,data) {
+            console.log(destination);
             if (error) {
                 console.log("error parsing JSON: " + console.log(error))
                 console.log(destination)
             }
             //Unless concatting, it should start from nothing.
-            if (!append) {worm.data=[]}
-            if (worm.data===undefined) {worm.data=[]}
-            this.data = worm.data = worm.data.concat(BookwormClasses.parseBookwormData(data,worm.query))
-            callbackFunction()
+            if (!append) {
+                bookworm.data=bookworm.parseBookwormData(data,bookworm.query)
+            }
+            if (append) {
+                if (bookworm.data===undefined) {bookworm.data=[]}
+                bookworm.data = bookworm.data.concat(bookworm.parseBookwormData(data,bookworm.query))
+            }
+            console.log(bookworm.query.groups)
+            bookworm[callback]()
         })
     },
 
@@ -120,9 +119,203 @@ BookwormClasses = {
         return output;
     },
 
-    sunburst : function(bookworm) {
-	bookworm = bookworm || this;
+    newPlot : function() {
+        var bookworm=this;
+        bookworm.alignAesthetic()
+        bookworm.updateQuery()
+        bookworm.updateData(bookworm.query.plotType);
+        return this;
+    },
+
+    updatePlot : function() {
+        this[query.plotType]()
+    },
+
+    treemap: function () {
+	var bookworm = this;
+        var margin = {top: 20, right: 0, bottom: 0, left: 0},
+        width = 960,
+        height = 500 - margin.top - margin.bottom,
+        formatNumber = d3.format(",d"),
+        transitioning;
+
+        var x = d3.scale.linear()
+            .domain([0, width])
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .domain([0, height])
+            .range([0, height]);
+
+        var treemap = d3.layout.treemap()
+            .children(function(d, depth) { return depth ? null : d.values; })
+	    .value(function(d) {return d[bookworm.query.aesthetic.x]})
+            .sort(function(a, b) { return a.value - b.value; })
+            .ratio(height / width * 0.5 * (1 + Math.sqrt(5)))
+            .round(false);
+
+        var svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.bottom + margin.top)
+            .style("margin-left", -margin.left + "px")
+            .style("margin.right", -margin.right + "px")
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .style("shape-rendering", "crispEdges");
+
+        var grandparent = svg.append("g")
+            .attr("class", "grandparent");
+
+        grandparent.append("rect")
+            .attr("y", -margin.top)
+            .attr("width", width)
+            .attr("height", margin.top);
+
+        grandparent.append("text")
+            .attr("x", 6)
+            .attr("y", 6 - margin.top)
+            .attr("dy", ".75em");
+
+        root = bookworm.nestData()
+        console.log(root);
+        initialize(root);
+        accumulate(root);
+        layout(root);
+        display(root);
+
+        function initialize(root) {
+            root.x = root.y = 0;
+            root.dx = width;
+            root.dy = height;
+            root.depth = 0;
+        }
+
+        // Aggregate the values for internal nodes. This is normally done by the
+        // treemap layout, but not here because of our custom implementation.
+        function accumulate(d) {
+            return d.children
+                ? d.value = d.children.reduce(function(p, v) { return p + accumulate(v); }, 0)
+            : d.value;
+        }
+
+        // Compute the treemap layout recursively such that each group of siblings
+        // uses the same size (1×1) rather than the dimensions of the parent cell.
+        // This optimizes the layout for the current zoom state. Note that a wrapper
+        // object is created for the parent node for each group of siblings so that
+        // the parent’s dimensions are not discarded as we recurse. Since each group
+        // of sibling was laid out in 1×1, we must rescale to fit using absolute
+        // coordinates. This lets us use a viewport to zoom.
+        function layout(d) {
+            if (d.values) {
+                treemap.nodes({children: d.values});
+                d.values.forEach(function(c) {
+                    c.x = d.x + c.x * d.dx;
+                    c.y = d.y + c.y * d.dy;
+                    c.dx *= d.dx;
+                    c.dy *= d.dy;
+                    c.parent = d;
+                    layout(c);
+                });
+            }
+        }
+
+        function display(d) {
+            grandparent
+                .datum(d.parent)
+                .on("click", transition)
+                .select("text")
+                .text(name(d));
+
+            var g1 = svg.insert("g", ".grandparent")
+                .datum(d)
+                .attr("class", "depth");
+
+            var g = g1.selectAll("g")
+                .data(d.values)
+                .enter().append("g");
+
+            g.filter(function(d) { return d.values; })
+                .classed("children", true)
+                .on("click", transition);
+
+            g.selectAll(".child")
+                .data(function(d) { return d.values || [d]; })
+                .enter().append("rect")
+                .attr("class", "child")
+                .call(rect);
+
+            g.append("rect")
+                .attr("class", "parent")
+                .call(rect)
+                .append("title")
+                .text(function(d) { return d.name + ": " + formatNumber(d.value); });
+
+            g.append("text")
+                .attr("dy", ".75em")
+                .text(function(d) { return d.name; })
+                .call(text);
+
+            function transition(d) {
+                if (transitioning || !d) return;
+                transitioning = true;
+
+                var g2 = display(d),
+                t1 = g1.transition().duration(750),
+                t2 = g2.transition().duration(750);
+
+                // Update the domain only after entering new elements.
+                x.domain([d.x, d.x + d.dx]);
+                y.domain([d.y, d.y + d.dy]);
+
+                // Enable anti-aliasing during the transition.
+                svg.style("shape-rendering", null);
+
+                // Draw child nodes on top of parent nodes.
+                svg.selectAll(".depth").sort(function(a, b) { return a.depth - b.depth; });
+
+                // Fade-in entering text.
+                g2.selectAll("text").style("fill-opacity", 0);
+
+                // Transition to the new view.
+                t1.selectAll("text").call(text).style("fill-opacity", 0);
+                t2.selectAll("text").call(text).style("fill-opacity", 1);
+                t1.selectAll("rect").call(rect);
+                t2.selectAll("rect").call(rect);
+
+                // Remove the old node when the transition is finished.
+                t1.remove().each("end", function() {
+                    svg.style("shape-rendering", "crispEdges");
+                    transitioning = false;
+                });
+            }
+
+            return g;
+        }
+
+        function text(text) {
+            text.attr("x", function(d) { return x(d.x) + 6; })
+                .attr("y", function(d) { return y(d.y) + 6; });
+        }
+
+        function rect(rect) {
+            rect.attr("x", function(d) { return x(d.x); })
+                .attr("y", function(d) { return y(d.y); })
+                .attr("width", function(d) { return x(d.x + d.dx) - x(d.x); })
+                .attr("height", function(d) { return y(d.y + d.dy) - y(d.y); });
+        }
+
+        function name(d) {
+            return d.parent
+                ? name(d.parent) + "." + d.name
+                : d.name;
+        }
+
+    },
+
+    sunburst : function() {
+        var bookworm = this;
         var root = bookworm.nestData()
+
         var duration = 2000;
         var width = 960,
         height = 900,
@@ -130,7 +323,6 @@ BookwormClasses = {
 
         var levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
         levels.sort()
-
         //The bottom level hasn't been assigned a key.
         bottom = levels.pop()
         bookworm.data.forEach(function(d) {
@@ -146,13 +338,14 @@ BookwormClasses = {
 
         var color = d3.scale.category20c();
 
-        svg = svg
-            .append("g")
+        svg
             .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
 
         var partition = d3.layout.partition()
             .children(function(d) {return d.values})
             .value(function(d) { return d[bookworm.query.aesthetic.x]; });
+
+
 
         var arc = d3.svg.arc()
             .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
@@ -164,8 +357,11 @@ BookwormClasses = {
             return rgb.r * .299 + rgb.g * .587 + rgb.b * .114;
         };padding=5;
 
-        nodes = partition.nodes(root)
+        var nodes = partition.nodes(root)
+        //console.log(root)
+        //console.log(nodes[10])
         nodes = nodes.filter(function(d) {return d.value>0})
+
 
         var path = svg.selectAll("path")
             .data(nodes)
@@ -239,8 +435,8 @@ BookwormClasses = {
         }
         function isParentOf(p, c) {
             if (p === c) return true;
-            if (p.children) {
-                return p.children.some(function(d) {
+            if (p.values) {
+                return p.values.some(function(d) {
                     return isParentOf(d, c);
                 });
             }
@@ -390,7 +586,7 @@ BookwormClasses = {
                     removeElements()
                 }
                 projection = baseMap()
-                bookworm.queryAligner.updateQuery()
+                bookworm.updateQuery()
 
                 d3.json(destinationize(query),function(json) {
                     paperdata = parseBookwormData(json,query);
@@ -519,7 +715,7 @@ BookwormClasses = {
                 }
                 //paperdiv.call(drag)
 
-                bookworm.queryAligner.updateQuery()
+                bookworm.updateQuery()
 
 
                 d3.json(destinationize(query),function(json) {
@@ -549,7 +745,7 @@ BookwormClasses = {
                 }
             }
 
-            bookworm.queryAligner.alignAesthetic()
+            bookworm.alignAesthetic()
 
             updateChart = function() {
                 xstuff = makeAxisAndScale('x')
@@ -701,7 +897,7 @@ BookwormClasses = {
                 query['aesthetic']['x'] = query['groups'][0]
             }
 
-            bookworm.queryAligner.alignAesthetic()
+            bookworm.alignAesthetic()
 
             my = function() {
                 d3.json(destinationize(query),function(json) {
@@ -871,7 +1067,7 @@ BookwormClasses = {
                     currentLimits.append("text","val: ")
                     dropbox = createDropbox(val,currentLimits)
                     dropbox.attr("bindTo","query['" + bindTo  + "']['" +val + "']")
-                    bookworm.queryAligner.updateQuery()
+                    bookworm.updateQuery()
                     return
                 })
                 .selectAll("option")
@@ -972,7 +1168,7 @@ BookwormClasses = {
                 .on('click',function(d) {
                     //when clicked, this is going to update something inside the query
                     query[queryPartBeingUpdated][partOfQueryPartBeingUpdated] = d.variable
-                    bookworm.queryAligner.updateQuery();
+                    bookworm.updateQuery();
                     shutWindow()
                     removeOverlay()
                     currentPlot = myPlot()
@@ -1475,9 +1671,10 @@ BookwormClasses = {
         d3.keys(results[0]).map(function(key) {
             BookwormClasses.updateKeysTransformer(key)
         })
+        console.log("done parsing")
         return(results)
-    },
 
+    },
     variableOptions : {
         //eventually we'll dump the default options--they can just be stored in the database.
         defaultOptions : [
@@ -1565,7 +1762,7 @@ BookwormClasses = {
 
 
 
-            bookworm.queryAligner.updateQuery()
+            bookworm.updateQuery()
         }
         // Find out the relevant options from the database, then run this.
         variableOptions.update(query['database'],followup)
@@ -1582,8 +1779,8 @@ BookwormClasses = {
         //default behavior: return the value as is.
 
         //That's necessary because date-time scales use the date-time objects, not the raw text.
-
-        bookworm.queryAligner.alignAesthetic()
+        var bookworm = this;
+        this.alignAesthetic()
 
         bookworm.plotTransformers[key] = function(key) {return(key)}
         dataTypes[key]="Categorical"
@@ -1658,76 +1855,72 @@ BookwormClasses = {
         } else {return("absolute")}
     },
 
-    queryAligner : {
-        //This ensures constancy among the various UI elements that can update the query
+    updateQuery: function (selection) {
+        var bookworm = this;
+        if (typeof(selection) == "object") {
+            //if nothing is passed, move on
 
-        //Destinations stores where different boxes are supposed to write to.
-        updateQuery: function (selection) {
-            if (typeof(selection) == "object") {
-                //if nothing is passed, move on
-
-                //update the query based on the selection:
-                value = selection.property('value')
-                bindTo = selection.attr('bindTo')
-                if (typeof(eval(bindTo))=='string') {
-                    //So we don't have to store strings as quoted json;
-                    //note this means numbers are passed as strings
-                    //That shouldn't matter for SQL evaluation.
-                    value = JSON.stringify(value)
-                }
-                //reassign the element in the Dom.
-                eval (bindTo + ' = ' + value)
-            } else {selection = d3.select('body')}//just so it's there next time round
-
-            //update based on the aesthetics
-            bookworm.queryAligner.alignAesthetic()
-
-            //update all listening boxes based on the query
-            needsUpdate = d3.selectAll("[bindTo]")
-            needsUpdate = needsUpdate.filter(function(d) {
-                if (selection[0][0] === d3.select(this)[0][0])
-                { return false}
-                return true
-            })
-
-            needsUpdate
-                .property('value', function() {
-                    try{
-                        value = eval(d3.select(this).attr("bindTo"))
-                        if (typeof(value)=="object") {
-                            return(js_beautify(JSON.stringify(value)))
-                        }
-                        return(value)}
-                    catch(err) {return(err.message)}
-                })
-        },
-        "alignAesthetic" : function(parent) {
-            //begin the real big.
-            parent = parent || bookworm;
-            query = bookworm.query
-            quantitativeVariables = bookworm.quantitativeVariables
-
-            if ('aesthetic' in query) {
-                var counttypes = {}
-                var groups     = {}
-
-                //pushes the aesthetic values into the appropriate boxes.
-
-                aesthetics = d3.keys(query['aesthetic'])
-
-                aesthetics.map(function(aesthetic) {
-                    possibleQuants = quantitativeVariables
-                        .map(function(counttype) {return counttype.variable})
-                    if (possibleQuants.indexOf(query['aesthetic'][aesthetic]) > -1) {
-                        counttypes[query['aesthetic'][aesthetic]] = 1
-                    } else {
-                        groups[query['aesthetic'][aesthetic]] = 1
-                    }
-                }
-                              );
-                query['counttype'] = d3.keys(counttypes);
-                query['groups'] = d3.keys(groups)
+            //update the query based on the selection:
+            value = selection.property('value')
+            bindTo = selection.attr('bindTo')
+            if (typeof(eval(bindTo))=='string') {
+                //So we don't have to store strings as quoted json;
+                //note this means numbers are passed as strings
+                //That shouldn't matter for SQL evaluation.
+                value = JSON.stringify(value)
             }
+            //reassign the element in the Dom.
+            eval (bindTo + ' = ' + value)
+        } else {selection = d3.select('body')}//just so it's there next time round
+
+        //update based on the aesthetics
+        bookworm.alignAesthetic()
+
+        //update all listening boxes based on the query
+        needsUpdate = d3.selectAll("[bindTo]")
+        needsUpdate = needsUpdate.filter(function(d) {
+            if (selection[0][0] === d3.select(this)[0][0])
+            { return false}
+            return true
+        })
+
+        needsUpdate
+            .property('value', function() {
+                try{
+                    value = eval(d3.select(this).attr("bindTo"))
+                    if (typeof(value)=="object") {
+                        return(js_beautify(JSON.stringify(value)))
+                    }
+                    return(value)}
+                catch(err) {return(err.message)}
+            })
+    },
+    "alignAesthetic" : function() {
+        //begin the real big.
+        var bookworm = this;
+        query = bookworm.query
+        quantitativeVariables = bookworm.quantitativeVariables
+
+        if ('aesthetic' in query) {
+            var counttypes = {}
+            var groups     = {}
+
+            //pushes the aesthetic values into the appropriate boxes.
+
+            aesthetics = d3.keys(query['aesthetic'])
+
+            aesthetics.map(function(aesthetic) {
+                possibleQuants = quantitativeVariables
+                    .map(function(counttype) {return counttype.variable})
+                if (possibleQuants.indexOf(query['aesthetic'][aesthetic]) > -1) {
+                    counttypes[query['aesthetic'][aesthetic]] = 1
+                } else {
+                    groups[query['aesthetic'][aesthetic]] = 1
+                }
+            }
+                          );
+            query['counttype'] = d3.keys(counttypes);
+            query['groups'] = d3.keys(groups)
         }
 
     },
@@ -2020,8 +2213,7 @@ BookwormClasses = {
             });
 
     },
-
-    "unused":{
+    unused:{
         "encode_as_img_and_link" : function() {
             //This is from the Internet--I don't know where I stole it from.
 
@@ -2052,4 +2244,12 @@ BookwormClasses = {
 
 
 
+}
+
+Bookworm = function(query) {
+    that = BookwormClasses;
+    that.query = query || {};
+    that.scales = {};
+    that.plotTransformers = {};
+    return that
 }
