@@ -3,17 +3,21 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <title>Advanced Bookworm Browser</title>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src="http://code.jquery.com/jquery-2.0.3.js"></script>
-    <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+    <script src="d3.v3.min.js"></script>
+    <script src="jquery-2.0.3.min.js"></script>
+    <!--
+        <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+        <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
+        -->
     <script src="lib/colorbrewer/colorbrewer.js"/></script>
-    <script src="lib/beautify.js"/></script>
-<link type="text/css" rel="stylesheet" href="lib/colorbrewer/colorbrewer.css"/>
-<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
-<script type="text/javascript" src="bookwormFunctions.js"></script>
+<script src="lib/beautify.js"/></script>
 
-<script type="text/javascript">
-</script>
+<link type="text/css" rel="stylesheet" href="lib/colorbrewer/colorbrewer.css"/>
+
+<link type="text/css" rel="stylesheet" href="bookworm.css"/>
+
+<script type="text/javascript" src="bookworm.js"></script>
+
 </head>
 
 <body>
@@ -47,7 +51,6 @@
 
 <div id="chart" class="maindiv">
   <svg id="svg">
-    
   </svg>
 </div>
 
@@ -67,10 +70,10 @@
 
 <div id="debugging" class = "debugging">
   <br>API call:
-     <textarea rows="10" cols="40" id="APIbox" bindTo="query" class="queryViz" /></textarea>
-  <br />
-  Database: <input id="boundDatabase" class="queryViz" bindTo="query['database']">
-  <br />
+  <textarea rows="10" cols="40" id="APIbox" bindTo="query" class="queryViz" /></textarea>
+<br />
+Database: <input id="boundDatabase" class="queryViz" bindTo="query['database']">
+<br />
 </div>
 
 <button id = "ExportData" />Export Data</button>
@@ -79,11 +82,9 @@
 <div id="lastOptions"></div>
 
 
-<link type="text/css" rel="stylesheet" href="bookworm.css"/>
-
 <!--This runs after everything else has been set up: it uses some of the elements created above-->
 
-<script type="text/javascript" src = "d3Bookworm.js"></script>
+<script type="text/javascript" src = "multimethod.js"></script>
 
 </body>
 </html>
