@@ -7,37 +7,54 @@
 //Really, the query should be factory so we could have multiple ones present at a time--but that would create all sorts of weird visualization cases we don't need actually to worry about.
 
 
-var bookworm = new Bookworm()
-
-bookworm.query = {
+query = {
     "method":"return_json",
     "words_collation":"Case_Sensitive",
-    "database":"OL",
+    "database":"presidio",
     "search_limits":{
         "lc0":{"$ne":""},
-        "word":"a"
+        "word":"glaube"
     },
-    "aesthetic":{"x":"TotalWords","y":"TotalWords",
-                 "level1":"lc0","level2":"lc1","level3":"lc2"},
-    "plotType":"bicloud"
+    "aesthetic":{"x":"WordCount","y":"WordCount",
+                 "level1":"country","level2":"alanguage","level3":"lc0"},
+    "plotType":"sunburst"
 }
 
 
-var width=window.innerWidth,height=window.innerHeight
+
+var width=window.innerWidth,height=window.innerHeight*2
 
 var svg = d3.select("#svg")
     .attr("width", width)
     .attr("height", height)
+    .append("g")
+
+dataTypes = {};
+
+d3.select("body").on("keypress",function(e){
+    if(d3.event.keyCode == 13){
+        bookworm.newPlot()
+    }
+});
 
 
-bookworm.changePlotType = function() {
-    console.log(this.query.plotType)
-}
 
+d3.selectAll("[bindTo]")
+    .on('change',function() {
+        console.log("change registered")
+        bookworm.updateQuery(d3.select(this))
+    })
+    .on('keyup',function() {
+        console.log("keyup registered")
+        bookworm.updateQuery(d3.select(this))
+    })
+
+
+/**
 //bookworm.queryAligner.alignAesthetic();
 //bookworm.updateData()
 
-dataTypes = {};
+
 //A sunburst function that starts with unnested data.
 
 d3.select(self.frameElement).style("height", height + "px");
@@ -114,17 +131,7 @@ var APIbox = d3.select('#APIbox')
 
 //Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
 
-d3.selectAll("[bindTo]")
-    .on('change',function() {
-        console.log("change registered")
-        bookworm.queryAligner.updateQuery(d3.select(this))
-    })
-    .on('keyup',function() {
-        console.log("keyup registered")
-        bookworm.queryAligner.updateQuery(d3.select(this))
-    })
 
-bookworm.queryAligner.updateQuery()
 
 //    mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice").attr('class',"chartSpecific mapChart")
 //    pointSelector = mapSelector.selectAll('option').data(mapOptions)
@@ -138,12 +145,6 @@ var options = $('<div />');
 
 //executeButtons.appendTo($('body'));
 
-d3.select("body").on("keypress",function(e){
-    if(d3.event.keyCode == 13){
-        plotting = myPlot();
-        plotting()
-    }
-});
 
 
 //I like this pallette--I think we usually need two tones to really discriminate,
@@ -170,3 +171,11 @@ var legendData = [];
 //var currentPlot=myPlot()
 //currentPlot()
 //d3.selectAll(".debugging").style('display','none')
+**/
+
+
+var bookworm = Bookworm(query)
+
+bookworm.updateQuery()
+bookworm.alignAesthetic()
+bookworm.newPlot()
