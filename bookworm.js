@@ -98,7 +98,8 @@ BookwormClasses = {
         })
     },
 
-    nestData : function() {
+    nestData : function(rename) {
+        rename = rename || false
         //Find all the aesthetics with a level number.
         var bookworm = this;
         levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
@@ -115,6 +116,27 @@ BookwormClasses = {
             "key":"root",
             "values":nest.entries(bookworm.data)
         };
+
+        function renameChildren(input) {
+            var output = {};
+
+            if (input.key) {
+                output.name = input.key;
+            }
+            if (input.values) {
+                //All values get renamed
+                output.children = input.values.map(renameChildren)
+            }
+            return output
+        }
+
+        if(rename) {
+            output = renameChildren(output)
+        }
+
+
+
+
         return output;
     },
 
@@ -190,13 +212,12 @@ BookwormClasses = {
             .range([0, height]);
 
         var treemap = d3.layout.treemap()
-            .children(function(d, depth) { return depth ? null : d.values; })
-            .value(function(d) {return d[bookworm.query.aesthetic.x]})
+            .children(function(d, depth) { return depth ? null : d.children; })
             .sort(function(a, b) { return a.value - b.value; })
             .ratio(height / width * 0.5 * (1 + Math.sqrt(5)))
             .round(false);
 
-        var svg = d3.select("#chart").append("svg")
+        var svg = d3.select("#svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.bottom + margin.top)
             .style("margin-left", -margin.left + "px")
@@ -218,12 +239,6 @@ BookwormClasses = {
             .attr("y", 6 - margin.top)
             .attr("dy", ".75em");
 
-        root = bookworm.nestData()
-        console.log(root);
-        initialize(root);
-        accumulate(root);
-        layout(root);
-        display(root);
 
         function initialize(root) {
             root.x = root.y = 0;
@@ -248,9 +263,9 @@ BookwormClasses = {
         // of sibling was laid out in 1×1, we must rescale to fit using absolute
         // coordinates. This lets us use a viewport to zoom.
         function layout(d) {
-            if (d.values) {
-                treemap.nodes({children: d.values});
-                d.values.forEach(function(c) {
+            if (d.children) {
+                treemap.nodes({children: d.children});
+                d.children.forEach(function(c) {
                     c.x = d.x + c.x * d.dx;
                     c.y = d.y + c.y * d.dy;
                     c.dx *= d.dx;
@@ -273,15 +288,15 @@ BookwormClasses = {
                 .attr("class", "depth");
 
             var g = g1.selectAll("g")
-                .data(d.values)
+                .data(d.children)
                 .enter().append("g");
 
-            g.filter(function(d) { return d.values; })
+            g.filter(function(d) { return d.children; })
                 .classed("children", true)
                 .on("click", transition);
 
             g.selectAll(".child")
-                .data(function(d) { return d.values || [d]; })
+                .data(function(d) { return d.children || [d]; })
                 .enter().append("rect")
                 .attr("class", "child")
                 .call(rect);
@@ -352,29 +367,40 @@ BookwormClasses = {
                 : d.name;
         }
 
+
+
+        root = bookworm.nestData(rename=true)
+        console.log(root);
+        initialize(root);
+        accumulate(root);
+        layout(root);
+        display(root);
+
     },
 
     sunburst : function() {
         var bookworm = this;
         var root = bookworm.nestData()
 
-	updateAesthetic = function() {
-	    var category  = bookworm.variableOptions.options.filter(function(d) {return d.type=="character"})[0].dbname
-	    var aesthetic = bookworm.query.aesthetic
-	    aesthetic.level1 = aesthetic.level1 || category
-	    aesthetic.level2 = aesthetic.level2 || category
-	    aesthetic.level3 = aesthetic.level3 || category
-	}
-	
+        updateAesthetic = function() {
+            var category  = bookworm.variableOptions.options.filter(function(d) {return d.type=="character"})[0].dbname
+            var aesthetic = bookworm.query.aesthetic
+            aesthetic.level1 = aesthetic.level1 || category
+            aesthetic.level2 = aesthetic.level2 || category
+            aesthetic.level3 = aesthetic.level3 || category
+        }
+
+        bookworm.updateAxisOptionBoxes()
+
         var duration = 2000;
         var width = 960,
         height = 900,
         radius = Math.min(width, height) / 2;
-	
+
         var levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
         levels.sort()
-        
-	//The bottom level hasn't been assigned a key.
+
+        //The bottom level hasn't been assigned a key.
         bottom = levels.pop()
         bookworm.data.forEach(function(d) {
             d.key = d[bookworm.query.aesthetic[bottom]]
@@ -399,8 +425,8 @@ BookwormClasses = {
         var arc = d3.svg.arc()
             .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
             .endAngle(function(d) {
-		return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx)));
-	    })
+                return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx)));
+            })
             .innerRadius(function(d) { return Math.max(0, y(d.y)); })
             .outerRadius(function(d) { return Math.max(0, y(d.y + d.dy)); });
 
@@ -411,50 +437,53 @@ BookwormClasses = {
 
         var nodes = partition.nodes(root)
 
-	nodes.forEach(function(d) {
-	    d.parent = d.parent || {};
-	    d.uniqueKey = (d.key + d.level) + d.parent.uniqueKey;
-	})
-
-        nodes = nodes.filter(function(d) {return d.value>0})
+        nodes.forEach(function(d) {
+            d.parent = d.parent || {};
+            d.uniqueKey = (d.key + d.level) + d.parent.uniqueKey;
+        })
 
 
-	console.log(nodes[0])
+        topNodeValue = nodes[0].value
+        console.log("at first",nodes.length)
+        nodes = nodes.filter(function(d) {return d.value > topNodeValue/10000})
+        console.log("And now",nodes.length)
+
+        console.log(nodes[0])
 
         var path = svg
-	    .selectAll("path")
+            .selectAll("path")
             .data(nodes,function(d) {return d.uniqueKey})
 
-	path
+        path
             .enter()
             .append("path")
             .style("fill", function(d) { return color(d.key)})//return color((d.values ? d : d.parent).key); })
             .on("click", click)
             .attr("d", arc);
 
-	path
+        path
             .on("click", click)
             .attr("title",function(d) {
                 return d[bookworm.query.aesthetic.x]
             })
-	    .transition()
-//	    .duration(1000)
-//            .attrTween("d", arcTween(d)) //I can't get this to work.
+            .transition()
+        //          .duration(1000)
+        //            .attrTween("d", arcTween(d)) //I can't get this to work.
             .attr("d", arc)
 
 
-	path.exit()
-	    .transition().duration(500).style("opacity",0).remove()
+        path.exit()
+            .transition().duration(500).style("opacity",0).remove()
 
         var text = svg.selectAll("text").data(nodes,function(d) {return d.uniqueKey});
 
 
-	text
-	    .exit().transition().duration(500).style("opacity",0).remove()
+        text
+            .exit().transition().duration(500).style("opacity",0).remove()
 
         var textEnter = text.enter().append("text")
 
-	text
+        text
             .on("click", click)
             .style("fill-opacity", 1)
             .style("fill", function(d) {
@@ -474,7 +503,7 @@ BookwormClasses = {
         textEnter.append("tspan")
             .attr("x", 0)
 
-	text.selectAll("tspan")
+        text.selectAll("tspan")
             .text(function(d) { return d.depth ? d.key : ""})
 
         //        textEnter.append("tspan")
@@ -1655,7 +1684,7 @@ BookwormClasses = {
                     function(row) {
                         variableOptions.options.push(row)
                     })
-		json.push({"name":"","dbname":undefined})
+                json.push({"name":"","dbname":undefined})
                 json.map(function(row) {
                     row['database'] = bookworm.query['database']
                     variableOptions.options.push(row)
@@ -1698,7 +1727,7 @@ BookwormClasses = {
 
             selected
                 .attr('value',function(d) {
-		    return d.dbname})
+                    return d.dbname})
                 .text(function(d) {return d.name})
 
             bookworm.updateQuery()
@@ -1712,7 +1741,7 @@ BookwormClasses = {
     },
 
     initializeInterfaceElements: function() {
-	var bookworm = this;
+        var bookworm = this;
         d3.select("body").on("keypress",function(e){
             if(d3.event.keyCode == 13){
                 bookworm.updatePlot()
@@ -1721,10 +1750,10 @@ BookwormClasses = {
 
         d3.selectAll("[bindTo]")
             .on('change',function() {
-		if(d3.select(this).property("id")=="fixme") {
-		    console.log("OK switching to",d3.select(this).property("value"))
-		}
-		
+                if(d3.select(this).property("id")=="fixme") {
+                    console.log("OK switching to",d3.select(this).property("value"))
+                }
+
                 bookworm.updateQuery(d3.select(this))
             })
             .on('keyup',function() {
@@ -1823,7 +1852,7 @@ BookwormClasses = {
             //update the query based on the selection:
             value = selection.property('value')
             bindTo = selection.attr('bindTo')
-	    console.log(bindTo)
+            console.log(bindTo)
             if (typeof(eval(bindTo))=='string') {
                 //So we don't have to store strings as quoted json;
                 //note this means numbers are passed as strings
@@ -1872,7 +1901,7 @@ BookwormClasses = {
             aesthetics.map(function(aesthetic) {
                 possibleQuants = quantitativeVariables
                     .map(function(counttype) {return counttype.variable})
-		
+
                 if (possibleQuants.indexOf(query['aesthetic'][aesthetic]) > -1) {
                     counttypes[query['aesthetic'][aesthetic]] = 1
                 } else {
