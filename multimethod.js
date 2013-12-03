@@ -92,6 +92,7 @@ var legendData = [];
 
 //pull location hash:
 
+console.log(window.location.hash)
 if(window.location.hash) {
     var hash = window.location.hash.substring(1);
     decoded = decodeURIComponent(hash)
