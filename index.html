@@ -25,29 +25,42 @@
 
   <div id="mapSelector" class="chartSpecific map queryViz">
     Map uses of the word or phrase
-    <input id="mapWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
+    <input id="mapWord" type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
   </div>
 
   <div id="mapSelector" class="chartSpecific barPlot queryViz">
     Show uses of the word or phrase
-    <input id="barWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
+    <input id="barWord" type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
     by categories of
 
-    <select id="yaxischoice" class="categorical options" bindTo="query['aesthetic']['y']"></select>
+    <select id="yaxischoice" class="categorical options" bindTo="bookworm.query['aesthetic']['y']"></select>
     and bar length representing
-    <select id="xaxischoice" class="metric options" bindTo="query['aesthetic']['x']"></select>
+    <select id="xaxischoice" class="metric options" bindTo="bookworm.query['aesthetic']['x']"></select>
 
   </div>
 
 
   <div id="heatMapSelector" class="chartSpecific heatmap queryViz">
     Show uses of
-    <input id="heatMapWord" type="text" class="wordInput" bindTo="query['search_limits']['word'][0]"></input>
+    <input id="heatMapWord" type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
     by
-    <select id="xaxischoice" class="categorical options" bindTo="query['aesthetic']['x']"></select>
+    <select id="xaxischoice" class="categorical options" bindTo="bookworm.query['aesthetic']['x']"></select>
     and
-    <select id="yaxischoice" class="categorical options" bindTo="query['aesthetic']['y']"></select>
+    <select id="yaxischoice" class="categorical options" bindTo="bookworm.query['aesthetic']['y']"></select>
   </div>
+
+  <div id="sunburstSelector" class="chartSpecific sunburst queryViz">
+    Show uses of
+    <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
+    by
+    <select id="ok" class="categorical options" bindTo="bookworm.query['aesthetic']['level1']"></select>
+    and
+    <select id="fixme" class="categorical options" bindTo="bookworm.query['aesthetic']['level2']"></select>
+    and
+    <select class="categorical options" bindTo="bookworm.query['aesthetic']['level3']"></select>
+
+  </div>
+
 </script>
 
 <div id="chart" class="maindiv">
@@ -57,11 +70,12 @@
 
 <div id="bottomBoxes">
   Plot Type:
-  <select id="plotType" bindTo = "query['plotType']">
+  <select id="plotType" bindTo = "bookworm.query['plotType']">
     <option value="map">Geographic Map</option>
     <option value="heatmap">2-D Heatmap</option>
     <option value="line">Basic line plot</option>
     <option value="barPlot">Point Array</option>
+    <option value="sunburst">Sunburst</option>
   </select>
 </div>
 
@@ -71,9 +85,9 @@
 
 <div id="debugging" class = "debugging">
   <br>API call:
-  <textarea rows="10" cols="40" id="APIbox" bindTo="query" class="queryViz" /></textarea>
+  <textarea rows="10" cols="40" id="APIbox" bindTo="bookworm.query" class="queryViz" /></textarea>
 <br />
-Database: <input id="boundDatabase" class="queryViz" bindTo="query['database']">
+Database: <input id="boundDatabase" class="queryViz" bindTo="bookworm.query['database']">
 <br />
 </div>
 
