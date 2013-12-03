@@ -94,9 +94,6 @@ BookwormClasses = {
                 if (bookworm.data===undefined) {bookworm.data=[]}
                 bookworm.data = bookworm.data.concat(bookworm.parseBookwormData(data,bookworm.query))
             }
-            console.log(bookworm.query.groups)
-
-
             bookworm[callback]()
         })
     },
@@ -361,7 +358,6 @@ BookwormClasses = {
         var bookworm = this;
         var root = bookworm.nestData()
 
-
 	updateAesthetic = function() {
 	    var category  = bookworm.variableOptions.options.filter(function(d) {return d.type=="character"})[0].dbname
 	    var aesthetic = bookworm.query.aesthetic
@@ -369,15 +365,16 @@ BookwormClasses = {
 	    aesthetic.level2 = aesthetic.level2 || category
 	    aesthetic.level3 = aesthetic.level3 || category
 	}
-
+	
         var duration = 2000;
         var width = 960,
         height = 900,
         radius = Math.min(width, height) / 2;
-
+	
         var levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
         levels.sort()
-        //The bottom level hasn't been assigned a key.
+        
+	//The bottom level hasn't been assigned a key.
         bottom = levels.pop()
         bookworm.data.forEach(function(d) {
             d.key = d[bookworm.query.aesthetic[bottom]]
@@ -421,6 +418,8 @@ BookwormClasses = {
 
         nodes = nodes.filter(function(d) {return d.value>0})
 
+
+	console.log(nodes[0])
 
         var path = svg
 	    .selectAll("path")
@@ -1611,7 +1610,6 @@ BookwormClasses = {
         d3.keys(results[0]).map(function(key) {
             BookwormClasses.updateKeysTransformer(key)
         })
-        console.log("done parsing")
         return(results)
 
     },
@@ -1834,7 +1832,6 @@ BookwormClasses = {
             }
             //reassign the element in the Dom.
             eval (bindTo + ' = ' + value)
-            console.log (bindTo + ' = ' + value)
         } else {selection = d3.select('body')}//just so it's there next time round
 
         //update based on the aesthetics
