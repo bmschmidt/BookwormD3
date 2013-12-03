@@ -92,14 +92,17 @@ var legendData = [];
 
 //pull location hash:
 
+console.log(window)
 if(window.location.hash) {
     var hash = window.location.hash.substring(1);
-    decoded = decodeURIComponent(hash)
+    console.log(hash)
+    decoded = BookwormClasses.decodeURIComponent(hash)
     dquery =  JSON.parse(decoded)
     dquery=dquery
 } else {
     dquery = dquery
 }
+
 var bookworm = Bookworm(dquery)
 
 
