@@ -81,7 +81,6 @@ BookwormClasses = {
 
         d3.json(destination, function(error,data) {
 
-            console.log(destination);
             if (error) {
                 console.log("error parsing JSON: " + console.log(error))
                 console.log(destination)
@@ -121,24 +120,22 @@ BookwormClasses = {
         function renameChildren(input) {
             var output = {};
 
-            if (input.key) {
-                output.name = input.key;
+            if (!input.key & !input.values) {
+                //ie, it's a bottom node.
+                return input;
             }
-            if (input.values) {
-                //All values get renamed
-                output.children = input.values.map(renameChildren)
-            }
+
+            output.name = input.key;
+            //All values get renamed
+            output.children = input.values.map(renameChildren)
             return output
         }
 
         if(rename) {
             output = renameChildren(output)
         }
-
-
-
-
-        return output;
+        console.log(output)
+        return output
     },
 
     serverSideJSON : function () {
@@ -195,9 +192,24 @@ BookwormClasses = {
 
     },
 
-    treemap: function () {
-        //doesn't work yet, because of key names in the treemap layout.
+    requireAesthetics : function(aesthetics,type) {
+        //lets you require that an aesthetic be set.
         var bookworm = this;
+
+        type = type || "character";
+        aesthetics.forEach(function(aesthetic) {
+	    console.log(bookworm.variableOptions.options)
+            var category  = bookworm.variableOptions.options.filter(function(d) {return d.type==type})[0].dbname
+            bookworm.query.aesthetic[aesthetic] = bookworm.query.aesthetic[aesthetic] || category
+        });
+    },
+
+    treemap: function () {
+
+        var bookworm = this;
+
+        bookworm.requireAesthetics(["level1","level2","level3"],"categorical")
+
         var margin = {top: 20, right: 0, bottom: 0, left: 0},
         width = 960,
         height = 500 - margin.top - margin.bottom,
@@ -213,8 +225,11 @@ BookwormClasses = {
             .range([0, height]);
 
         var treemap = d3.layout.treemap()
+            .value(function(d) {
+                return d[bookworm.query.aesthetic.x];
+            })
             .children(function(d, depth) { return depth ? null : d.children; })
-            .sort(function(a, b) { return a.value - b.value; })
+            .sort(function(a, b) {return a.value - b.value; })
             .ratio(height / width * 0.5 * (1 + Math.sqrt(5)))
             .round(false);
 
@@ -252,8 +267,8 @@ BookwormClasses = {
         // treemap layout, but not here because of our custom implementation.
         function accumulate(d) {
             return d.children
-                ? d.value = d.children.reduce(function(p, v) { return p + accumulate(v); }, 0)
-            : d.value;
+                ? d[bookworm.query.aesthetic.x] = d.children.reduce(function(p, v) { return p + accumulate(v); }, 0)
+            : d[bookworm.query.aesthetic.x];
         }
 
         // Compute the treemap layout recursively such that each group of siblings
@@ -307,7 +322,6 @@ BookwormClasses = {
                 .call(rect)
                 .append("title")
                 .text(function(d) { return d.name + ": " + formatNumber(d.value); });
-
             g.append("text")
                 .attr("dy", ".75em")
                 .text(function(d) { return d.name; })
@@ -369,9 +383,20 @@ BookwormClasses = {
         }
 
 
+        var levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
+        levels.sort()
+        console.log(bookworm.data[0])
 
-        root = bookworm.nestData(rename=true)
+        //The bottom level hasn't been assigned a key.
+        bottom = levels.pop()
+        bookworm.data.forEach(function(d) {
+            d.name = d[bookworm.query.aesthetic[bottom]]
+        })
+
+        var root = bookworm.nestData(rename=true)
+
         console.log(root);
+
         initialize(root);
         accumulate(root);
         layout(root);
@@ -418,11 +443,11 @@ BookwormClasses = {
 
         svg
             .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
-	
+
         var partition = d3.layout.partition()
             .children(function(d) {return d.values})
             .value(function(d) { return d[bookworm.query.aesthetic.x]; });
-	
+
         var arc = d3.svg.arc()
             .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
             .endAngle(function(d) {
@@ -444,10 +469,10 @@ BookwormClasses = {
         })
 
 
-	topNodeValue = nodes[0].value
-	console.log("at first",nodes.length)
+        topNodeValue = nodes[0].value
+        console.log("at first",nodes.length)
         nodes = nodes.filter(function(d) {return d.value > topNodeValue/10000})
-	console.log("And now",nodes.length)
+        console.log("And now",nodes.length)
 
         console.log(nodes[0])
 
