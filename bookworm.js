@@ -101,6 +101,7 @@ BookwormClasses = {
     nestData : function(rename) {
         rename = rename || false
         //Find all the aesthetics with a level number.
+
         var bookworm = this;
         levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
         levels.sort()
@@ -417,11 +418,11 @@ BookwormClasses = {
 
         svg
             .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
-
+	
         var partition = d3.layout.partition()
             .children(function(d) {return d.values})
             .value(function(d) { return d[bookworm.query.aesthetic.x]; });
-
+	
         var arc = d3.svg.arc()
             .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
             .endAngle(function(d) {
@@ -443,10 +444,10 @@ BookwormClasses = {
         })
 
 
-        topNodeValue = nodes[0].value
-        console.log("at first",nodes.length)
+	topNodeValue = nodes[0].value
+	console.log("at first",nodes.length)
         nodes = nodes.filter(function(d) {return d.value > topNodeValue/10000})
-        console.log("And now",nodes.length)
+	console.log("And now",nodes.length)
 
         console.log(nodes[0])
 
@@ -918,7 +919,9 @@ BookwormClasses = {
                         return value})
                     .y(function(d) { value = y(bookworm.plotTransformers[query['aesthetic']['y']](d[query['aesthetic']['y']]));return value })
 
+
                 nestedData = d3.nest().key(function(d) {return d[query['aesthetic']['group']]}).entries(bookworm.data)
+
 
                 points = svg
                     .selectAll('.line');

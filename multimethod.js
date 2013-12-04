@@ -42,66 +42,16 @@ var svg = d3.select("#svg")
 
 dataTypes = {};
 
-
-
-/**
-var h = window.innerHeight
-
-var bottomLevel = svg.append("g").attr("id", "#bottomLevel")
-
-var maplevel = svg.append("g").attr("id", "#maplevel")
-
-var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 25  +')');
-
-
-//Pull query from hash location iff supplied
-
-// And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
-
-//Well, one re-invention: a word box at the top that automatically updates the text box, and vice-versa.
-
-
-
-//    mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice").attr('class',"chartSpecific mapChart")
-//    pointSelector = mapSelector.selectAll('option').data(mapOptions)
-
-//    pointSelector.enter()
-//      .append('option')
-//    .attr('value',function(d){return d.value})
-//  .text(function(d) {return(d.text)})
-
-var options = $('<div />');
-//executeButtons.appendTo($('body'));
-
-
-nwords = d3.scale.sqrt().range([0,100]);
-var sizescale = nwords
-var colorscale = d3.scale.log().range(greenToRed);
-
-//Have to keep the data the same for subsequent calls, but this will transform them
-plotTransformers = {};
-
-
-var legendData = [];
-
-//var currentPlot=myPlot()
-//currentPlot()
-//d3.selectAll(".debugging").style('display','none')
-**/
-
-
-//pull location hash:
-
 console.log(window.location.hash)
 if(window.location.hash) {
     var hash = window.location.hash.substring(1);
+    console.log(hash)
     decoded = decodeURIComponent(hash)
     dquery =  JSON.parse(decoded)
     dquery=dquery
 } else {
     dquery = dquery
 }
+
 var bookworm = Bookworm(dquery)
-
-
 bookworm.updatePlot()
