@@ -11,7 +11,10 @@
         -->
     <script src="lib/colorbrewer/colorbrewer.js"/></script>
 <script src="lib/beautify.js"/></script>
-
+<style>
+@import url(bostock.css);
+@import url(treemap.css);
+</style>
 <link type="text/css" rel="stylesheet" href="lib/colorbrewer/colorbrewer.css"/>
 
 <link type="text/css" rel="stylesheet" href="bookworm.css"/>
@@ -58,6 +61,19 @@
     <select id="fixme" class="categorical options" bindTo="bookworm.query['aesthetic']['level2']"></select>
     and
     <select class="categorical options" bindTo="bookworm.query['aesthetic']['level3']"></select>
+
+  </div>
+  <div id="treemapSelector" class="chartSpecific treemap queryViz">
+    Show uses of
+    <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
+    by
+    <select id="ok" class="categorical options" bindTo="bookworm.query['aesthetic']['level1']"></select>
+    and
+    <select id="fixme" class="categorical options" bindTo="bookworm.query['aesthetic']['level2']"></select>
+    and
+    <select class="categorical options" bindTo="bookworm.query['aesthetic']['level3']"> with rectangle size representing 
+    <select class="metric options" bindTo="bookworm.query['aesthetic']['x']">
+</select>
 
   </div>
 
