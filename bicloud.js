@@ -19,25 +19,26 @@ subarray = getRandomSubarray(allwords,44)
 
 //Really, the query should be factory so we could have multiple ones present at a time--but that would create all sorts of weird visualization cases we don't need actually to worry about.
 
+
 var bookworm = new Bookworm()
 
-    bookworm.query = {
-        "method":"return_json",
-        "words_collation":"Case_Sensitive",
-        "database":"OL",
-        "search_limits":{
-            "lc1":["PR"],
-            "word": subarray
-        },
+bookworm.query = {
+    "method":"return_json",
+    "words_collation":"Case_Sensitive",
+    "database":"presidio",
+    "search_limits":{
+        "lc1":["PR"],
+        "word": subarray
+    },
         "compare_limits":{
             "lc1":["PS"],
             "word":subarray
         },
-        "counttype":["WordCount","TotalWords"],
-        "groups":["unigram"],
-        "aesthetic":{"label":"unigram","x":"WordCount","y":"TotalWords"},
-        "plotType":"bicloud"
-    }
+    "counttype":["WordCount","TotalWords"],
+    "groups":["unigram"],
+    "aesthetic":{"label":"unigram","x":"WordCount","y":"TotalWords"},
+    "plotType":"bicloud"
+}
 
 
 bookworm.changePlotType = function() {
@@ -55,7 +56,6 @@ changeWords = function() {
     bookworm.updateData(bookworm.bicloud,append=true)
 }
 d3.selectAll("text")
-
 
 
 //Graphical Elements
