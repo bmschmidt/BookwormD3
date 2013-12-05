@@ -18,10 +18,6 @@
 </head>
 
 <body>
-<div id="query" class="queryViz">
-    <textarea rows=5 cols=40 id="search_limits" type="text" class="wordInput" bindTo="bookworm.query['search_limits']"></textarea>
-    <textarea rows=5 cols=40 id="compare_limits" type="text" class="wordInput" bindTo="bookworm.query['compare_limits']"></textarea>
-</div>
 
 <div id="chart" class="maindiv">
   <svg id="svg"></svg>
@@ -29,6 +25,11 @@
 
 
 <div id="debugging" class = "debugging">
+<div id="query" class="queryViz">
+    <textarea rows=5 cols=40 id="search_limits" type="text" class="wordInput" bindTo="bookworm.query['search_limits']"></textarea>
+    <textarea rows=5 cols=40 id="compare_limits" type="text" class="wordInput" bindTo="bookworm.query['compare_limits']"></textarea>
+</div>
+
   <br>API call:
      <textarea rows="10" cols="40" id="APIbox" bindTo="bookworm.query" class="queryViz" /></textarea>
   <br />

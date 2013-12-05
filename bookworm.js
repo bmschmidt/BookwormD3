@@ -12,6 +12,7 @@ var drag = d3.behavior.drag()
         })
     });
 
+
 d3.selection.prototype.makeClickable = function() {
     //This can be called on a variety of selections bound
     //to bookworm data; it restyles them to be 'highlit',
@@ -605,20 +606,37 @@ BookwormClasses = {
 
         var delay = d3.scale.linear().domain(x.range()).range([0,1000])
 
-        points.enter()
-            .append("text")
-            .style("opacity",0)
-            .attr("x",d3.mean(x.range())).attr("y",d3.mean(y.range()))
-            .makeClickable()
-
         points
-            .transition().duration(1500).style("opacity",.5)
-            .delay(function(d,i) {return delay(x(xVar(d)))})
-            .text(function(d) {return d.unigram})
+            .transition()
+	    .duration(1500)
+//            .text(function(d) {return d.unigram})
             .attr("x",function(d) {return x(xVar(d))})
             .attr("y",function(d) {return y(yVar(d))})
             .style("fill","white")
+	    .style("opacity",.25)
+	    .each(function(d) {d.oldness=d.oldness+1})
+	    .style("font-size","10pt")	
+		
+
+	n = -1;
+        points.enter()
+            .append("text")
+            .style("opacity",0)
+	    .style("font-size","24pt")
+            .attr("x",d3.mean(x.range())).attr("y",d3.mean(y.range()))
+            .makeClickable()
+            .transition()
+	    .duration(1500).style("opacity",.5)
+            .delay(function(d,i) {n = n+1; return n*5000/10;return delay(x(xVar(d)))})
+            .text(function(d) {return d.unigram})
+            .attr("x",function(d) {return x(xVar(d))})
+            .attr("y",function(d) {return y(yVar(d))})
+            .style("fill","red")
+	    .style("opacity",1)
+
+	.each(function(d) {d.oldness=1})
     },
+
     colorSchemes : {
         RdYlGn : colorbrewer["RdYlGn"][5].slice(0,4).reverse()
     },
@@ -1789,6 +1807,7 @@ BookwormClasses = {
             })
         this.updateAxisOptionBoxes()
     },
+
     updateKeysTransformer : function(key) {
         //This is called for its side-effect: assigning a function to each key in bookworm.plotTransformers
 
@@ -1800,7 +1819,7 @@ BookwormClasses = {
         this.alignAesthetic()
 
         bookworm.plotTransformers[key] = function(key) {return(key)}
-        dataTypes[key]="Categorical"
+        bookworm.dataTypes[key]="Categorical"
         //if a date: return a dateTime object
         isADate = false
         key.split("_").map(function(part) {
@@ -1832,7 +1851,7 @@ BookwormClasses = {
                 return datedValue
                 //originalValue = datedValue
             }
-            dataTypes[key]="Date"
+            bookworm.dataTypes[key]="Date"
             return
 
         }
@@ -1852,7 +1871,7 @@ BookwormClasses = {
         bookworm.plotTransformers[key] = function(originalValue) {
             return parseFloat(originalValue)
         }
-        dataTypes[key]="Numeric"
+        bookworm.dataTypes[key]="Numeric"
     },
 
     comparisontype: function() {
@@ -2112,7 +2131,7 @@ BookwormClasses = {
                 }
             })
 
-        datatype = dataTypes[variableName]
+        datatype = bookworm.dataTypes[variableName]
 
 
         if (datatype=="Categorical") {
@@ -2281,6 +2300,7 @@ Bookworm = function(query) {
     that = BookwormClasses;
     that.query = query || {};
     that.plotTransformers = {};
+    that.dataTypes={};
     bookworm = that;//kludgy--the scoping requires bookworm be defined for some grandchild of this function.
     that.initializeInterfaceElements();
     return that

@@ -1,62 +1,54 @@
-function getRandomSubarray(arr, size) {
-    var shuffled = arr.slice(0), i = arr.length, temp, index;
-    while (i--) {
-        index = Math.floor(i * Math.random());
-        temp = shuffled[index];
-        shuffled[index] = shuffled[i];
-        shuffled[i] = temp;
-    }
-    return shuffled.slice(0, size);
-}
 
-subarray = getRandomSubarray(allwords,44)
-
-//There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
-//This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable if it pertains to any higher-level architecture
-//about what's being displayed.
-//Violating this rule, ever, will pretty much instantly make the code un-maintable. I promise.
-
-
-//Really, the query should be factory so we could have multiple ones present at a time--but that would create all sorts of weird visualization cases we don't need actually to worry about.
-
-
-var bookworm = new Bookworm()
-
-bookworm.query = {
-    "method":"return_json",
-    "words_collation":"Case_Sensitive",
-    "database":"presidio",
-    "search_limits":{
-        "lc1":["PR"],
-        "word": subarray
-    },
+var bookworm = new Bookworm({
+        "method":"return_json",
+        "words_collation":"Case_Sensitive",
+        "database":"presidio",
+        "search_limits":{
+            "lc0":["G"],
+            "word": ["whale"]
+        },
         "compare_limits":{
             "lc1":["PS"],
-            "word":subarray
+            "word": ["whale"]
         },
-    "counttype":["WordCount","TotalWords"],
-    "groups":["unigram"],
-    "aesthetic":{"label":"unigram","x":"WordCount","y":"TotalWords"},
-    "plotType":"bicloud"
-}
+        "counttype":["WordCount","TotalWords"],
+        "groups":["unigram"],
+        "aesthetic":{"label":"unigram","x":"WordCount","y":"TotalWords"},
+        "plotType":"bicloud"
+    })
 
 
-bookworm.changePlotType = function() {
-    console.log(this.query.plotType)
-}
+bookworm.updatePlot();
 
-var points;
+d3.json("/beta/moby-dick/words.json",function(allwords) {
+    var nn=20;
+    var ii=1;
+    words = allwords.slice(ii,ii+nn)
+
+    bookworm.changePlotType = function() {
+        console.log(this.query.plotType)
+    }
+
+    var points;
 
 
+    changeWords = function() {
+	ii = ii+nn;
+	console.log("getting new set of words")
+	words = allwords.slice(ii,ii+nn)
+        bookworm.query.search_limits['word'] = bookworm.query.compare_limits['word'] = words
+	console.log(words);
 
-changeWords = function() {
-    words = getRandomSubarray(allwords,44)
-    bookworm.query.search_limits['word'] = bookworm.query.compare_limits['word'] = words
-    bookworm.queryAligner.updateQuery()
-    bookworm.updateData(bookworm.bicloud,append=true)
-}
-d3.selectAll("text")
+	if (words.length>0){
+            bookworm.updateData("bicloud",append=true)
+	}
+    }
 
+    changeWords();
+    var myVar = setInterval(changeWords,4000);
+    
+
+})
 
 //Graphical Elements
 var w = window.innerWidth
@@ -77,31 +69,7 @@ var paperdiv = svg
     .attr("id","#paperdiv")
 
 
-var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + 25  +')');
-
-var nameSubstitutions = {
-    "WordsPerMillion":"Uses per Million Words",
-    "WordCount":"# of matches",
-    "TextPercent":"% of texts",
-    "TotalWords":"Total # of words",
-    "TextCount":"# of Texts",
-    "TotalTexts":"Total # of Texts"
-}
-
-var quantitativeVariables = [
-    {"variable":"WordsPerMillion","label":"Uses per Million Words"},
-    {"variable": "WordCount","label":"# of matches"},
-    {"variable":"TextPercent","label":"% of texts"},
-    {"variable":"TotalWords","label":"Total # of words"},
-    {"variable":"TextCount","label":"# of Texts"},
-    {"variable":"TotalTexts","label":"Total # of Texts"},
-    {"variable":"WordsRatio","label":"Ratio of group A to B"},
-    {"variable":"SumWords","label":"Total in both sets"}
-]
-
-for (item in quantitativeVariables) {
-    nameSubstitutions[item.variable] = item.label
-}
+var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + n  +')');
 
 
 
@@ -151,8 +119,6 @@ d3.selectAll("[bindTo]")
         bookworm.queryAligner.updateQuery(d3.select(this))
     })
 
-bookworm.queryAligner.updateQuery()
-
 d3.select("body").append("button")
     .text('Redraw Plot')
     .on('click',function(){
@@ -192,24 +158,4 @@ d3.select("body").on("keypress",function(e){
 //I like this pallette--I think we usually need two tones to really discriminate,
 //even though dataviz wisdom seems to say that's not kosher.
 
-greenToRed = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
-RdYlGn = ['rgb(26,152,80)','rgb(255,255,191)','rgb(215,48,39)']
-RdYlGn = greenToRed
-PuOr = ['rgb(84,39,136)','rgb(153,142,195)','rgb(216,218,235)','rgb(247,247,247)','rgb(254,224,182)','rgb(230,97,1)']
-RdYlGn = ["#D61818","#FFAE63","#FFFFBD","#B5E384"].reverse()
-RdYlGn = colorbrewer["RdYlGn"][5].slice(0,4).reverse()
-
 //define some default scales
-nwords = d3.scale.sqrt().range([0,100]);
-var sizescale = nwords
-var colorscale = d3.scale.log().range(greenToRed);
-
-//Have to keep the data the same for subsequent calls, but this will transform them
-plotTransformers = {};
-dataTypes = {};
-
-var legendData = [];
-
-//var currentPlot=myPlot()
-//currentPlot()
-//d3.selectAll(".debugging").style('display','none')
