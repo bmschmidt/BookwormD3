@@ -39,6 +39,10 @@ rect.parent {
   pointer-events: all;
 }
 
+.children rect.child {
+  fill: #999;
+}
+
 .children:hover rect.child {
   fill: #aaa;
 }
