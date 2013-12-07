@@ -5,11 +5,11 @@ var bookworm = new Bookworm({
         "database":"presidio",
         "search_limits":{
             "lc0":["G"],
-            "word": ["whale"]
+            "word": ["Call","me","Ishmael","","","Some","years","ago","","never","mind","how","long","","precisely","","having","little","or"]
         },
         "compare_limits":{
             "lc1":["PS"],
-            "word": ["whale"]
+            "word": ["Call","me","Ishmael","","","Some","years","ago","","never","mind","how","long","","gprecisely","","having","little","or"]
         },
         "counttype":["WordCount","TotalWords"],
         "groups":["unigram"],
@@ -18,91 +18,41 @@ var bookworm = new Bookworm({
     })
 
 
-bookworm.updatePlot();
+    bookworm.updateAxisOptionBoxes()
+
 
 d3.json("/beta/moby-dick/words.json",function(allwords) {
-    var nn=20;
-    var ii=1;
-    words = allwords.slice(ii,ii+nn)
-
-    bookworm.changePlotType = function() {
-        console.log(this.query.plotType)
-    }
-
-    var points;
-
-
+    allwords = allwords.filter(function(d) {return(d!="")})
+    var nn=10;
+    var ii=0;
+    var myVar;
+    var ticker = 1;
     changeWords = function() {
-	ii = ii+nn;
-	console.log("getting new set of words")
 	words = allwords.slice(ii,ii+nn)
+
         bookworm.query.search_limits['word'] = bookworm.query.compare_limits['word'] = words
-	console.log(words);
 
 	if (words.length>0){
             bookworm.updateData("bicloud",append=true)
 	}
-    }
 
-    changeWords();
-    var myVar = setInterval(changeWords,4000);
-    
+	ii = ii+nn;
+	ticker ++;
+	if (ticker > 25) {console.log("pausing"); clearInterval(myVar)}
+    }
+    changeWords()
+
+    d3.select("svg").on("click",function(d) {
+	changeWords()
+	myVar = setInterval(changeWords,4000);
+    })
 
 })
-
-//Graphical Elements
-var w = window.innerWidth
-var h = window.innerHeight
-
-//Things for everywhere
-var svg = d3.select("#svg")
-    .attr('width',window.innerWidth)
-    .attr('height',window.innerHeight*.9)
-
-//These are the things to delete when a new chart is refreshed.
-//They contain the various aspects of the actual plot
-
-var bottomLevel = svg.append("g").attr("id", "#bottomLevel")
-var maplevel = svg.append("g").attr("id", "#maplevel")
-var paperdiv = svg
-    .append("g")
-    .attr("id","#paperdiv")
-
-
-var title = svg.append('g').attr('id','title').attr('transform','translate(' + w*.4+ ',' + n  +')');
-
-
-
-//Pull query from hash location iff supplied
-if(window.location.hash) {
-    var hash = window.location.hash.substring(1);
-    decoded = decodeURIComponent(hash)
-    query =  JSON.parse(decoded)
-    bookworm.query=query
-} else {
-    query = bookworm.query
-}
-
-if (query['scaleType']==undefined) {
-    query['scaleType'] = "linear"
-}
-
-
-if (!('aesthetic' in query)) {
-    query['aesthetic']= {
-        "color":"WordsPerMillion",
-        "size":"WordCount",
-        "filterByTop":"WordCount"
-    }
-}
-
-//updateAxisOptionBoxes()
-
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 
 var APIbox = d3.select('#APIbox')
-    .property('value', JSON.stringify(query))
+    .property('value', JSON.stringify(bookworm.query))
     .attr('style', 'width: 95%;')
     .on('keyup',function(){})
 
@@ -122,35 +72,15 @@ d3.selectAll("[bindTo]")
 d3.select("body").append("button")
     .text('Redraw Plot')
     .on('click',function(){
-        currentPlot = myPlot()
-        currentPlot()
+	bookworm.updatePlot()
     })
 
 
 //The types of maps are just coded in.
-mapOptions = [
-    {"text":'USA','value':"USA"},
-    {'text':'World','value':"World"},
-    {'text':'Europe','value':"Europe"},
-    {'text':'Asia','value':"Asia"}
-]
-
-mapSelector = d3.select("#lastOptions").append('select').attr('id',"mapChoice").attr('class',"chartSpecific mapChart")
-pointSelector = mapSelector.selectAll('option').data(mapOptions)
-
-pointSelector.enter()
-    .append('option')
-    .attr('value',function(d){return d.value})
-    .text(function(d) {return(d.text)})
-
-var options = $('<div />');
-
-//executeButtons.appendTo($('body'));
 
 d3.select("body").on("keypress",function(e){
     if(d3.event.keyCode == 13){
-        plotting = myPlot();
-        plotting()
+	bookworm.updatePlot()
     }
 });
 

@@ -199,7 +199,7 @@ BookwormClasses = {
 
         type = type || "character";
         aesthetics.forEach(function(aesthetic) {
-	    console.log(bookworm.variableOptions.options)
+            console.log(bookworm.variableOptions.options)
             var category  = bookworm.variableOptions.options.filter(function(d) {return d.type==type})[0].dbname
             bookworm.query.aesthetic[aesthetic] = bookworm.query.aesthetic[aesthetic] || category
         });
@@ -498,7 +498,6 @@ BookwormClasses = {
         //            .attrTween("d", arcTween(d)) //I can't get this to work.
             .attr("d", arc)
 
-
         path.exit()
             .transition().duration(500).style("opacity",0).remove()
 
@@ -590,11 +589,33 @@ BookwormClasses = {
     },
 
     bicloud : function() {
-        data = this.data
-        points = d3
+        var n = -1
+        var data = this.data
+
+	var bookworm = this;
+
+	data.forEach(function(d) {
+	    d.mindex = bookworm.query.search_limits.word.indexOf(d.unigram)
+	})
+
+        data = data.sort(
+	    function(a,b) {
+		return a.mindex-b.mindex
+            })
+
+        layout = d3.layout.paragraph()
+            .label(function(d) {return d.unigram})
+            .rowLength(window.innerWidth)
+	    .filter(function(d) {return d.mindex>-1})
+            .style("font-size:24pt")
+	    .padding({"x":10,"y":24})
+
+        data = layout.points(data)
+
+	points=	d3
             .select("#svg")
             .selectAll("text")
-            .data(this.data,function(d) {return d.unigram})
+            .data(data,function(d) {return d.unigram})
 
         yVar = function(d) {
             return (d.WordCount + d.TotalWords)/2 }
@@ -602,40 +623,47 @@ BookwormClasses = {
             function(d) {if (d.WordCount==0) {d.WordCount=.5}; return d.WordCount/d.TotalWords}
 
         var x = d3.scale.log().domain(d3.extent(data.map(xVar))).range([30,window.innerWidth*.8])
-        var y = d3.scale.log().domain(d3.extent(data.map(yVar))).range([window.innerHeight*.8,30])
+        var y = d3.scale.log().domain(d3.extent(data.map(yVar))).range([window.innerHeight*.8,75])
 
         var delay = d3.scale.linear().domain(x.range()).range([0,1000])
 
         points
             .transition()
-	    .duration(1500)
-//            .text(function(d) {return d.unigram})
+            .duration(1500)
             .attr("x",function(d) {return x(xVar(d))})
             .attr("y",function(d) {return y(yVar(d))})
+	    .transition().duration(3500)
             .style("fill","white")
-	    .style("opacity",.25)
-	    .each(function(d) {d.oldness=d.oldness+1})
-	    .style("font-size","10pt")	
-		
+            .style("opacity",.65)
+            .each(function(d) {d.oldness=d.oldness+1})
+            .style("font-size","12pt")
+	    
 
-	n = -1;
         points.enter()
             .append("text")
-            .style("opacity",0)
-	    .style("font-size","24pt")
-            .attr("x",d3.mean(x.range())).attr("y",d3.mean(y.range()))
-            .makeClickable()
-            .transition()
-	    .duration(1500).style("opacity",.5)
-            .delay(function(d,i) {n = n+1; return n*5000/10;return delay(x(xVar(d)))})
-            .text(function(d) {return d.unigram})
-            .attr("x",function(d) {return x(xVar(d))})
-            .attr("y",function(d) {return y(yVar(d))})
-            .style("fill","red")
-	    .style("opacity",1)
 
-	.each(function(d) {d.oldness=1})
-    },
+        points
+            .filter(function(d) {return d.mindex>-1})
+            .attr("style","fill:red;font-size:24pt")
+	    .attr("transform","translate(0," + layout.padding().y + ")")
+            .style("opacity",0)
+            .attr("x",function(d) {
+		console.log(d.label)
+		n = n+1;
+                d.n = n;
+                return d.x;
+            })
+            .attr("y",function(d) {return d.y})
+//            .makeClickable()
+            .transition()
+            .transition().duration(1500)
+            .delay(function(d,i) {return d.n*1000/10})
+            .text(function(d) {return d.unigram})
+        //           .attr("x",function(d) {return x(xVar(d))})
+        //         .attr("y",function(d) {return y(yVar(d))})
+            .style("opacity",1)
+            .each(function(d) {d.new=true})
+                },
 
     colorSchemes : {
         RdYlGn : colorbrewer["RdYlGn"][5].slice(0,4).reverse()
@@ -2302,6 +2330,6 @@ Bookworm = function(query) {
     that.plotTransformers = {};
     that.dataTypes={};
     bookworm = that;//kludgy--the scoping requires bookworm be defined for some grandchild of this function.
-    that.initializeInterfaceElements();
+    //g    that.initializeInterfaceElements();
     return that
 }
