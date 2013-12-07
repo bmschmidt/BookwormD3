@@ -1,5 +1,7 @@
 function colorBar() {
 
+    var scale,origin,barHeight,barWidth,title;
+
     var that = {};
     drag = d3.behavior.drag()
         .on("drag", function(d,i) {
@@ -10,8 +12,11 @@ function colorBar() {
             })
         });
 
+    
+
     var update = function(scale,origin,barHeight,barWidth,title) {
 
+	
         //This either creates, or updates, a fill legend, and drops it on the screen.
         //A fill legend includes a pointer that can be updated in response to mouseovers, because that's way cool.
 	
