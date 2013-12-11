@@ -38,7 +38,8 @@ d3.json("/beta/moby-dick/words.json",function(allwords) {
 
 	ii = ii+nn;
 	ticker ++;
-	if (ticker > 25) {console.log("pausing"); clearInterval(myVar)}
+	if (ticker > 10) {console.log("pausing"); ticker = 0; clearInterval(myVar)}
+
     }
     changeWords()
 
