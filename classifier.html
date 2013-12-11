@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Bicloud</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://code.jquery.com/jquery-2.0.3.js"></script>
+    <script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+    <script src="lib/colorbrewer/colorbrewer.js"/></script>
+<script src="lib/beautify.js"/></script>
+<link type="text/css" rel="stylesheet" href="lib/colorbrewer/colorbrewer.css"/>
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
+<script type="text/javascript" src="bookworm.js"></script>
+<script type="text/javascript" src="words.json"></script>
+<script type="text/javascript" src="colorbar/colorbar.js"></script>
+<script type="text/javascript" src="textLayout/layout.js"></script>
+<script type="text/javascript" src="logClassify.js"></script>
+
+</head>
+
+<body>
+
+  <div id="chart" class="maindiv">
+    <textarea id="paragraph" rows=25 cols=80>Benvenuto Cellini was born in Florence, Italy. His parents were Giovanni Cellini, and Maria Lisabetta Granacci. They were married for eighteen years before the birth of their first child. Benvenuto was the second child of the family. The son of a musician and builder of musical instruments, Cellini was pushed towards music, but when he was age fifteen, his father reluctantly agreed to apprentice him to a goldsmith, Antonio di Sandro, nicknamed Marcone. At the age of sixteen, Benvenuto had already attracted attention in Florence by taking part in an affray with youthful companions. He was banished for six months and lived in Siena, where he worked for a goldsmith named Fracastoro (unrelated to the Veronese polymath). From Siena he moved to Bologna, where he became a more accomplished flute player and made progress as a goldsmith. After a visit to Pisa and two periods of living in Florence (where he was visited by the sculptor Torrigiano), he moved to Rome, at the age of nineteen.
+</textarea>
+    <svg id="svg"></svg>
+  </div>
+
+
+  <div id="debugging" class = "debugging">
+    <div id="query" class="queryViz">
+      <textarea rows=5 cols=40 id="search_limits" type="text" class="wordInput" bindTo="bookworm.query['search_limits']"></textarea>
+      <textarea rows=5 cols=40 id="compare_limits" type="text" class="wordInput" bindTo="bookworm.query['compare_limits']"></textarea>
+    </div>
+
+    <br>API call:
+    <textarea rows="10" cols="40" id="APIbox" bindTo="bookworm.query" class="queryViz" /></textarea>
+<br />
+</div>
+
+<button id = "ExportData" />Export Data</button>
+
+<link type="text/css" rel="stylesheet" href="bookworm.css"/>
+
+<!--This runs after everything else has been set up: it uses some of the elements created above-->
+
+<script type="text/javascript" src = "classifier.js"></script>
+
+</body>
+</html>
