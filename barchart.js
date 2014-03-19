@@ -4,7 +4,23 @@
 //Violating this rule, ever, will pretty much instantly make the code un-maintable. I promise.
 
 
-dquery = BookwormClasses.guessAtQuery()
+//Really, the query should be factory so we could have multiple ones present at a time--but that would create all sorts of weird visualization cases we don't need actually to worry about.
+
+
+query = {
+    "method":"return_json",
+    "words_collation":"Case_Sensitive",
+    "database":"rateMyProfessors",
+    "search_limits":{
+        "word":["I learned"]
+    },
+    "aesthetic":{"x":"WordsPerMillion","y":"department"},
+
+    "plotType":"barchart"
+}
+
+query.database = BookwormClasses.guessAtQuery().database
+
 
 var width=window.innerWidth,height=window.innerHeight
 
@@ -14,18 +30,6 @@ var svg = d3.select("#svg")
     .append("g")
 
 dataTypes = {};
-
-
-if(window.location.hash) {
-    var hash = window.location.hash.substring(1);
-    console.log(hash)
-    decoded = decodeURIComponent(hash)
-    dquery =  JSON.parse(decoded)
-    dquery=dquery
-} else {
-    dquery = dquery
-}
-
 
 d3.select("body").on("keypress",function(e){
     if(d3.event.keyCode == 13){
@@ -37,15 +41,16 @@ d3.select("body").on("keypress",function(e){
 
 d3.selectAll("[bindTo]")
     .on('change',function() {
+        console.log("change registered")
         bookworm.updateQuery(d3.select(this))
     })
     .on('keyup',function() {
+        console.log("keyup registered")
         bookworm.updateQuery(d3.select(this))
     })
 
+var bookworm = Bookworm(query)
 
-var bookworm = Bookworm(dquery)
-var query = bookworm.query
 bookworm.updateQuery()
 bookworm.alignAesthetic()
 bookworm.updatePlot()
