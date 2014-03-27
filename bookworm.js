@@ -142,8 +142,14 @@ BookwormClasses = {
         }
 
         if (consultDatabases) {
+	     var category  = bookworm
+		 .variableOptions
+		 .options
+		 .filter(function(d) {return d.type=="character"})[0]
+		 .dbname
 
         }
+	
         guessDatabase()
         guessPlotType()
         guessQuery()
@@ -181,7 +187,25 @@ BookwormClasses = {
             bookworm[callback]()
         })
     },
+    smooth : function(span,axis) {
+	axis = axis || "y"
+	//currently this really sucks:
+	//it only lets you smooth once, and overwrites the original data.
+	//and it only works on the y axis.
+	//But proof of concept, baby.
+	bookworm = this
+	dat = bookworm.data;
 
+	dat.map(function(d,i) {
+	    d[this.query.aesthetic[axis] + "smoothedValues"] = 
+		d3.mean(
+		    dat.slice(
+			d3.max([0,i-span]),d3.min([dat.length,i+span+1]
+						 ))
+			.map(function(d) {
+			    return d[bookworm.query.aesthetic["y"]]
+			}))})
+    },
     nestData : function(rename) {
         rename = rename || false
         //Find all the aesthetics with a level number.
@@ -253,8 +277,11 @@ BookwormClasses = {
 
 
         if (this.lastPlotted != this.query.plotType) {
+	    //hide all the selectors for other kinds of bookworms.
             d3.selectAll(".chartSpecific").style('display','none')
-
+	    if (bookworm.selections.mainPlotArea !== undefined) {
+		bookworm.selections.mainPlotArea.selectAll("g").remove()
+	    }
             //display elements that are classed with this chart type.
             d3.selectAll("." + bookworm.query.plotType).style('display','inline')
             bookworm.updateAxisOptionBoxes()
@@ -265,9 +292,7 @@ BookwormClasses = {
 
         if (this.lastQuery != this.serverSideJSON(bookworm.query)) {
             bookworm.updateData(bookworm.query.plotType);
-        }
-
-        if (this.lastQuery != this.serverSideJSON(bookworm.query)) {
+        } else if (this.lastQuery != this.serverSideJSON(bookworm.query)) {
             bookworm[bookworm.query.plotType]()
         }
 
@@ -878,22 +903,31 @@ BookwormClasses = {
     linechart : function() {
         var mainPlotArea = this.selections.mainPlotArea;
         var bookworm = this;
-
+	console.log(bookworm.data)
         var query=bookworm.query;
 
         if ('undefined' == typeof(query['aesthetic']['x'])) {
             query['aesthetic']['x'] = query['groups'][0]
         }
 
-        if ("undefined" == typeof(query['aesthetic']['group'])) {
-            if ("undefined" != typeof(query['groups'][1])) {
-                query['aesthetic']['group'] = query['groups'][1]
-            }
-        }
+//        if ("undefined" == typeof(query['aesthetic']['group'])) {
+  //          if ("undefined" != typeof(query['groups'][1])) {
+    //            query['aesthetic']['group'] = query['groups'][1]
+    //        }
+   //     }
 
         bookworm.data.sort(function(a,b) {
             return parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
         })
+
+	var smoothingSpan = this.smoothingSpan || 0;
+	
+	var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
+	this.smooth(smoothingSpan)
+
+	bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
+
+	bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
 
         var scales = this.updateAxes()
         var xstuff = scales[0]
@@ -935,20 +969,21 @@ BookwormClasses = {
         selection
             .transition().duration(2000)
             .attr('d',function(d) {
-                return lineGenerator(d.values)})
+                return lineGenerator(d.values)
+	    })
 
 
-        selection
-            .attr('stroke','#F0E1BD')
-            .attr('fill','#F0E1BD')
+//        selection
+  //          .attr('stroke','#F0E1BD')
+    //        .attr('fill','#F0E1BD')
 
 
         selection
             .on('mouseover',function(d) {
-                d3.select(this).attr('stroke-width','45')
+                d3.select(this).style('stroke-width','5')
             })
             .on('mouseout',function(d) {
-                d3.select(this).attr('stroke-width','')
+                d3.select(this).style('stroke-width','')
             })
 
         //Make the points
@@ -971,16 +1006,20 @@ BookwormClasses = {
                 name = query['aesthetic']['x']
                 return x(bookworm.plotTransformers[name](d[query['aesthetic']['x']]))})
             .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
-            .makeClickable()
             .attr("r",6)
             .attr('fill','yellow')
 
 
+	
+	bookworm.query.aesthetic['y'] = JSON.parse(oldy)
+	bookworm.alignAesthetic()
 
+	circles.makeClickable()
 
     },
 
-    updateAxes : function(delays,transitiontime) {
+    updateAxes : function(delays,transitiontime,yVariable) {
+	yVariable = yVariable || "y"
 	transitiontime = transitiontime || 2000;
         delays = delays || {"x":0,"y":0}
         var bookworm = this;
@@ -1366,8 +1405,7 @@ BookwormClasses = {
                     bookworm.updateQuery();
                     shutWindow()
                     removeOverlay()
-                    currentPlot = myPlot()
-                    currentPlot()
+		    bookworm.updateData(bookworm.query.plotType)
                 })
         },
         "writeTitle" : function() {
@@ -2178,16 +2216,9 @@ BookwormClasses = {
         }
 
         if (datatype=="Numeric") {
-            vals = vals.map(function(d) {return parseFloat(d)})
+	    console.log("numeric")
+           vals = vals.map(function(d) {return parseFloat(d)})
             updateOrder()
-            /**            if (axis=='x') {
-                           vals.sort(function(a,b){return(a-b)})
-                           testing = vals
-                           }
-                           if (axis=='y') {
-                           vals.sort(function(a,b){return(b-a)})
-                           }
-            */
             //the binwidth should be minimum difference between points.
             differences = [];
             for (var i = 0; i < (vals.length-1); i++) {
@@ -2205,7 +2236,12 @@ BookwormClasses = {
                 //but we want lower numbers lower.
                 domain.reverse()
             }
+
             scale = d3.scale.linear().domain(domain).range([limits[axis][0],limits[axis][1]-pixels])
+
+	    if (query.aesthetic[axis] == "WordsRatio") {
+		scale = d3.scale.log().domain(domain).range([limits[axis][0],limits[axis][1]-pixels])
+	    }
             thisAxis = d3.svg.axis()
                 .scale(scale)
                 .tickFormat(d3.format('g'))
@@ -2237,6 +2273,7 @@ BookwormClasses = {
         }
 
         return({"scale":scale,"axis":thisAxis,"datatype":datatype,"limits":limits})
+
     },
 
     unused:{
