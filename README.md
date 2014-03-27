@@ -26,12 +26,30 @@ This is the obvious one.
 
 ### 3a. Query visualization Bookworm objects.
 
-These are **selector** elements. They can interact quite deeply with the underlying bookworm data (to show which options you might want to choose); but 
+The spec is not fully worked out. 
+
+But the idea is that these are **selector** elements. Rather than visualize the *results* of the query, they visualize the *query itself*. Interactions with them modify the query. And they may, in many cases, only visualize small parts of the query. At its simplest, a text box that defines the word being searched for is a query visualization; the word in the text box corresponds to the first word in the list of search terms.
+
+Behind the scenes, this uses a locally defined syntax where objects have "bindTo" elements that specify what elements of the query object they should be hardwired to. For example; that text box will be bound to `query.search_limits.word[0]`. (Or we could use an ngrams-style, comma-delimited syntax where it was bound to `query.search_limits.word` and the array was populated by splitting the string on commas).
+
+One fruitful way to handle this would be to have larger query visualization objects be built up out of a number of smaller ones.
+
+`viz.initialize(query)`
+Initializes with a given query object.
+
+`viz.pull()`
+Changes the appearance of the query to map to the current state of the query object. (Used after updates to the query from outside the visualizaton).
+
+`viz.push()`
+Changes the current state of the query object to map to the appearance of the query. (Used after updates to the query from inside the visualization).
+
 
 3. Style and Substance
 ----------------------
 
-I have tried, and largely failed, to completely disentangle the display elements from the styling elements. A bar chart should have most of its colors, etc, defined by a **stylesheet**, not by the D3 code. At some point, we'll make that happen for real. But it's one of the goals I try to keep in mind.
+I have tried, and in places failed, to completely disentangle the display elements from the styling elements. A bar chart should have most of its colors, etc, defined by a **stylesheet**, not by the D3 code. At some point, we'll make that happen for real.
+
+But it's already close enough that it should be possible, say, to use the line chart module to draw a tiny little sparkline without causing too much of a headache.
 
 The code is designed to be completely grounded in the Bookworm API written elsewhere--that means that the full state of the web page can be passed as the query variable, making linking and exporting easier.
 
