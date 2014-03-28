@@ -19,8 +19,8 @@ query = {
     "plotType":"barchart"
 }
 
-query.database = BookwormClasses.guessAtQuery().database
-
+query = BookwormClasses.guessAtQuery()
+query.plotType="barchart"
 
 var width=window.innerWidth,height=window.innerHeight
 

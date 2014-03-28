@@ -13,7 +13,6 @@ var drag = d3.behavior.drag()
     });
 
 d3.selection.prototype.makeClickable = function(query,legend,ourBookworm) {
-
     ourBookworm = ourBookworm || bookworm
     query = ourBookworm.query
     //This can be called on a variety of selections bound
@@ -149,7 +148,12 @@ BookwormClasses = {
 		 .dbname
 
         }
-	
+
+	if  (window.location.hash!=="") {
+	    console.log("returning guess from hash")
+	    return (JSON.parse(decodeURI(window.location.hash.split("#")[1])))
+	}	
+
         guessDatabase()
         guessPlotType()
         guessQuery()
@@ -1065,6 +1069,16 @@ BookwormClasses = {
 
         return [xstuff,ystuff]
     },
+
+    title: function() {
+	//Title is a query visualization, naturally.
+	this.selections.mainPlotArea.selectAll(".titleArea").transition().style("opacity",0).remove()
+	var titleArea = this.selections.mainPlotArea.append("g").attr("class","titleArea")
+
+	newTitle = 
+
+    },
+
     barchart : function() {
         var bookworm = this;
         var query = bookworm.query;
@@ -1151,6 +1165,7 @@ BookwormClasses = {
         bars
             .transition()
             .duration(2000)
+            .attr("height",y.pixels)
             .attr('x',xstuff.limits.x[0])
             .attr("width",function(d) {
                 return x(d[query['aesthetic']['x']]) - xstuff.limits.x[0]
