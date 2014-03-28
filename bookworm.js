@@ -268,7 +268,6 @@ BookwormClasses = {
         //housekeeping;
 
         bookworm.alignAesthetic()
-
         bookworm.updateQuery()
         //test if the query has changed since the last update;
         //string equality is not exactly the correct way to do this, but
@@ -285,8 +284,11 @@ BookwormClasses = {
             //display elements that are classed with this chart type.
             d3.selectAll("." + bookworm.query.plotType).style('display','inline')
             bookworm.updateAxisOptionBoxes()
-
             bookworm.makePlotArea()
+	    
+	    ["point","line","g","path","circle","rect"].forEach(function(d) {
+		this.selections.mainPlotArea.selectAll(d).transition().style("opacity",0).remove()
+	    })
 
         }
 
@@ -510,9 +512,17 @@ BookwormClasses = {
 
     },
 
+    resetAesthetics: function() {
+	
+    },
+
     sunburst : function() {
         var bookworm = this;
         var root = bookworm.nestData()
+
+	this.requiredAesthetics  = ["level1","level2","level3","θ"]
+	this.permittedAesthetics = ["color"]
+
 
         updateAesthetic = function() {
             var category  = bookworm.variableOptions.options.filter(function(d) {return d.type=="character"})[0].dbname
@@ -792,10 +802,13 @@ BookwormClasses = {
 
     selections : {    },
 
-    makePlotArea: function() {
+    makePlotArea: function(svgSelection) {
 
         //create if not exists
-        root = d3.selectAll("#svg").data([1])
+        root = d3.selectAll("#svg") || svgSelection
+
+	root = root.data([1]) 
+
         root.enter().append("svg").attr("id","svg")
 
         if (!root.selectAll("#plotBackground")[0].length) {
