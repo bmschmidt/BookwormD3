@@ -290,9 +290,9 @@ BookwormClasses = {
             bookworm.updateAxisOptionBoxes()
             bookworm.makePlotArea()
 	    
-	    ["point","line","g","path","circle","rect"].forEach(function(d) {
-		this.selections.mainPlotArea.selectAll(d).transition().style("opacity",0).remove()
-	    })
+	    //["point","line","g","path","circle","rect"].forEach(function(d) {
+		//this.selections.mainPlotArea.selectAll(d).transition().style("opacity",0).remove()
+	    //})
 
         }
 
@@ -313,9 +313,9 @@ BookwormClasses = {
 
         type = type || "character";
         aesthetics.forEach(function(aesthetic) {
-            console.log(bookworm.variableOptions.options)
-            var category  = bookworm.variableOptions.options.filter(function(d) {return d.type==type})[0].dbname
-            bookworm.query.aesthetic[aesthetic] = bookworm.query.aesthetic[aesthetic] || category
+            //console.log(bookworm.variableOptions.options)
+            //var category  = bookworm.variableOptions.options.filter(function(d) {return d.type==type})[0].dbname
+            //bookworm.query.aesthetic[aesthetic] = bookworm.query.aesthetic[aesthetic] || category
         });
     },
 
@@ -348,14 +348,13 @@ BookwormClasses = {
             .ratio(height / width * 0.5 * (1 + Math.sqrt(5)))
             .round(false);
 
-        var svg = d3.select("#svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.bottom + margin.top)
-            .style("margin-left", -margin.left + "px")
-            .style("margin.right", -margin.right + "px")
+	this.selections.mainPlotArea.selectAll("g").transition().style("opacity",0).remove()
+
+        var svg = this.selections.mainPlotArea
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-            .style("shape-rendering", "crispEdges");
+            .style("shape-rendering", "crispEdges")
+	    .attr("class","treemap chart");
 
         var grandparent = svg.append("g")
             .attr("class", "grandparent");
@@ -524,7 +523,7 @@ BookwormClasses = {
         var bookworm = this;
         var root = bookworm.nestData()
 
-	this.requiredAesthetics  = ["level1","level2","level3","θ"]
+	this.requiredAesthetics  = ["level1","level2","level3","x"]
 	this.permittedAesthetics = ["color"]
 
 
@@ -604,7 +603,6 @@ BookwormClasses = {
             .attr("d", arc);
 
         path
-            .on("click", click)
             .attr("title",function(d) {
                 return d[bookworm.query.aesthetic.x]
             })
@@ -612,6 +610,12 @@ BookwormClasses = {
         //          .duration(1000)
         //            .attrTween("d", arcTween(d)) //I can't get this to work.
             .attr("d", arc)
+
+	path
+	    .makeClickable()
+
+	path
+            .on("click", click)
 
         path.exit()
             .transition().duration(500).style("opacity",0).remove()
@@ -1088,7 +1092,7 @@ BookwormClasses = {
 	this.selections.mainPlotArea.selectAll(".titleArea").transition().style("opacity",0).remove()
 	var titleArea = this.selections.mainPlotArea.append("g").attr("class","titleArea")
 
-	newTitle = 
+	newTitle = "nothing"
 
     },
 
