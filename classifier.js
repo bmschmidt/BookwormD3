@@ -3,8 +3,8 @@ var bookworm = new Bookworm({
     "words_collation":"Case_Sensitive",
     "database":"presidio",
     "search_limits":{
-        "word": ["Call","me","Ishmael","","","Some","years","ago","","never","mind","how","long","","precisely","","having","little","or"],
-	"year":{"$gte":1830,"$lte":1922},
+        "word": ["Call"],
+	"year":{"$gte":1830,"$lte":1922}
     },
     "counttype":["WordCount"],
     "aesthetic":{"label":"unigram","y":"WordCount","x":"classification"},
@@ -13,7 +13,6 @@ var bookworm = new Bookworm({
 
 var changeWords,inspect;
 bookworm.updateAxisOptionBoxes();
-
 
 d3.select("svg").on("click",function(d) {
     d3.selectAll("textarea").style("display","none")
@@ -64,13 +63,14 @@ d3.select("svg").on("click",function(d) {
 
     displayedWords.attr("style",style)
 
-    changeWords = function() {
-
+    changeWords = function(callback) {
+	callback = callback || function() {}
+	//grab the first one.
 	workingOn = textDisplay.select("text.unselected")
 
 	words = workingOn.text();//datum().label;
 
-        bookworm.query.search_limits['word'] = words
+        bookworm.query.search_limits['word'] = [words]
 
 	workingOn
 	    .classed("unselected",false)
@@ -93,13 +93,13 @@ d3.select("svg").on("click",function(d) {
 	
 
         if (words.length>0){
-            bookworm.updateData("logClassify")
+	    console.log("trying to update")
+            bookworm.updateData(function() {bookworm.logClassify()})
         }
     }
 
     d3.select("svg").on("click",function(d) {
         changeWords()
-	myVar = setInterval(changeWords,300);
     })
 
 })
@@ -129,7 +129,6 @@ d3.select("body").append("button")
     .on('click',function(){
         bookworm.updatePlot()
     })
-
 
 d3.select("body").on("keypress",function(e){
     if(d3.event.keyCode == 13){
