@@ -34,6 +34,10 @@ Behind the scenes, this uses a locally defined syntax where objects have "bindTo
 
 One fruitful way to handle this would be to have larger query visualization objects be built up out of a number of smaller ones.
 
+`viz.create(domElement)`
+
+Creates the desired object by appending it to the D3 selection passed in.
+
 `viz.initialize(query)`
 Initializes with a given query object.
 
