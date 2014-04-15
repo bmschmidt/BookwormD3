@@ -44,6 +44,19 @@
    and bar length representing 
    <select class="metric options" bindTo="bookworm.query['aesthetic']['x']"></select> 
  
+ </div>
+
+ <div id="pointchartSelector" class="chartSpecific pointchart queryViz"> 
+   Show uses of the word or phrase 
+   <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input> 
+   by categories of 
+   <select class="categorical options" bindTo="bookworm.query['aesthetic']['y']"></select> 
+   and bar length representing 
+   <select class="metric options"
+   bindTo="bookworm.query['aesthetic']['x']"></select>
+      with colored points for each  
+   <select class="categorical options" bindTo="bookworm.query['aesthetic']['color']"></select> 
+ 
  </div> 
 
 
