@@ -852,6 +852,8 @@ BookwormClasses = {
         var x = xstuff.scale
         var y = ystuff.scale
 
+	bookworm.scales.x = x;
+
         bookworm.data = bookworm.data.map(function(d) {
             d.key = d[myQuery['aesthetic']['x']] + d[myQuery['aesthetic']['y']]
             return(d)
@@ -881,8 +883,8 @@ BookwormClasses = {
         gridPoint.exit().transition().duration(1000)
             .style('opacity',0)
             .remove()
-        xVariable = myQuery['groups'][0]
-        yVariable = myQuery['groups'][1]
+        xVariable = myQuery.aesthetic.x
+        yVariable = myQuery.aesthetic.y
 
 
         bookworm.legends.color = Colorbar()
@@ -904,7 +906,7 @@ BookwormClasses = {
                 return color;
             })
 
-        bookworm.legends.fill.update(bookworm.scales.color)
+        bookworm.legends.color.update(bookworm.scales.color)
 
     },
 
