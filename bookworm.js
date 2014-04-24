@@ -1227,8 +1227,8 @@ BookwormClasses = {
 	parentDiv = d3.select("#selectionOptions")
 	bookworm.addFilters({
 	    "word":"textArray"	},
-	    parentDiv
-			   )
+	    parentDiv)
+
 	bookworm.addAestheticSelectors({
 	    "x":"numericAesthetic",
 	    "y":"categoricalAesthetic",
