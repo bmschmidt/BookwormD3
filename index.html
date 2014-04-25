@@ -31,83 +31,8 @@
 
 <body>
 
-<div id="mapSelector" class="chartSpecific map queryViz">
-  Map uses of the word or phrase
-  <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
-</div>
-
-<div id="barPlotSelector" class="chartSpecific barchart queryViz"> 
-   Show uses of the word or phrase 
-   <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input> 
-   by categories of 
-   <select class="categorical options" bindTo="bookworm.query['aesthetic']['y']"></select> 
-   and bar length representing 
-   <select class="metric options" bindTo="bookworm.query['aesthetic']['x']"></select> 
- 
- </div>
-
- <div id="pointchartSelector" class="chartSpecific pointchart queryViz"> 
-   Show uses of the word or phrase 
-   <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input> 
-   by categories of 
-   <select class="categorical options" bindTo="bookworm.query['aesthetic']['y']"></select> 
-   and bar length representing 
-   <select class="metric options"
-   bindTo="bookworm.query['aesthetic']['x']"></select>
-      with colored points for each  
-   <select class="categorical options" bindTo="bookworm.query['aesthetic']['color']"></select> 
- 
- </div> 
-
-
- <div id="linechartSelector" class="chartSpecific linechart queryViz"> 
-   Show uses of the word or phrase 
-   <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input> 
-   by categories of 
-   <select class="categorical options" bindTo="bookworm.query['aesthetic']['x']"></select> 
-   with the y-axis representing 
-   <select class="metric options" bindTo="bookworm.query['aesthetic']['y']"></select> 
- 
- </div> 
-
-
-<div id="heatMapSelector" class="chartSpecific heatmap queryViz">
-  Show uses of
-  <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
-  by
-  <select class="categorical options" bindTo="bookworm.query['aesthetic']['x']"></select>
-  and
-  <select class="categorical options" bindTo="bookworm.query['aesthetic']['y']"></select>
-</div>
-
-<div id="sunburstSelector" class="chartSpecific sunburst queryViz">
-  Show uses of
-  <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
-  by
-  <select class="categorical options" bindTo="bookworm.query['aesthetic']['level1']"></select>
-  and
-  <select class="categorical options" bindTo="bookworm.query['aesthetic']['level2']"></select>
-  and
-  <select class="categorical options" bindTo="bookworm.query['aesthetic']['level3']"></select>
-
-</div>
-<div id="treemapSelector" class="chartSpecific treemap queryViz">
-  Show uses of
-  <input type="text" class="wordInput" bindTo="bookworm.query['search_limits']['word'][0]"></input>
-  by
-  <select id="ok" class="categorical options" bindTo="bookworm.query['aesthetic']['level1']"></select>
-  and
-  <select id="fixme" class="categorical options" bindTo="bookworm.query['aesthetic']['level2']"></select>
-  and
-  <select class="categorical options" bindTo="bookworm.query['aesthetic']['level3']"> with rectangle size representing
-    <select class="metric options" bindTo="bookworm.query['aesthetic']['x']">
-    </select>
-
-  </div>
-
-  </script>
-
-  <div id="chart" class="maindiv">
+<div id="selectionOptions"></div>
+<div id="chart" class="maindiv">
     <svg id="svg">
     </svg>
   </div>
