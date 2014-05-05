@@ -121,18 +121,21 @@ BookwormClasses = {
                 guess.database = window.location.host.split(".")[0]
             }
             if (guess.database=="bookworm") {guess.database="historydiss"}
+            if (guess.database=="beta") {guess.database="federalist"}
         }
 
         guessPlotType = function() {
             //The plottype is the very end of the thing, minus any ".html" or ".htm"
             guess.plotType = window.location.pathname.split("/").reverse()[0].split(".")[0]
-            if (guess.plotType == "" || guess.plotType=="index") {guess.plotType = "linechart"}
+            if (guess.plotType == "" || guess.plotType=="index") {
+		guess.plotType = "barchart"
+	    }
         }
 
         guessQuery = function () {
             guess.method="return_json"
-            guess.search_limits = {"word":["test"],"date_year":{"$gte":1}}
-            guess.aesthetic = {"x":"date_year","y":"WordsPerMillion"}
+            guess.search_limits = {"word":["test"]}
+            guess.aesthetic = {"x":"WordsPerMillion","y":"author"}
         }
 
         if (consultDatabases) {
@@ -1121,10 +1124,7 @@ BookwormClasses = {
 
 	var parentDiv = d3.select("#selectionOptions")
 
-	var box = BookwormClasses.queryVisualizations.textArray()
-	box.createOn(parentDiv).initialize()
-
-        bookworm.alignAesthetic()
+	bookworm.addFilters({"word":"textArray"},parentDiv)
 
 	bookworm.addAestheticSelectors({
 	    "y":"categoricalAesthetic",
@@ -1322,7 +1322,6 @@ BookwormClasses = {
 	    return {"element":key,"type":fields[key]}
 	})
 
-	console.log(elements)
 	selectors = attachTo
 	    .selectAll("div.filter.selector")
 	    .data(elements,function(d) {return d.element + d.type})
