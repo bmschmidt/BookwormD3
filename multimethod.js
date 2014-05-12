@@ -18,7 +18,6 @@ dataTypes = {};
 
 if(window.location.hash) {
     var hash = window.location.hash.substring(1);
-    console.log(hash)
     decoded = decodeURIComponent(hash)
     dquery =  JSON.parse(decoded)
     dquery=dquery

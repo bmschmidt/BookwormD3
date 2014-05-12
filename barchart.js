@@ -38,17 +38,6 @@ d3.select("body").on("keypress",function(e){
 });
 
 
-
-d3.selectAll("[bindTo]")
-    .on('change',function() {
-        console.log("change registered")
-        bookworm.updateQuery(d3.select(this))
-    })
-    .on('keyup',function() {
-        console.log("keyup registered")
-        bookworm.updateQuery(d3.select(this))
-    })
-
 var bookworm = Bookworm(query)
 
 bookworm.updateQuery()
