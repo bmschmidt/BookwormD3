@@ -1,9 +1,3 @@
-//There should always be a query variable present: from that, it should be possible to derive anything else we'll ever need, and any changes can update it directly.
-//This is the cardinal rule of the architecture here: absolutely any state must DRAW FROM and UPDATE the query variable if it pertains to any higher-level architecture
-//about what's being displayed.
-//Violating this rule, ever, will pretty much instantly make the code un-maintable. I promise.
-
-
 dquery = BookwormClasses.guessAtQuery()
 
 var width=window.innerWidth,height=window.innerHeight

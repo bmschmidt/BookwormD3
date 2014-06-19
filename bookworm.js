@@ -71,35 +71,33 @@ d3.selection.prototype.makeClickable = function(query,legend,ourBookworm) {
             textArea
                 .append("text").text("Click to view examples").append("br")
 
-	    textArea.selectAll("div.caption").remove()
+            textArea.selectAll("div.caption").remove()
 
-	    var definitions = textArea
-		.selectAll("div.caption")
-		.data(d3.keys(query.aesthetic))
+            var definitions = textArea
+                .selectAll("div.caption")
+                .data(d3.keys(query.aesthetic))
 
-	    
-	    definitions
-		.enter()
-		.append("div")
-		.attr("class","caption")
 
-	    definitions
-		.exit()
-		.remove()
+            definitions
+                .enter()
+                .append("div")
+                .attr("class","caption")
 
-	    console.log(definitions.data())
+            definitions
+                .exit()
+                .remove()
 
-	    definitions
-	    //no break space
+            definitions
+            //no break space
                 .append("strong")
-		.text(function(e) {return query.aesthetic[e] + ":" + String.fromCharCode(160)})
-	    definitions
-		.append("text")
-		.text(function(e) {
-		    value = d[query.aesthetic[e]];
-		    //if (typeof(value)=="number") {value = bookworm.functions.prettyName(value)}
-		    return(value)
-		})
+                .text(function(e) {return query.aesthetic[e] + ":" + String.fromCharCode(160)})
+            definitions
+                .append("text")
+                .text(function(e) {
+                    value = d[query.aesthetic[e]];
+                    //if (typeof(value)=="number") {value = bookworm.functions.prettyName(value)}
+                    return(value)
+                })
 
             if (query['aesthetic']['color'] && legend !== undefined) {
                 legend.pointTo(d[query['aesthetic']['color']])
@@ -167,7 +165,7 @@ BookwormClasses = {
         }
 
         if  (window.location.hash!=="") {
-            console.log("returning guess from hash")
+            //console.log("returning guess from hash")
             return (JSON.parse(decodeURIComponent(window.location.hash.split("#")[1])))
         }
 
@@ -175,6 +173,13 @@ BookwormClasses = {
         guessPlotType()
         guessQuery()
         return guess
+    },
+    checkHashForLocation: function() {
+        if  (window.location.hash!=="") {
+            this.query = JSON.parse(decodeURIComponent(window.location.hash.split("#")[1]))
+            return this.query;
+        }
+        return
     },
 
     updateData: function(callback,append) {
@@ -854,7 +859,7 @@ BookwormClasses = {
             .append("div")
             .attr("class", "tooltip")
             .style("opacity", 0)
-	.style('position','absolute');
+            .style('position','absolute');
         this.selections.tooltip = tooltip
 
     },
@@ -888,9 +893,7 @@ BookwormClasses = {
         var mainPlotArea= bookworm.selections.mainPlotArea
 
         transition=2000
-	console.log(bookworm.data)
         var scales = bookworm.updateAxes(delays = {"x":0,"y":0},transitiontime=transition)
-	console.log(bookworm.data)
         var xstuff = scales[0]
         var ystuff = scales[1]
 
@@ -1060,6 +1063,10 @@ BookwormClasses = {
     linechart : function() {
         var mainPlotArea = this.selections.mainPlotArea;
         var bookworm = this;
+
+	bookworm.data=bookworm.data.filter(function(d) {
+	    return d[bookworm.query.aesthetic.y] != undefined & !isNaN(d[bookworm.query.aesthetic.y])
+	})
         parentDiv = d3.select("#selectionOptions")
         bookworm.addFilters({
             "word":"textArray"  },
@@ -1180,8 +1187,12 @@ BookwormClasses = {
         delays = delays || {"x":0,"y":0}
         var bookworm = this;
         var mainPlotArea = this.selections.mainPlotArea;
+        var ystuff
 
-        var ystuff = bookworm.makeAxisAndScale('y',undefined,"value")
+
+        bookworm.query.plotType=="heatmap" ?
+            ystuff = bookworm.makeAxisAndScale('y',undefined,"name",false) :
+            ystuff = bookworm.makeAxisAndScale('y',undefined,"value")
 
         var xstuff = bookworm.makeAxisAndScale('x')
 
@@ -1471,7 +1482,7 @@ BookwormClasses = {
             .each(function(d) {
                 d3.select(this)     .text(function(d) {return d.aesthetic + " representing "})
 
-                console.log(d)
+                //console.log(d)
                 var addition = bookworm.queryVisualizations[d.type]()
                 addition.target(d.aesthetic)
                 addition.createOn(d3.select(this))
@@ -1542,9 +1553,10 @@ BookwormClasses = {
                     })
 
                 if (options.data().length==0) {
-                    console.log("trying again")
+                    //console.log("trying again")
                     //keep trying until the options are actually posted.
                     setTimeout(that.initialize,100)
+		    return
                 }
                 options.exit().remove()
                 options.enter().append("option")
@@ -1601,7 +1613,7 @@ BookwormClasses = {
             that.push = function() {
                 text = box.property("value")
                 text = text.replace(" *, *",",")
-                console.log(text)
+                //console.log(text)
                 bookworm.query.search_limits[target] = text.split(",")
                 return that
             }
@@ -2047,36 +2059,6 @@ BookwormClasses = {
 
     },
     variableOptions : {
-        //eventually we'll dump the default options--they can just be stored in the database.
-        defaultOptions : [
-            {"name":"Year","dbname":"year","database":"presidio","type":"time"},
-            {"name":"Publication year (5 year rounding)","dbname":"yearchunk","database":"presidio","type":"time"},
-            {"name":"Author birth year (5 year rounding)","dbname":"agechunk","database":"presidio","type":"time"},
-            {"name":"Author age","dbname":"author_age","database":"presidio","type":"time"},
-            {"name":"LC classification","dbname":"classification","database":"presidio","type":"categorical"},
-            {"name":"Country","dbname":"country","database":"presidio","type":"categorical"},
-            {"name":"Archive","dbname":"archive","database":"archive","type":"categorical"},
-            {"name":"School","dbname":"school","database":"HistoryDissTest","type":"categorical"},
-            {"name":"Year","dbname":"year_year","database":"HistoryDissTest","type":"time"},
-            {"name":"Advisor","dbname":"advisor","database":"HistoryDissTest","type":"categorical"},
-            {"name":"Broad Subject","dbname":"BenSubject","database":"presidio","type":"categorical"},
-            {"name":"Originating Library","dbname":"library","database":"presidio","type":"categorical"},
-            {"name":"Location in Stacks","dbname":"lc2","database":"presidio","type":"categorical"},
-            {"name":"Page Number","dbname":"page","database":"ChronAm","type":"categorical"},
-            {"name":"Paper Name","dbname":"paper","database":"ChronAm","type":"categorical"},
-            {"name":"State","dbname":"state","database":"ChronAm","type":"categorical"},
-            {"name":"Census Region","dbname":"region","database":"ChronAm","type":"categorical"},
-            {"name":"Calendar Date","dbname":"date_day_year","database":"ChronAm","type":"time"},
-            {"name":"Calendar Date (by week)","dbname":"date_week_year","database":"ChronAm","type":"time"},
-            {"name":"Date (monthly resolution)","dbname":"date_month","database":"ChronAm","type":"time"},
-            {"name":"Date (yearly resolution)","dbname":"date_year","database":"ChronAm","type":"time"},
-            {"name":"Publication Month","dbname":"month","database":"arxiv","type":"time"},
-            {"name":"Archive section","dbname":"archive","database":"arxiv","type":"categorical"},
-            {"name":"Subject Classification (narrower)","dbname":"subclass","database":"arxiv","type":"categorical"},
-            {"name":"Submitter top-level e-mail domain","dbname":"tld","database":"arxiv","type":"categorical"},
-            {"name":"Submitter lower-level e-mail domain","dbname":"mld","database":"arxiv","type":"categorical"}
-        ]
-        ,
         quantitative : [
             {"dbname":"WordsPerMillion","name":"Uses per Million Words"},
             {"dbname": "WordCount","name":"# of matches"},
@@ -2100,10 +2082,6 @@ BookwormClasses = {
                     if (error) {
                         console.warn(error)
                     }
-                    bookworm.variableOptions.defaultOptions.forEach(
-                        function(row) {
-                            variableOptions.options.push(row)
-                        })
                     json.push({"name":"","dbname":undefined})
                     json.map(function(row) {
                         row['database'] = bookworm.query['database']
@@ -2171,7 +2149,7 @@ BookwormClasses = {
         d3.selectAll("[bindTo]")
             .on('change',function() {
                 if(d3.select(this).property("id")=="fixme") {
-                    console.log("OK switching to",d3.select(this).property("value"))
+                    //console.log("OK switching to",d3.select(this).property("value"))
                 }
 
                 bookworm.updateQuery(d3.select(this))
@@ -2236,8 +2214,9 @@ BookwormClasses = {
         for (var i =0; i < bookworm.data.length; i++) {
             entry = bookworm.data[i]
             d = entry[key]
-            if (isNaN(d) & d!="" & d!="None") {
-                //console.log("giving up on" + d)
+            if (isNaN(d) & d!="" & d!="None" & d!="undefined" & d!== undefined) {
+		//console.log(d)
+                //console.log("d has non-numeric values")
                 return
                 break
             }
@@ -2488,6 +2467,8 @@ BookwormClasses = {
 
     "makeAxisAndScale" : function(axis,limits,sortBy,descending) {
 
+
+
         var bookworm = this;
         var query = bookworm.query
 
@@ -2504,9 +2485,9 @@ BookwormClasses = {
         //And that direction can be descending (true) or ascending (false)
         descending = descending || true;
 
-        variableName = query['aesthetic'][axis]
+        var variableName = query['aesthetic'][axis]
 
-        vals = d3.nest()
+        var vals = d3.nest()
             .key(function(d) {
                 return d[variableName]
             })
@@ -2547,7 +2528,8 @@ BookwormClasses = {
                 } else { vals.sort() }
             }
 
-            if (descending) {
+            if (!descending) {
+
                 vals.reverse()
             }
 
@@ -2561,12 +2543,13 @@ BookwormClasses = {
                 if (axis=='x') {minSize=100}
                 return Math.round((limits[axis][1]-limits[axis][0])/minSize)
             }()
-	    names = d3.set(
-		bookworm.data.map(function(d) {
-		    return d[variableName]}
-				 )).values()
-//            names = bookworm.topn(n,variableName,bookworm.data)
-//	    console.log(names,variableName)
+            names = d3.set(
+                bookworm.data.map(function(d) {
+                    return d[variableName]}
+                                 )).values()
+	    console.log(names)
+            //            names = bookworm.topn(n,variableName,bookworm.data)
+            //      console.log(names,variableName)
             bookworm.data = bookworm.data.filter(function(entry) {
                 return(names.indexOf(entry[variableName]) > -1)
             })
@@ -2575,12 +2558,14 @@ BookwormClasses = {
             vals = names
             updateOrder()
             scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
+	    if (bookworm.query.aesthetic[axis]=="state") {
+		scale.domain(["HI","AK","WA","OR","CA","AZ","NM","CO","WY","UT","NV","ID","MT","ND","SD","NE","KS","IA","MN","MO","OH","MI","IN","IL","WI","OK","AR","TX","LA","MS","AL","TN","KY","GA","FL","SC","WV","NC","VA","DC","MD","DE","PA","NJ","NY","CT","RI","MA","NH","VT","ME"])
+	    }
             pointsToLabel = vals
             thisAxis = d3.svg.axis()
                 .scale(scale)
             scale.pixels = scale.rangeBand()//(limits[axis][1]-limits[axis][0])/vals.length;
         } else if (datatype=="Numeric") {
-            console.log("numeric")
             vals = vals.map(function(d) {return parseFloat(d)})
             updateOrder()
             //the binwidth should be minimum difference between points.

@@ -1,7 +1,6 @@
 BookwormClasses.logClassify = function() {
-
-    var bookworm = this;
-    bookworm.alignAesthetic()
+    
+    //due to inheritance problems, bookworm has to be defined globally for this one.
 
     d3
         .select("#svg")
@@ -10,9 +9,10 @@ BookwormClasses.logClassify = function() {
     d3.selectAll("textarea").attr("rows",5);
 
 
-    if (bookworm.classifyCount===undefined) {
+    if (bookworm.classifyCount===undefined || bookworm.classifyCount.length==0) {
 
         bookworm.classifyCount="pending";
+        console.log(bookworm.query)
         myQuery = JSON.parse(JSON.stringify(bookworm.query));
         myQuery.search_limits.word=undefined;
         myQuery.groups = myQuery.groups.filter(function(d) {
@@ -20,19 +20,17 @@ BookwormClasses.logClassify = function() {
         })
 
         myQuery.counttype = "WordCount";
-
         d3.json(
             bookworm.destinationize(myQuery),function(data) {
                 bookworm.classifyCount = bookworm.parseBookwormData(data,myQuery)
-                bookworm.classifyCount = bookworm.classifyCount.filter(function(d) {
-                    return d.WordCount > 10042509;
-                })
+                //                bookworm.classifyCount = bookworm.classifyCount.filter(function(d) {
+                //                  return d.WordCount > 10042509;
+                //             })
                 bookworm.updateData(bookworm.logClassify)
+                return;
             })
-        return;
-    }
-    console.log(bookworm.query.search_limits.word);
 
+    }
     var totals = bookworm.classifyCount;
     var local = bookworm.data;
 
@@ -72,59 +70,71 @@ BookwormClasses.logClassify = function() {
     })
 
 
+    domain = d3.extent(totals.map(function(d) {return d.currentOverall}))
+
     var x = d3.scale.linear()
-        .domain([-20,-1])
-        .range([1,1000]);
+        .domain([domain[0],domain[1]])
+        .range([30,window.innerWidth*.8]);
+
+    var axis = d3.svg.axis().orient("top").scale(x);
+
+    var axes=d3.select('#barArea').selectAll("g.x.axis").data([1])
+    axes.enter().append("g").attr("class","x axis").call(axis)
+
+    axes.transition().duration(700).call(axis)
 
     totals = totals.sort(function(a,b) {return b.currentOverall-a.currentOverall})
 
+
+    var yvalues = totals.map(function(d) {return d.key})
     var y = d3.scale.ordinal()
-        .domain(totals.map(function(d) {return d.key}))
-        .rangeBands([0,2200]);
+        .domain(yvalues)
+        .rangeBands([0,11*yvalues.length]);
+
 
     if (!d3.selectAll("#barArea")[0].length) {
         d3.select("#svg").append("g").attr("id","barArea").attr("transform","translate(0,200)")
     }
 
-        bars = d3.select("#svg").select("#barArea").selectAll("g").data(totals,function(d) {return d.key})
+    bars = d3.select("#svg").select("#barArea").selectAll("g").data(totals,function(d) {return d.key})
 
-        var news = bars
-            .enter()
-            .append("g")
+    var news = bars
+        .enter()
+        .append("g")
 
 
-        var rects = news
-            .append("rect")
-            .attr("height",10)
-            .style("fill","#4298A1")
-            .attr("x",30)
+    var rects = news
+        .append("rect")
+        .attr("height",10)
+        .style("fill","#4298A1")
+        .attr("x",30)
 
-        var labels = news
-            .append("text")
-            .text(function(d) {return d[bookworm.query.aesthetic.x]})
-            .style("font-size",13)
-    .style("fill","white")
-            .attr("x",30)
-            .attr("y",10)
+    var labels = news
+        .append("text")
+        .text(function(d) {return d[bookworm.query.aesthetic.y]})
+        .style("font-size",13)
+        .style("fill","white")
+        .attr("x",30)
+        .attr("y",10)
 
-        bars
-            .transition()
-            .duration(600)
-            .delay(function(d,i) {return i*10})
-            .attr("transform",
-                  function(d) {
-                      return "translate (0," + y(d.key) + ")"
-                  })
+    bars
+        .transition()
+        .duration(600)
+        .delay(function(d,i) {return i*10})
+        .attr("transform",
+              function(d) {
+                  return "translate (0," + y(d.key) + ")"
+              })
 
-        bars
-            .selectAll("rect")
-            .transition()
-            .attr("x",30)
-            .attr("y",0)
-            .attr("height",10)
-            .style("fill","#4298A1")
-            .attr("width",function(d) {
-                return x(d.currentOverall);
-            })
-    setTimeout(changeWords,10)
+    bars
+        .selectAll("rect")
+        .transition()
+        .attr("x",30)
+        .attr("y",0)
+        .attr("height",y.rangeBand())
+        .style("fill","#4298A1")
+        .attr("width",function(d) {
+            return x(d.currentOverall);
+        })
+    setTimeout(changeWords,100)
 }
