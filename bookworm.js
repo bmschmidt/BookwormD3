@@ -964,57 +964,174 @@ BookwormClasses = {
         //things we need to remember for plotting preferences.
         "lastPlotted":null,
     },
-    mapPoints: function(proj) {
-        //Drops a bunch of points, regardless of what sort of map there is.
-        bookworm = this
-        var mainPlotArea = this.selections.mainPlotArea;
-        var points = mainPlotArea.selectAll("circle").data(bookworm.data)
 
-        var sizeScale = d3.scale.sqrt().range([2.5,10]).domain([0,100])
+    mapPoints: function(proj,timeHandler) {
+	//This drops point on a map: if "time" is one of the dimensions to the plot, it also animates them.
+	
+	var timeHandler = timeHandler || {};
+        //Drops a bunch of points, regardless of what sort of map there is.
+        var bookworm = this
+	var data = bookworm.data;
+        var mainPlotArea = this.selections.mainPlotArea;
+	var firstRun = true
+
+	if (bookworm.query.aesthetic.time != undefined) {
+
+	    if (timeHandler.nested!= undefined) {firstRun = false}
+
+	    timeSlider = function() {
+		timeHandler.axisScale = d3.scale.linear().domain(timeHandler.timeScale.domain()).range([50,1000]).clamp(true)
+		timeHandler.axis = d3.svg.axis().scale(timeHandler.axisScale).orient("bottom").tickFormat(function(d) {return d})
+		timeHandler.axisGroup = mainPlotArea.selectAll(".axis.time").data([1])
+		timeHandler.axisGroup.enter().append("g").attr("class","time axis").attr('transform',"translate(0,8)")
+		timeHandler.axisGroup.call(timeHandler.axis)
+
+		timeHandler.currentTime =timeHandler.timeScale.domain()[0]	 
+		var marker = timeHandler.axisGroup.selectAll("g.marker")
+		marker
+		    .data([1])
+		    .enter()
+		    .append('g')
+		    .attr("class","axis marker")
+		    .attr('id',"timeSlider")
+		    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+		    .append("circle")
+		    .attr("r",10)
+		    .style("fill","red")
+		    .call(drag)
+
+		drag = d3.behavior.drag()
+		    .on("dragstart",function() {
+			clearTimeout(bookworm.nextEvent)
+			    timeHandler.inmotion = false
+		    })
+		    .on("drag",function() {
+			timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
+			d3.select(this).attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+			tickTo(timeHandler.currentTime)
+		    })
+		    .on("dragend",function() {
+			timeHandler.inmotion = true;
+			tickTo(timeHandler.currentTime)
+		    })
+
+		timeHandler.axisGroup.select("#timeSlider").call(drag)
+
+ 	    }
+
+	    if (firstRun) {
+		console.log('resetting inmotion')
+		timeHandler.inmotion = true
+		console.log("setting up time handler")
+
+		timeHandler.nested = d3.nest().key(function(d) {return d[query.aesthetic.time]}).map(bookworm.data)
+		smoothingSpan = 0 || bookworm.query.smoothingSpan
+		timeHandler.fullyNested = d3
+		    .nest()
+		    .key(function(d) {return d[query.aesthetic.time]}).key(function(d) {return d[query.aesthetic.time]}).map(bookworm.data)
+		timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d.publish_year})))
+		
+		timeSlider()
+		
+	    }
+
+	    data = timeHandler.nested[timeHandler.currentTime]
+	    if (timeHandler.inmotion) {
+		mainPlotArea
+		    .selectAll("#timeSlider")
+		    .transition()
+		    .ease("linear")	    
+		    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+	    }
+	    if (data==undefined) {data = []}
+	}
+
+        var sizeScale = d3.scale.sqrt().range([1,35]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
 
 
         var colorValues = bookworm.data.map(function(d) {
             return(d[bookworm.query['aesthetic']['color']])
         })
 
+	data.forEach(function(d) {
+	    try {
+		d.coordinates = JSON.parse(d[query.aesthetic.point]).reverse();
+	    } catch(err) {
+		d.coordinates = [null,null]
+	    }
+	    
+	    d.type="Point";
+	})
+
         bookworm.query['scaleType'] = bookworm.query['scaleType'] || "log"
+
         bookworm.scales.color = bookworm.returnScale()
             .values(colorValues)
             .scaleType(d3.scale[bookworm.query['scaleType']])()
 
+	if (firstRun & bookworm.query.aesthetic.color != undefined) {
         bookworm.legends.color = Colorbar()
             .scale(bookworm.scales.color)
             .update()
+	}
 
+
+	var nullpath = d3.geo.path().projection(proj)            
+	    .pointRadius(0)
+	var path = d3.geo.path().projection(proj)            
+	    .pointRadius(function(d) {return sizeScale(d[query.aesthetic.size])})
+	
+	
+        var points = mainPlotArea.selectAll("path.point")
+	    .data(data,function(d) {
+		return d[bookworm.query.aesthetic.point] + d[bookworm.query.aesthetic.label]
+	    })
+
+	var getColor = function(d) {
+	    var val = bookworm.scales.color(d[bookworm.query.aesthetic.color]) || "green"
+	    return val;
+	}
 
         points
             .enter()
-            .append("circle")
-            .attr("transform",function(d) {
-                try {
-                    var point = JSON.parse(d[query.aesthetic.point]);
-                    //We use [lat,lon] like good people; but d3 wants its points in the form
-                    //       [lon,lat] like evil people. So we 'fix' it.
-                    point = point.reverse()
+            .append("path")
+            .style("fill",getColor)
+	    .attr("d",nullpath)
+	    .attr("class","point")
+	    .style("opacity",.6)
+	//to change the size, we have to chang the path function. Yuck.
 
-                } catch(err) {
-                    var point = [null,null]
-                }
-                var location = proj(point)
-                return "translate(" + location[0] + "," + location[1] + ")" })
-            .attr("cx",0)
-            .attr("cy",0)
-            .style("opacity",.1)
-
+	duration = 100
+	
         points
             .transition()
-            .attr("r",function(d) {return sizeScale(d[query.aesthetic.size])})
-            .style("fill",function(d) {return d[query.aesthetic.color]>0?"red":"green"})
+	    .ease("linear")
+	    .duration(duration)
+            .style("fill",getColor)
+	    .attr("d",path)
 
-        points.exit().remove()
+	tickTo = function(time) {
+	    timeHandler.currentTime += 1
+	    if (timeHandler.currentTime > timeHandler.timeScale.domain()[1]) {
+		timeHandler.inmotion=false
+	    } else {
+		bookworm.mapPoints(proj,timeHandler)
+	    }
+	}
+	
+        points
+	    .exit()
+	    .transition()
+	    .duration(duration)
+	    .attr("d",nullpath)
+	    .remove()
+
         points.makeClickable(bookworm.query,bookworm.legends.color)
 
-
+	if (bookworm.query.aesthetic.time != undefined & timeHandler.inmotion) {
+	    clearTimeout(bookworm.nextEvent)
+	    bookworm.nextEvent = setTimeout(function() {tickTo(timeHandler.currentTime + 1)},duration)
+	}
 
     },
     map : function() {
@@ -1029,7 +1146,7 @@ BookwormClasses = {
         )
         bookworm.addAestheticSelectors(
             {
-                "point":"categoricalAesthetic","size":"numericAesthetic","color":"numericAesthetic","label":"categoricalAesthetic"
+                "point":"categoricalAesthetic","size":"numericAesthetic","color":"numericAesthetic","label":"categoricalAesthetic","time":"categoricalAesthetic"
             },
             parentDiv
         )
@@ -1040,7 +1157,13 @@ BookwormClasses = {
             return parseFloat(b[query['aesthetic']['size']] - a[query['aesthetic']['size']])
         })
 
-        var proj = d3.geo.albers().scale(150)
+        var proj = d3.geo.mercator().scale(220)
+//        var proj = d3.geo.albers().scale(1050)
+var proj = d3.geo.azimuthalEqualArea()
+    .clipAngle(180 - 1e-3)
+    .scale(237)
+    .translate([width / 2, height / 2])
+    .precision(.1);
 
         var polygons = mainPlotArea.selectAll("#mapregion").data([1])
         polygons.enter().append("g").attr("id","mapregion")
