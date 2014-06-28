@@ -16,7 +16,8 @@ var seen = {};
 
 bookworm.updateAxisOptionBoxes();
 
-d3.select("svg").on("click",function(d) {
+update = function(d) {
+    d3.selectAll("button").remove()
     d3.selectAll("textarea").style("display","none")
     var value =  document
         .getElementById("paragraph")
@@ -121,7 +122,16 @@ d3.select("svg").on("click",function(d) {
         //changeWords()
     })
     changeWords()
-})
+}
+
+
+d3.select("svg").on("click",update)
+
+d3.selectAll("button").on("click",update)
+
+
+
+
 
 // And for now I'm just having that query live in a text box. We can use the real Bookworm query entries instead, but no use reinventing that wheel here.
 
