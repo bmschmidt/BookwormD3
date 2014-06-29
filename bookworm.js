@@ -976,7 +976,6 @@ BookwormClasses = {
 	var firstRun = true
 
 	if (bookworm.query.aesthetic.time != undefined) {
-
 	    if (timeHandler.nested!= undefined) {firstRun = false}
 
 	    timeSlider = function() {
@@ -988,19 +987,8 @@ BookwormClasses = {
 
 		timeHandler.currentTime =timeHandler.timeScale.domain()[0]	 
 		var marker = timeHandler.axisGroup.selectAll("g.marker")
-		marker
-		    .data([1])
-		    .enter()
-		    .append('g')
-		    .attr("class","axis marker")
-		    .attr('id',"timeSlider")
-		    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
-		    .append("circle")
-		    .attr("r",10)
-		    .style("fill","red")
-		    .call(drag)
 
-		drag = d3.behavior.drag()
+		var drag = d3.behavior.drag()
 		    .on("dragstart",function() {
 			clearTimeout(bookworm.nextEvent)
 			    timeHandler.inmotion = false
@@ -1011,11 +999,34 @@ BookwormClasses = {
 			tickTo(timeHandler.currentTime)
 		    })
 		    .on("dragend",function() {
-			timeHandler.inmotion = true;
-			tickTo(timeHandler.currentTime)
+			//timeHandler.inmotion = true;
+			//tickTo(timeHandler.currentTime)
 		    })
 
+		marker
+		    .data([1])
+		    .enter()
+		    .append('g')
+		    .attr("class","axis marker")
+		    .attr('id',"timeSlider")
+		    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+		    .append("circle")
+		    .attr("r",10)
+		    .style("fill","red")
+		    .on("click",function() {
+			timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
+			timeHandler.inmotion=true;
+			tickTo(timeHandler.currentTime)
+			
+		    })
+
+		timeHandler.axisGroup.on("click",function(d) {
+		    timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
+		})
 		timeHandler.axisGroup.select("#timeSlider").call(drag)
+
+
+
 
  	    }
 
@@ -1029,7 +1040,7 @@ BookwormClasses = {
 		timeHandler.fullyNested = d3
 		    .nest()
 		    .key(function(d) {return d[query.aesthetic.time]}).key(function(d) {return d[query.aesthetic.time]}).map(bookworm.data)
-		timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d.publish_year})))
+		timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d[query.aesthetic.time]})))
 		
 		timeSlider()
 		
@@ -1046,7 +1057,7 @@ BookwormClasses = {
 	    if (data==undefined) {data = []}
 	}
 
-        var sizeScale = d3.scale.sqrt().range([1,35]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
+        var sizeScale = d3.scale.sqrt().range([3,35]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
 
 
         var colorValues = bookworm.data.map(function(d) {
