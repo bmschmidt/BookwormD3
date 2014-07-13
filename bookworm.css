@@ -87,6 +87,10 @@ path.pointer {
     fill:grey
 }
 
+path.point {
+    fill:red;
+}
+
 circle.plot {
     opacity:0.8;
     color:white;
