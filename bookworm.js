@@ -1064,6 +1064,10 @@ BookwormClasses = {
             return(d[bookworm.query['aesthetic']['color']])
         })
 
+	data.sort(function(a,b) {
+	    return (a[bookworm.query.aesthetic.size] - b[bookworm.query.aesthetic.size])
+	})
+
 	data.forEach(function(d) {
 	    try {
 		d.coordinates = JSON.parse(d[query.aesthetic.point]).reverse();
@@ -1168,18 +1172,22 @@ BookwormClasses = {
             return parseFloat(b[query['aesthetic']['size']] - a[query['aesthetic']['size']])
         })
 
+/**
         var proj = d3.geo.mercator().scale(220)
-//        var proj = d3.geo.albers().scale(1050)
-var proj = d3.geo.azimuthalEqualArea()
-    .clipAngle(180 - 1e-3)
-    .scale(237)
-    .translate([width / 2, height / 2])
-    .precision(.1);
+
+	proj = d3.geo.azimuthalEqualArea()
+	    .clipAngle(180 - 1e-3)
+	    .scale(237)
+	    .translate([width / 2, height / 2])
+	    .precision(.1);
+**/
+        proj = d3.geo.albers().scale(1050)
 
         var polygons = mainPlotArea.selectAll("#mapregion").data([1])
-        polygons.enter().append("g").attr("id","mapregion")
-        d3.json("data/world-countries.json", function(error, world) {
 
+        polygons.enter().append("g").attr("id","mapregion")
+
+        d3.json("data/world-countries.json", function(error, world) {
             if (error) return console.error(error);
 
             var itAll = polygons.selectAll("path").data([world])
