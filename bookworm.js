@@ -216,23 +216,92 @@ BookwormClasses = {
         })
     },
     smooth : function(span,axis) {
-        axis = axis || "y"
-        //currently this really sucks:
-        //it only lets you smooth once, and overwrites the original data.
-        //and it only works on the y axis.
-        //But proof of concept, baby.
-        bookworm = this
-        dat = bookworm.data;
+        var bookworm = this;
+        span = span || bookworm.query.smoothingSpan
+        axis = axis || "time"
 
-        dat.map(function(d,i) {
-            d[this.query.aesthetic[axis] + "smoothedValues"] =
-                d3.mean(
-                    dat.slice(
-                        d3.max([0,i-span]),d3.min([dat.length,i+span+1]
-                                                 ))
-                        .map(function(d) {
-                            return d[bookworm.query.aesthetic["y"]]
-                        }))})
+        //the funny thing about smoothing is that when it's multivariate, we need to create some entries to interpolate 0 counts: if Britain has a series from 1066 to 2000, and the US only from 1776 to 1860 and 1865 to 2000, we want to interpolate a whole bunch of zeroes before 1776 and 1860. But if there's a series of US grain and cattle exports but only British grain exports, there's no need to create a dummy set of British cattle exports consisting only of zeroes. Probably.
+
+        //using D3.nest to avoid expensive filters.
+
+        var smoothingBy = bookworm.query.aesthetic[axis]
+        var otherKeys = d3.values(bookworm.query.aesthetic)
+        var quantKeys = bookworm.variableOptions.quantitative.map(function(d) {return d.dbname}).filter(function(d) {
+            return otherKeys.indexOf(d) > -1
+        })
+
+
+        var groupings = otherKeys.filter(function(key) {
+            if (quantKeys.indexOf(key)>-1) {return false}
+            if (key==smoothingBy) {return false}
+            return true
+        })
+
+        var completeNesting = d3.nest()
+
+        //nest by each of the groupings
+        groupings.forEach(function(key) {
+            completeNesting.key(function(d) {
+                return d[key]
+            })
+        })
+
+        //nest by the thing itself.
+        completeNesting.key(function(d) {
+            return d[smoothingBy]
+        })
+
+        var timeStamps = d3.set(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic[axis]]})).values().sort(function(a,b) {return parseFloat(a)-parseFloat(b)})
+
+
+        var timeGroups = timeStamps.map(function(d,i) { return timeStamps.slice(d3.max([0,i-bookworm.query.smoothingSpan]),d3.min([timeStamps.length,i+ bookworm.query.smoothingSpan + 1]) )})
+
+
+        var completeIndex = completeNesting.map(bookworm.data)
+
+        //One element per each interaction of variables in the groupings: recreated by recursively descending the first levels of the completeIndex hierarchy.
+        var recurse = function(object,labels) {
+            var key = labels[0];
+            if (labels.length==1) {
+                return d3.keys(object).map(function(d) {
+                    a = {};
+                    a[key] = d;
+                    a['values'] = object[d]
+                    return a })
+            } else {
+                returnVal = []
+                d3.keys(object).forEach(function(key2) {
+                    vals = recurse(object[key2],labels.slice(1))
+                    returnVal = returnVal.concat(vals.map(function(d) {
+                        d[key] = key2
+                        return d
+                    }))
+                })
+                return returnVal
+            }
+        }
+
+        var hierarchy =  recurse(completeIndex,groupings)
+
+        var smoothedData = []
+
+        hierarchy.forEach(function(hierarchyLevel) {
+            var locEntries = Object.create(hierarchyLevel['values']);
+            delete hierarchyLevel['values']
+            timeGroups.map(function(timesToMerge,i) {
+                var newOut = Object.create(hierarchyLevel);
+                newOut[bookworm.query.aesthetic[axis]] = timeStamps[i]
+                quantKeys.forEach(function(key) {
+                    newOut[key] = d3.mean(
+                        timesToMerge.map(function(d) {
+                            if (locEntries[d]==undefined) {return 0}
+                            return locEntries[d][0][key]
+                        }))
+                })
+                smoothedData.push(newOut)
+            })
+        })
+        return smoothedData;
     },
     nestData : function(rename) {
         rename = rename || false
@@ -284,6 +353,7 @@ BookwormClasses = {
         var query = JSON.parse(JSON.stringify(this.query))
         delete(query.aesthetic)
         delete(query.scaleType)
+        delete(query.smoothingSpan)
         delete(query.plotType)
         return JSON.stringify(query);
 
@@ -348,10 +418,10 @@ BookwormClasses = {
         bookworm.requireAesthetics(["level1","level2","level3"],"categorical")
 
         var margin = {top: 20, right: 0, bottom: 0, left: 0},
-        width = 960,
-        height = 500 - margin.top - margin.bottom,
-        formatNumber = d3.format(",d"),
-        transitioning;
+            width = 960,
+            height = 500 - margin.top - margin.bottom,
+            formatNumber = d3.format(",d"),
+            transitioning;
 
         var x = d3.scale.linear()
             .domain([0, width])
@@ -468,8 +538,8 @@ BookwormClasses = {
                 transitioning = true;
 
                 var g2 = display(d),
-                t1 = g1.transition().duration(750),
-                t2 = g2.transition().duration(750);
+                    t1 = g1.transition().duration(750),
+                    t2 = g2.transition().duration(750);
 
                 // Update the domain only after entering new elements.
                 x.domain([d.x, d.x + d.dx]);
@@ -560,8 +630,8 @@ BookwormClasses = {
 
         var duration = 2000;
         var width = d3.min([window.innerHeight,window.innerWidth]),
-        height =width,
-        radius = Math.min(width, height) / 2;
+            height =width,
+            radius = Math.min(width, height) / 2;
 
         var levels = d3.keys(bookworm.query.aesthetic).filter(function(d) {return /level/.test(d)})
         levels.sort()
@@ -661,8 +731,8 @@ BookwormClasses = {
             .attr("dy", ".2em")
             .attr("transform", function(d) {
                 var multiline = (d.key || "").split(" ").length > 1,
-                angle = x(d.x + d.dx / 2) * 180 / Math.PI - 90,
-                rotate = angle + (multiline ? -.5 : 0);
+                    angle = x(d.x + d.dx / 2) * 180 / Math.PI - 90,
+                    rotate = angle + (multiline ? -.5 : 0);
                 return "rotate(" + rotate + ")translate(" + (y(d.y) + padding) + ")rotate(" + (angle > 90 ? -180 : 0) + ")";
             })
 
@@ -697,7 +767,7 @@ BookwormClasses = {
                     var multiline = (d.key || "").split(" ").length > 1;
                     return function() {
                         var angle = x(d.x + d.dx / 2) * 180 / Math.PI - 90,
-                        rotate = angle + (multiline ? -.5 : 0);
+                            rotate = angle + (multiline ? -.5 : 0);
                         return "rotate(" + rotate + ")translate(" + (y(d.y) + padding) + ")rotate(" + (angle > 90 ? -180 : 0) + ")";
                     };
                 })
@@ -717,8 +787,8 @@ BookwormClasses = {
         }
         function arcTween(d) {
             var xd = d3.interpolate(x.domain(), [d.x, d.x + d.dx]),
-            yd = d3.interpolate(y.domain(), [d.y, 1]),
-            yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);
+                yd = d3.interpolate(y.domain(), [d.y, 1]),
+                yr = d3.interpolate(y.range(), [d.y ? 20 : 0, radius]);
             return function(d, i) {
                 return i
                     ? function(t) { return arc(d); }
@@ -964,186 +1034,267 @@ BookwormClasses = {
         //things we need to remember for plotting preferences.
         "lastPlotted":null,
     },
+    timeHandler: function(timeHandler,callback) {
+        var bookworm = this;
+        var timeHandler = timeHandler || {};
+        var mainPlotArea = this.selections.mainPlotArea;
+        var query = bookworm.query;
 
+        timeHandler.timeSlider = function() {
+            timeHandler.axisScale = d3.scale.linear().domain(timeHandler.timeScale.domain()).range([50,1000]).clamp(true)
+
+            timeHandler.axis = d3.svg.axis().scale(timeHandler.axisScale).orient("bottom").tickFormat(function(d) {return d})
+
+
+            timeHandler.axisGroup = mainPlotArea.selectAll(".axis.time").data([1])
+            timeHandler.axisGroup.enter().append("g").attr("class","time axis").attr('transform',"translate(0,8)")
+            timeHandler.axisGroup.call(timeHandler.axis)
+
+            timeHandler.currentTime =timeHandler.timeScale.domain()[0]
+            var marker = timeHandler.axisGroup.selectAll("g.marker")
+
+            var drag = d3.behavior.drag()
+                .on("dragstart",function() {
+                    clearTimeout(bookworm.nextEvent)
+                    timeHandler.inmotion = false
+                })
+                .on("drag",function() {
+                    timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
+                    d3.select(this).attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+                    timeHandler.tickTo(timeHandler.currentTime)
+                })
+                .on("dragend",function() {
+                    //timeHandler.inmotion = true;
+                    //tickTo(timeHandler.currentTime)
+                })
+
+            marker
+                .data([1])
+                .enter()
+                .append('g')
+                .attr("class","axis marker")
+                .attr('id',"timeSlider")
+                .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+                .append("circle")
+                .attr("r",10)
+                .style("fill","red")
+                .on("click",function() {
+                    timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
+                    timeHandler.inmotion=true;
+                    timeHandler.tickTo(timeHandler.currentTime)
+
+                })
+
+            timeHandler.axisGroup.on("click",function(d) {
+                timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
+            })
+            timeHandler.axisGroup.select("#timeSlider").call(drag)
+
+        }
+
+        console.log('resetting inmotion')
+        timeHandler.inmotion = true
+        console.log("setting up time handler")
+
+        nester = d3.nest().key(function(d) {return d[bookworm.query.aesthetic.time]})
+
+        var smoothingSpan = 0 || bookworm.query.smoothingSpan
+
+        if(smoothingSpan > 0) {
+            var rawData = bookworm.smooth();
+            var filtered = rawData.filter(function(d) {return d[bookworm.query.aesthetic.size] > 0})
+            timeHandler.nested = nester.map(filtered)
+        } else {
+            timeHandler.nested = nester.map(bookworm.data)
+        }
+
+        timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.time]})))
+
+        timeHandler.timeSlider()
+
+        timeHandler.data = function(x) {
+            if (!arguments.length) {
+                return timeHandler.nested[timeHandler.currentTime];
+            }
+            data = x;
+            return timeHandler;
+        }
+
+        timeHandler.callback = function(x) {
+            if (!arguments.length) return callback;
+            callback= x
+            return timeHandler
+        }
+
+        timeHandler.tickTo = function(time) {
+            timeHandler.currentTime = time;
+            if (timeHandler.currentTime > timeHandler.timeScale.domain()[1]) {
+                timeHandler.inmotion=false
+            } else {
+                mainPlotArea
+                    .selectAll("#timeSlider")
+                    .transition()
+                    .duration(Math.abs(timeHandler.timeScale(1)-timeHandler.timeScale(0)))
+                    .ease("linear")
+                    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
+                callback(timeHandler);
+            }
+        }
+
+        return timeHandler
+    },
     mapPoints: function(proj,timeHandler) {
-	//This drops point on a map: if "time" is one of the dimensions to the plot, it also animates them.
-	
-	var timeHandler = timeHandler || {};
+        //This drops point on a map: if "time" is one of the dimensions to the plot, it also animates them.
+
         //Drops a bunch of points, regardless of what sort of map there is.
         var bookworm = this
-	var data = bookworm.data;
+        var data = bookworm.data;
+        var duration = 300
+
+        // Set up color scale:
         var mainPlotArea = this.selections.mainPlotArea;
-	var firstRun = true
 
-	if (bookworm.query.aesthetic.time != undefined) {
-	    if (timeHandler.nested!= undefined) {firstRun = false}
+        if (bookworm.query.aesthetic.color != undefined) {
+            var colorValues = data.map(function(d) {
+                return(d[bookworm.query.aesthetic.color])
+            })
+            bookworm.query['scaleType'] = bookworm.query['scaleType'] || "log"
+            bookworm.scales.color = bookworm
+                .returnScale()
+                .values(colorValues)
+                .scaleType(d3.scale[bookworm.query['scaleType']])()
+        }
+        if (timeHandler==undefined & bookworm.query.aesthetic.color != undefined) {
+            bookworm.legends.color = Colorbar()
+                .scale(bookworm.scales.color)
+                .update()
+        }
 
-	    timeSlider = function() {
-		timeHandler.axisScale = d3.scale.linear().domain(timeHandler.timeScale.domain()).range([50,1000]).clamp(true)
-		timeHandler.axis = d3.svg.axis().scale(timeHandler.axisScale).orient("bottom").tickFormat(function(d) {return d})
-		timeHandler.axisGroup = mainPlotArea.selectAll(".axis.time").data([1])
-		timeHandler.axisGroup.enter().append("g").attr("class","time axis").attr('transform',"translate(0,8)")
-		timeHandler.axisGroup.call(timeHandler.axis)
+        var sizeScale = d3.scale.sqrt().range([1,50]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
 
-		timeHandler.currentTime =timeHandler.timeScale.domain()[0]	 
-		var marker = timeHandler.axisGroup.selectAll("g.marker")
+        /**
+           TIME HANDLING
+           This code should be generally portable, except that
+           (in this case) we're passing a "proj" as well as a timeHandler item
+           as the argument to the function.
 
-		var drag = d3.behavior.drag()
-		    .on("dragstart",function() {
-			clearTimeout(bookworm.nextEvent)
-			    timeHandler.inmotion = false
-		    })
-		    .on("drag",function() {
-			timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
-			d3.select(this).attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
-			tickTo(timeHandler.currentTime)
-		    })
-		    .on("dragend",function() {
-			//timeHandler.inmotion = true;
-			//tickTo(timeHandler.currentTime)
-		    })
+           This needs to be done here because it resets the data.
+        **/
+        if (bookworm.query.aesthetic.time != undefined) {
 
-		marker
-		    .data([1])
-		    .enter()
-		    .append('g')
-		    .attr("class","axis marker")
-		    .attr('id',"timeSlider")
-		    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
-		    .append("circle")
-		    .attr("r",10)
-		    .style("fill","red")
-		    .on("click",function() {
-			timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
-			timeHandler.inmotion=true;
-			tickTo(timeHandler.currentTime)
-			
-		    })
+            //create a time handler if it doesn't exist;
+            if (timeHandler ==undefined) {
+                timeHandler = this.timeHandler(
+                    timeHandler,
+                    callback = function(timeHandler) {
+                        bookworm.mapPoints(proj,timeHandler)
+                    })
+            }
+            //set the data to that for the particular time we're in:
+            data = timeHandler.data()
 
-		timeHandler.axisGroup.on("click",function(d) {
-		    timeHandler.currentTime = Math.round(timeHandler.axisScale.invert(d3.event.x));
-		})
-		timeHandler.axisGroup.select("#timeSlider").call(drag)
+            //set the duration to
 
+            duration = Math.abs(timeHandler.timeScale(1)-timeHandler.timeScale(0))
+        }
+        /**
+           END TIME HANDLING
+        **/
 
-
-
- 	    }
-
-	    if (firstRun) {
-		console.log('resetting inmotion')
-		timeHandler.inmotion = true
-		console.log("setting up time handler")
-
-		timeHandler.nested = d3.nest().key(function(d) {return d[query.aesthetic.time]}).map(bookworm.data)
-		smoothingSpan = 0 || bookworm.query.smoothingSpan
-		timeHandler.fullyNested = d3
-		    .nest()
-		    .key(function(d) {return d[query.aesthetic.time]}).key(function(d) {return d[query.aesthetic.time]}).map(bookworm.data)
-		timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d[query.aesthetic.time]})))
-		
-		timeSlider()
-		
-	    }
-
-	    data = timeHandler.nested[timeHandler.currentTime]
-	    if (timeHandler.inmotion) {
-		mainPlotArea
-		    .selectAll("#timeSlider")
-		    .transition()
-		    .ease("linear")	    
-		    .attr("transform","translate(" + timeHandler.axisScale(timeHandler.currentTime) + ",0)")
-	    }
-	    if (data==undefined) {data = []}
-	}
-
-        var sizeScale = d3.scale.sqrt().range([3,35]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
-
-
-        var colorValues = bookworm.data.map(function(d) {
-            return(d[bookworm.query['aesthetic']['color']])
+        data.forEach(function(d) {
+            try {
+                d.coordinates = JSON.parse(d[query.aesthetic.point]).reverse();
+            } catch(err) {
+                d.coordinates = [undefined,undefined]
+            }
+            d.type="Point";
         })
 
-	data.forEach(function(d) {
-	    try {
-		d.coordinates = JSON.parse(d[query.aesthetic.point]).reverse();
-	    } catch(err) {
-		d.coordinates = [null,null]
-	    }
-	    
-	    d.type="Point";
-	})
+        var nullpath = d3.geo.path().projection(proj)
+            .pointRadius(0)
 
-        bookworm.query['scaleType'] = bookworm.query['scaleType'] || "log"
+        var basicPath = d3.geo.path().projection(proj)
+            .pointRadius(10)
 
-        bookworm.scales.color = bookworm.returnScale()
-            .values(colorValues)
-            .scaleType(d3.scale[bookworm.query['scaleType']])()
+        var path = d3.geo.path().projection(proj)
+            .pointRadius(function(d) {
+                return sizeScale(d[bookworm.query.aesthetic.size])
+            })
 
-	if (firstRun & bookworm.query.aesthetic.color != undefined) {
-        bookworm.legends.color = Colorbar()
-            .scale(bookworm.scales.color)
-            .update()
-	}
-
-
-	var nullpath = d3.geo.path().projection(proj)            
-	    .pointRadius(0)
-	var path = d3.geo.path().projection(proj)            
-	    .pointRadius(function(d) {return sizeScale(d[query.aesthetic.size])})
-	
-	
         var points = mainPlotArea.selectAll("path.point")
-	    .data(data,function(d) {
-		return d[bookworm.query.aesthetic.point] + d[bookworm.query.aesthetic.label]
-	    })
+            .data(data,function(d) {
+                return d[bookworm.query.aesthetic.point] + d[bookworm.query.aesthetic.label]
+            })
 
-	var getColor = function(d) {
-	    var val = bookworm.scales.color(d[bookworm.query.aesthetic.color]) || "green"
-	    return val;
-	}
+        var getColor = function(d) {
+            var val = bookworm.scales.color(d[bookworm.query.aesthetic.color]) || "green"
+            return val;
+        }
 
         points
             .enter()
             .append("path")
             .style("fill",getColor)
-	    .attr("d",nullpath)
-	    .attr("class","point")
-	    .style("opacity",.6)
-	//to change the size, we have to chang the path function. Yuck.
+            .attr("d",nullpath)
+            .attr("class","point")
+            .style("opacity",.4)
 
-	duration = 100
-	
         points
             .transition()
-	    .ease("linear")
-	    .duration(duration)
+            .ease("linear")
+            .duration(duration)
             .style("fill",getColor)
-	    .attr("d",path)
+            .attr("d",path)
 
-	tickTo = function(time) {
-	    timeHandler.currentTime += 1
-	    if (timeHandler.currentTime > timeHandler.timeScale.domain()[1]) {
-		timeHandler.inmotion=false
-	    } else {
-		bookworm.mapPoints(proj,timeHandler)
-	    }
-	}
-	
         points
-	    .exit()
-	    .transition()
-	    .duration(duration)
-	    .attr("d",nullpath)
-	    .remove()
+            .exit()
+            .transition()
+            .duration(duration)
+            .attr("d",nullpath)
+            .remove()
 
         points.makeClickable(bookworm.query,bookworm.legends.color)
 
-	if (bookworm.query.aesthetic.time != undefined & timeHandler.inmotion) {
-	    clearTimeout(bookworm.nextEvent)
-	    bookworm.nextEvent = setTimeout(function() {tickTo(timeHandler.currentTime + 1)},duration)
-	}
 
+        if (bookworm.query.aesthetic.time != undefined & timeHandler.inmotion) {
+            clearTimeout(bookworm.nextEvent)
+            bookworm.nextEvent = setInterval(function() {
+                timeHandler.tickTo(timeHandler.currentTime + 1)
+            },duration/2)
+        }
+
+
+        /**MIDPOINT: just for fun:
+           an optional secretic query called "midPointBy"
+        **/
+        if (bookworm.query.midPointBy!=undefined) {
+            var sizer = bookworm.query.aesthetic.size
+
+            midPointer = d3.nest()
+		.key(function(d) {return d[bookworm.query.midPointBy]})
+                .rollup(function(leaves) {
+		    var total = d3.sum(leaves.map(function(d) {return d[sizer]}))
+		    return (
+                    {"coordinates":[
+                        d3.sum(leaves.map(function(d) {return d[sizer]*d.coordinates[0]}))/total,
+                        d3.sum(leaves.map(function(d) {return d[sizer]*d.coordinates[1]}))/total],
+                     "type":"Point",
+                     "TextCount":d3.sum(leaves.map(function(d) {return d.TextCount}))}
+                )                                                                                                  })
+            var midPoints = midPointer.entries(data)
+	    midPoints.forEach(function(d) {
+		d3.keys(d.values).forEach(function(key) {
+		    d[key] = d.values[key]
+		})
+	    })
+            var midpointP = mainPlotArea.selectAll("path.midPoint").data(midPoints,function(d) {return d["key"]})
+            midpointP.enter().append("path").attr("class","midPoint")
+                .attr("d",nullpath).attr("id","midPoint")
+                .style("fill","orange")
+
+            midpointP.transition().duration(duration).attr("d",path)
+            midpointP.exit().transition().attr("d",nullpath).remove()
+        }
     },
     map : function() {
         var mainPlotArea = this.selections.mainPlotArea;
@@ -1168,13 +1319,17 @@ BookwormClasses = {
             return parseFloat(b[query['aesthetic']['size']] - a[query['aesthetic']['size']])
         })
 
+
         var proj = d3.geo.mercator().scale(220)
-//        var proj = d3.geo.albers().scale(1050)
-var proj = d3.geo.azimuthalEqualArea()
-    .clipAngle(180 - 1e-3)
-    .scale(237)
-    .translate([width / 2, height / 2])
-    .precision(.1);
+
+        proj = d3.geo.azimuthalEqualArea()
+            .clipAngle(180 - 1e-3)
+            .scale(237)
+            .translate([width / 2, height / 2])
+            .precision(.1);
+
+//        proj = d3.geo.albers().scale(1050)
+
 
         var polygons = mainPlotArea.selectAll("#mapregion").data([1])
         polygons.enter().append("g").attr("id","mapregion")
@@ -1198,9 +1353,9 @@ var proj = d3.geo.azimuthalEqualArea()
         var mainPlotArea = this.selections.mainPlotArea;
         var bookworm = this;
 
-	bookworm.data=bookworm.data.filter(function(d) {
-	    return d[bookworm.query.aesthetic.y] != undefined & !isNaN(d[bookworm.query.aesthetic.y])
-	})
+        bookworm.data=bookworm.data.filter(function(d) {
+            return d[bookworm.query.aesthetic.y] != undefined & !isNaN(d[bookworm.query.aesthetic.y])
+        })
         parentDiv = d3.select("#selectionOptions")
         bookworm.addFilters({
             "word":"textArray"  },
@@ -1690,7 +1845,7 @@ var proj = d3.geo.azimuthalEqualArea()
                     //console.log("trying again")
                     //keep trying until the options are actually posted.
                     setTimeout(that.initialize,100)
-		    return
+                    return
                 }
                 options.exit().remove()
                 options.enter().append("option")
@@ -1732,8 +1887,10 @@ var proj = d3.geo.azimuthalEqualArea()
             var target = "word"
 
             that.pull = function() {
-                box
-                    .property("value",bookworm.query.search_limits[target].join(","))
+                try {
+                    box
+                        .property("value",bookworm.query.search_limits[target].join(","))
+                } catch(err) {}
                 return that
             }
             that.target = function(x) {
@@ -2064,8 +2221,8 @@ var proj = d3.geo.azimuthalEqualArea()
     returnScale : function() {
         var bookworm = this;
         var colors = this.colorSchemes.RdYlGn,//greenToRed,
-        scaleType = d3.scale.log,
-        values = [1,2,3,4,5]
+            scaleType = d3.scale.log,
+            values = [1,2,3,4,5]
 
         function my() {
             scale = scaleType().range(colors)
@@ -2349,7 +2506,7 @@ var proj = d3.geo.azimuthalEqualArea()
             entry = bookworm.data[i]
             d = entry[key]
             if (isNaN(d) & d!="" & d!="None" & d!="undefined" & d!== undefined) {
-		//console.log(d)
+                //console.log(d)
                 //console.log("d has non-numeric values")
                 return
                 break
@@ -2681,7 +2838,7 @@ var proj = d3.geo.azimuthalEqualArea()
                 bookworm.data.map(function(d) {
                     return d[variableName]}
                                  )).values()
-	    console.log(names)
+            console.log(names)
             //            names = bookworm.topn(n,variableName,bookworm.data)
             //      console.log(names,variableName)
             bookworm.data = bookworm.data.filter(function(entry) {
@@ -2692,9 +2849,9 @@ var proj = d3.geo.azimuthalEqualArea()
             vals = names
             updateOrder()
             scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
-	    if (bookworm.query.aesthetic[axis]=="state") {
-		scale.domain(["HI","AK","WA","OR","CA","AZ","NM","CO","WY","UT","NV","ID","MT","ND","SD","NE","KS","IA","MN","MO","OH","MI","IN","IL","WI","OK","AR","TX","LA","MS","AL","TN","KY","GA","FL","SC","WV","NC","VA","DC","MD","DE","PA","NJ","NY","CT","RI","MA","NH","VT","ME"])
-	    }
+            if (bookworm.query.aesthetic[axis]=="state") {
+                scale.domain(["HI","AK","WA","OR","CA","AZ","NM","CO","WY","UT","NV","ID","MT","ND","SD","NE","KS","IA","MN","MO","OH","MI","IN","IL","WI","OK","AR","TX","LA","MS","AL","TN","KY","GA","FL","SC","WV","NC","VA","DC","MD","DE","PA","NJ","NY","CT","RI","MA","NH","VT","ME"])
+            }
             pointsToLabel = vals
             thisAxis = d3.svg.axis()
                 .scale(scale)
