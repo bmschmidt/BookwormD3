@@ -24,30 +24,6 @@ d3.selection.prototype.makeClickable = function(query,legend,ourBookworm) {
 
     var selection=this;
 
-    /**
-       toggleHighlighting = function(d,highlitValue) {
-       //given an axis and a datum
-       ["x","y","color","size"].map(function(axis) {
-       f = mainPlotArea.selectAll("#" + axis + "-axis")
-       .selectAll('text')
-       .data(
-       //rather than "string", this should take
-       //plotTransformer
-       [String(d[query['aesthetic'][axis]])],
-       function(e) {return(e)}
-       )
-
-       //by not entering, this just acts on the
-       //existing elements in the axis
-
-       f
-       .classed("highlit",highlitValue)
-       })
-       }
-    */
-
-
-
     selection
         .on('mouseover',function(d) {
             d3.select(this).classed("highlit",true)
@@ -165,7 +141,6 @@ BookwormClasses = {
         }
 
         if  (window.location.hash!=="") {
-            //console.log("returning guess from hash")
             return (JSON.parse(decodeURIComponent(window.location.hash.split("#")[1])))
         }
 
@@ -340,7 +315,6 @@ BookwormClasses = {
         if(rename) {
             output = renameChildren(output)
         }
-        console.log(output)
         return output
     },
 
@@ -406,7 +380,6 @@ BookwormClasses = {
 
         type = type || "character";
         aesthetics.forEach(function(aesthetic) {
-            console.log(bookworm.variableOptions.options)
             bookworm.query.aesthetic[aesthetic] = bookworm.query.aesthetic[aesthetic] || category
         });
     },
@@ -821,12 +794,10 @@ BookwormClasses = {
             .style("font-size:24pt")
             .padding({"x":10,"y":24})
 
-        console.log(newWords);
         newData = layout.points(newWords.filter(function(d) {
             return out.extraField;
         }))
 
-        console.log(newData);
         yVar =
             function(d) {
                 return (d.WordCount + d.TotalWords)/2
@@ -1183,7 +1154,8 @@ BookwormClasses = {
         if (bookworm.query.aesthetic.time != undefined) {
 
             //create a time handler if it doesn't exist;
-            if (timeHandler ==undefined) {
+            if (typeof(timeHandler) == 'undefined') {
+		console.log("initializing")
                 timeHandler = this.timeHandler(
                     timeHandler,
                     callback = function(timeHandler) {
@@ -1328,7 +1300,7 @@ BookwormClasses = {
             .translate([width / 2, height / 2])
             .precision(.1);
 
-//        proj = d3.geo.albers().scale(1050)
+	proj = d3.geo.albers().scale(1050)
 
 
         var polygons = mainPlotArea.selectAll("#mapregion").data([1])
@@ -1771,7 +1743,6 @@ BookwormClasses = {
             .each(function(d) {
                 d3.select(this)     .text(function(d) {return d.aesthetic + " representing "})
 
-                //console.log(d)
                 var addition = bookworm.queryVisualizations[d.type]()
                 addition.target(d.aesthetic)
                 addition.createOn(d3.select(this))
@@ -1842,7 +1813,6 @@ BookwormClasses = {
                     })
 
                 if (options.data().length==0) {
-                    //console.log("trying again")
                     //keep trying until the options are actually posted.
                     setTimeout(that.initialize,100)
                     return
@@ -1904,7 +1874,6 @@ BookwormClasses = {
             that.push = function() {
                 text = box.property("value")
                 text = text.replace(" *, *",",")
-                //console.log(text)
                 bookworm.query.search_limits[target] = text.split(",")
                 return that
             }
@@ -2440,7 +2409,6 @@ BookwormClasses = {
         d3.selectAll("[bindTo]")
             .on('change',function() {
                 if(d3.select(this).property("id")=="fixme") {
-                    //console.log("OK switching to",d3.select(this).property("value"))
                 }
 
                 bookworm.updateQuery(d3.select(this))
@@ -2466,18 +2434,30 @@ BookwormClasses = {
         bookworm.dataTypes[key]="Categorical"
         //if a date: return a dateTime object
         isADate = false
+
+	timeSignifiers = ['year','month','day','week','decade','century',"Year","Decade","yearchunk"]
+
         key.split("_").map(function(part) {
             //I'm just coming up with descriptions, here.
-            if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(part) >=0) {isADate=true}
+            if (timeSignifiers.indexOf(part) >=0) {isADate=true}
         })
 
         if (isADate) {
+		var getDate2 = function(intval) {
+		    var val = new Date();
+		    val.setFullYear(0,0,intval+1)
+		    //console.log(intval,"----------",val)
+		    return val
+		}
+
+
             bookworm.plotTransformers[key] = function(originalValue) {
+		originalValue = parseInt(originalValue)
                 datedValue = new Date()
                 //This code could be useful in the other Bookworm.
                 extractRelevantField = function(dateKey) {
                     output = undefined
-                    key.split("_").reverse().map(function(phrase) {
+                    dateKey.split("_").reverse().forEach(function(phrase) {
                         //The first date phrase to appear is the one we're using.
                         if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(phrase) >=0) {output=phrase}
                     })
@@ -2485,15 +2465,13 @@ BookwormClasses = {
                 }
 
                 relevantField = extractRelevantField(key)
-                if (['day','week'].indexOf(relevantField) >=0) {
-                    datedValue.setFullYear(1,0,originalValue)
-                } else if (['month'].indexOf(relevantField) >=0) {
-                    datedValue.setFullYear(1,-1,originalValue)
-                } else {
-                    datedValue.setFullYear(originalValue,1,1)
+                if (relevantField == "day") { return getDate2(originalValue)}
+                else if (relevantField=="week") {return getDate2(originalValue) }
+                else if (relevantField=="month") {return getDate2(originalValue) } 
+		else {
+		    datedValue.setFullYear(originalValue,1,1)
+                    return datedValue
                 }
-                return datedValue
-                //originalValue = datedValue
             }
             bookworm.dataTypes[key]="Date"
             return
@@ -2778,6 +2756,7 @@ BookwormClasses = {
 
         var variableName = query['aesthetic'][axis]
 
+
         var vals = d3.nest()
             .key(function(d) {
                 return d[variableName]
@@ -2838,9 +2817,7 @@ BookwormClasses = {
                 bookworm.data.map(function(d) {
                     return d[variableName]}
                                  )).values()
-            console.log(names)
             //            names = bookworm.topn(n,variableName,bookworm.data)
-            //      console.log(names,variableName)
             bookworm.data = bookworm.data.filter(function(entry) {
                 return(names.indexOf(entry[variableName]) > -1)
             })
@@ -2884,7 +2861,6 @@ BookwormClasses = {
             if (query.aesthetic[axis] == "WordsRatio" | query.aesthetic[axis]=="TextRatio") {
                 domain[0] = oldLow
                 scale = d3.scale.log().domain(domain).range([limits[axis][0],limits[axis][1]-pixels])
-                console.log(scale.domain(),scale.range())
             }
             thisAxis = d3.svg.axis()
                 .scale(scale)
