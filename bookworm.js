@@ -190,12 +190,47 @@ BookwormClasses = {
             callback()
         })
     },
-    smooth : function(span,axis) {
+    smooth : function(span,axis,kernel) {
         var bookworm = this;
+	console.log(this.data)
+	var kernelSmoother;
         span = span || bookworm.query.smoothingSpan
         axis = axis || "time"
 
-        //the funny thing about smoothing is that when it's multivariate, we need to create some entries to interpolate 0 counts: if Britain has a series from 1066 to 2000, and the US only from 1776 to 1860 and 1865 to 2000, we want to interpolate a whole bunch of zeroes before 1776 and 1860. But if there's a series of US grain and cattle exports but only British grain exports, there's no need to create a dummy set of British cattle exports consisting only of zeroes. Probably.
+	kernel = kernel || "sine"
+
+	if (kernel=="average") {
+	    kernelSmoother = function(array) {
+		return d3.mean(array)
+	    }
+	}
+	if (kernel=="sine") {
+	    kernelSmoother = function(array) {
+		//By default, use a sine-wave shaped smoothing kernel.
+		var length = array.length
+		var midpoint = (length-1)/2
+		var weighter = function(i) {
+		    return Math.cos((midpoint-i)/(length+2)*Math.PI/2)	
+		}
+		var totalWeights = 0;
+		var i = 0
+		weightedVals = array.map(function(d) {
+		    var weight = weighter(i);
+		    totalWeights += weight;
+		    i++;
+		    return (d * weight)
+		    
+		})
+		var total = d3.sum(weightedVals)/totalWeights
+		return total
+	    }
+	}
+
+        //the funny thing about smoothing is that when it's multivariate, we need to create some entries to interpolate 0 counts: if Britain has a series from 1066 to 2000, and the US only from 1776 to 1860 and 1865 to 2000, we want to interpolate a whole bunch of zeroes before 1776 and 1860. But if there's a series of US grain and cattle exports but only British grain exports, there's no need to create a dummy set of British cattle exports consisting only of zeroes. Probably. (I don't know, maybe there is?)
+
+	//Assuming zero for no data is also problematic in all sorts of ways; this needs a "step" variable.
+
+	//This code accomplishes that
 
         //using D3.nest to avoid expensive filters.
 
@@ -261,17 +296,21 @@ BookwormClasses = {
         var smoothedData = []
 
         hierarchy.forEach(function(hierarchyLevel) {
+	    //clone a new object off of the values for the level.
             var locEntries = Object.create(hierarchyLevel['values']);
             delete hierarchyLevel['values']
             timeGroups.map(function(timesToMerge,i) {
                 var newOut = Object.create(hierarchyLevel);
                 newOut[bookworm.query.aesthetic[axis]] = timeStamps[i]
                 quantKeys.forEach(function(key) {
-                    newOut[key] = d3.mean(
-                        timesToMerge.map(function(d) {
+		    //For each quantitative key, there's a different value to smooth.
+		    //Currently we work across them, not combining. (I think).
+		    values = timesToMerge.map(function(d) {
                             if (locEntries[d]==undefined) {return 0}
                             return locEntries[d][0][key]
-                        }))
+                    })
+		    //Set the smoothed data equal to whatever smoothing kernel is being used
+		    newOut[key] = kernelSmoother(values)
                 })
                 smoothedData.push(newOut)
             })
@@ -1006,6 +1045,13 @@ BookwormClasses = {
         "lastPlotted":null,
     },
     timeHandler: function(timeHandler,callback) {
+
+
+	// This is a rather elaborate mechanism to handle plotting a chart with a time dimension:
+	//after passing it a time handler (or nothing) and a callback function, it will 
+	// repeatedly advance the timeframe (based on the aesthetic["time"] element of query)
+	// and reinvoke the callback function, which is a plot function.
+
         var bookworm = this;
         var timeHandler = timeHandler || {};
         var mainPlotArea = this.selections.mainPlotArea;
@@ -1015,6 +1061,24 @@ BookwormClasses = {
             timeHandler.axisScale = d3.scale.linear().domain(timeHandler.timeScale.domain()).range([50,1000]).clamp(true)
 
             timeHandler.axis = d3.svg.axis().scale(timeHandler.axisScale).orient("bottom").tickFormat(function(d) {return d})
+
+
+
+
+	    var getDate2 = function(intval) {
+		var val = new Date();
+		val.setFullYear(0,0,intval+1)
+		//console.log(intval,"----------",val)
+		return val
+	    }
+
+	    timeRegex = new RegExp("_week|_month|_day")
+	    if (timeRegex.test(bookworm.query.aesthetic.time)) {
+		timeHandler.axis.tickFormat(function(time) {
+		    var timevar = getDate2(time)
+		    return timevar.toDateString()
+		})
+	    }
 
 
             timeHandler.axisGroup = mainPlotArea.selectAll(".axis.time").data([1])
@@ -1085,7 +1149,9 @@ BookwormClasses = {
 
         timeHandler.data = function(x) {
             if (!arguments.length) {
-                return timeHandler.nested[timeHandler.currentTime];
+		//There are occasions when there may be internal smoothed points without any data at all: those should be empty arrays, not just undefined.
+		var returnable = timeHandler.nested[timeHandler.currentTime] || [];
+                return returnable;
             }
             data = x;
             return timeHandler;
@@ -1317,7 +1383,6 @@ BookwormClasses = {
                 .style("opacity",.1)
                 .attr()
         });
-
         bookworm.mapPoints(proj)
     },
 
@@ -2347,13 +2412,10 @@ BookwormClasses = {
                         row['database'] = bookworm.query['database']
                         variableOptions.options.push(row)
                     })
-
                     variableOptions.options = variableOptions.options.filter(function(row){
                         if (row.database==bookworm.query.database ) return true
                     })
-
                     callback()
-
                 });
     }
     ,
@@ -2650,6 +2712,7 @@ BookwormClasses = {
                 return nestedScale.ticks(6).map(function(n) {return sizescale.invert(n)})
             })
             .tickFormat(bookworm.prettyName)
+
 
         sizeLegend = bookworm.selections.container
             .selectAll(".legend.size")
