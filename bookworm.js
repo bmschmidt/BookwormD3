@@ -190,12 +190,47 @@ BookwormClasses = {
             callback()
         })
     },
-    smooth : function(span,axis) {
+    smooth : function(span,axis,kernel) {
         var bookworm = this;
+	console.log(this.data)
+	var kernelSmoother;
         span = span || bookworm.query.smoothingSpan
         axis = axis || "time"
 
-        //the funny thing about smoothing is that when it's multivariate, we need to create some entries to interpolate 0 counts: if Britain has a series from 1066 to 2000, and the US only from 1776 to 1860 and 1865 to 2000, we want to interpolate a whole bunch of zeroes before 1776 and 1860. But if there's a series of US grain and cattle exports but only British grain exports, there's no need to create a dummy set of British cattle exports consisting only of zeroes. Probably.
+	kernel = kernel || "sine"
+
+	if (kernel=="average") {
+	    kernelSmoother = function(array) {
+		return d3.mean(array)
+	    }
+	}
+	if (kernel=="sine") {
+	    kernelSmoother = function(array) {
+		//By default, use a sine-wave shaped smoothing kernel.
+		var length = array.length
+		var midpoint = (length-1)/2
+		var weighter = function(i) {
+		    return Math.cos((midpoint-i)/(length+2)*Math.PI/2)	
+		}
+		var totalWeights = 0;
+		var i = 0
+		weightedVals = array.map(function(d) {
+		    var weight = weighter(i);
+		    totalWeights += weight;
+		    i++;
+		    return (d * weight)
+		    
+		})
+		var total = d3.sum(weightedVals)/totalWeights
+		return total
+	    }
+	}
+
+        //the funny thing about smoothing is that when it's multivariate, we need to create some entries to interpolate 0 counts: if Britain has a series from 1066 to 2000, and the US only from 1776 to 1860 and 1865 to 2000, we want to interpolate a whole bunch of zeroes before 1776 and 1860. But if there's a series of US grain and cattle exports but only British grain exports, there's no need to create a dummy set of British cattle exports consisting only of zeroes. Probably. (I don't know, maybe there is?)
+
+	//Assuming zero for no data is also problematic in all sorts of ways; this needs a "step" variable.
+
+	//This code accomplishes that
 
         //using D3.nest to avoid expensive filters.
 
@@ -261,17 +296,21 @@ BookwormClasses = {
         var smoothedData = []
 
         hierarchy.forEach(function(hierarchyLevel) {
+	    //clone a new object off of the values for the level.
             var locEntries = Object.create(hierarchyLevel['values']);
             delete hierarchyLevel['values']
             timeGroups.map(function(timesToMerge,i) {
                 var newOut = Object.create(hierarchyLevel);
                 newOut[bookworm.query.aesthetic[axis]] = timeStamps[i]
                 quantKeys.forEach(function(key) {
-                    newOut[key] = d3.mean(
-                        timesToMerge.map(function(d) {
+		    //For each quantitative key, there's a different value to smooth.
+		    //Currently we work across them, not combining. (I think).
+		    values = timesToMerge.map(function(d) {
                             if (locEntries[d]==undefined) {return 0}
                             return locEntries[d][0][key]
-                        }))
+                    })
+		    //Set the smoothed data equal to whatever smoothing kernel is being used
+		    newOut[key] = kernelSmoother(values)
                 })
                 smoothedData.push(newOut)
             })
@@ -1006,6 +1045,13 @@ BookwormClasses = {
         "lastPlotted":null,
     },
     timeHandler: function(timeHandler,callback) {
+
+
+	// This is a rather elaborate mechanism to handle plotting a chart with a time dimension:
+	//after passing it a time handler (or nothing) and a callback function, it will 
+	// repeatedly advance the timeframe (based on the aesthetic["time"] element of query)
+	// and reinvoke the callback function, which is a plot function.
+
         var bookworm = this;
         var timeHandler = timeHandler || {};
         var mainPlotArea = this.selections.mainPlotArea;
@@ -1015,6 +1061,24 @@ BookwormClasses = {
             timeHandler.axisScale = d3.scale.linear().domain(timeHandler.timeScale.domain()).range([50,1000]).clamp(true)
 
             timeHandler.axis = d3.svg.axis().scale(timeHandler.axisScale).orient("bottom").tickFormat(function(d) {return d})
+
+
+
+
+	    var getDate2 = function(intval) {
+		var val = new Date();
+		val.setFullYear(0,0,intval+1)
+		//console.log(intval,"----------",val)
+		return val
+	    }
+
+	    timeRegex = new RegExp("_week|_month|_day")
+	    if (timeRegex.test(bookworm.query.aesthetic.time)) {
+		timeHandler.axis.tickFormat(function(time) {
+		    var timevar = getDate2(time)
+		    return timevar.toDateString()
+		})
+	    }
 
 
             timeHandler.axisGroup = mainPlotArea.selectAll(".axis.time").data([1])
@@ -1079,20 +1143,21 @@ Old code from HEAD, 7/13/14/?
 	    d.type="Point";
 	})
 **/
-        console.log('resetting inmotion')
         timeHandler.inmotion = true
         console.log("setting up time handler")
 
-        nester = d3.nest().key(function(d) {return d[bookworm.query.aesthetic.time]})
+        nester = d3.nest().key(function(d) {return parseInt(d[bookworm.query.aesthetic.time])})
 
         var smoothingSpan = 0 || bookworm.query.smoothingSpan
 
+	
         if(smoothingSpan > 0) {
             var rawData = bookworm.smooth();
             var filtered = rawData.filter(function(d) {return d[bookworm.query.aesthetic.size] > 0})
             timeHandler.nested = nester.map(filtered)
         } else {
             timeHandler.nested = nester.map(bookworm.data)
+	    console.log(timeHandler.nested)
         }
 
         timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.time]})))
@@ -1101,7 +1166,13 @@ Old code from HEAD, 7/13/14/?
 
         timeHandler.data = function(x) {
             if (!arguments.length) {
-                return timeHandler.nested[timeHandler.currentTime];
+		//There are occasions when there may be internal smoothed points without any data at all: those should be empty arrays, not just undefined.
+		returnable = timeHandler.nested[timeHandler.currentTime]
+		if (typeof(returnable)=="undefined") {
+		    return []
+		} else {
+		    return(returnable)
+		}
             }
             data = x;
             return timeHandler;
@@ -1165,7 +1236,8 @@ Old code from HEAD, 7/13/14/?
            (in this case) we're passing a "proj" as well as a timeHandler item
            as the argument to the function.
 
-           This needs to be done here because it resets the data.
+           This needs to be done here because it resets the data to a subset, 
+	   but we want the scales to be continuous across the whole range of data.
         **/
         if (bookworm.query.aesthetic.time != undefined) {
 
@@ -1332,7 +1404,6 @@ Old code from HEAD, 7/13/14/?
                 .style("opacity",.1)
                 .attr()
         });
-
         bookworm.mapPoints(proj)
     },
 
@@ -1361,12 +1432,12 @@ Old code from HEAD, 7/13/14/?
 
         var smoothingSpan = this.smoothingSpan || 0;
 
-        var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
-        this.smooth(smoothingSpan)
+//        var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
+//        this.smooth(smoothingSpan)
 
-        bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
+//        bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
 
-        bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
+//        bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
 
         var scales = this.updateAxes()
         var xstuff = scales[0]
@@ -1436,7 +1507,6 @@ Old code from HEAD, 7/13/14/?
 
 
         //these need to belong to the line somehow.
-
         circles
             .attr('opacity','.01')
             .on('mouseover',function(d) {d3.select(this).attr('opacity','1')})
@@ -1450,7 +1520,7 @@ Old code from HEAD, 7/13/14/?
 
 
 
-        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
+//        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
         bookworm.alignAesthetic()
 
         circles.makeClickable()
@@ -1468,7 +1538,7 @@ Old code from HEAD, 7/13/14/?
 
         bookworm.query.plotType=="heatmap" ?
             ystuff = bookworm.makeAxisAndScale('y',undefined,"name",false) :
-            ystuff = bookworm.makeAxisAndScale('y',undefined,"value")
+            ystuff = bookworm.makeAxisAndScale('y',undefined,"value",false)
 
         var xstuff = bookworm.makeAxisAndScale('x')
 
@@ -1520,7 +1590,7 @@ Old code from HEAD, 7/13/14/?
         var bookworm = this;
         var query = bookworm.query;
         var mainPlotArea = this.selections.mainPlotArea;
-
+	var data = this.data
         var parentDiv = d3.select("#selectionOptions")
 
         bookworm.addFilters({"word":"textArray"},parentDiv)
@@ -1535,6 +1605,12 @@ Old code from HEAD, 7/13/14/?
         //elements from the x-axis. Yikes. That's no good.
         transition=2000
 
+	if (d3.set(data.map(function(d) {
+		return d[query.aesthetic.y]
+	    })).size() > 50) {
+	    topHits = data.map(function(d) {return d[query.aesthetic.x]}).sort(function(a,b) {return b-a})
+	    bookworm.data=data.filter(function(b) {return b[query.aesthetic.x] > topHits[50]})
+	}
 
         var scales = this.updateAxes(delays = {"x":0,"y":transition},transitiontime=transition)
 
@@ -2362,13 +2438,10 @@ Old code from HEAD, 7/13/14/?
                         row['database'] = bookworm.query['database']
                         variableOptions.options.push(row)
                     })
-
                     variableOptions.options = variableOptions.options.filter(function(row){
                         if (row.database==bookworm.query.database ) return true
                     })
-
                     callback()
-
                 });
     }
     ,
@@ -2666,6 +2739,7 @@ Old code from HEAD, 7/13/14/?
             })
             .tickFormat(bookworm.prettyName)
 
+
         sizeLegend = bookworm.selections.container
             .selectAll(".legend.size")
             .data([{"x":origin[0],"y":origin[1]}])
@@ -2767,7 +2841,7 @@ Old code from HEAD, 7/13/14/?
         sortBy = sortBy || "name";
 
         //And that direction can be descending (true) or ascending (false)
-        descending = descending || true;
+        descending = descending || "default";
 
         var variableName = query['aesthetic'][axis]
 
@@ -2813,7 +2887,7 @@ Old code from HEAD, 7/13/14/?
                 } else { vals.sort() }
             }
 
-            if (!descending) {
+            if (descending=="default") {
 
                 vals.reverse()
             }
@@ -2935,7 +3009,11 @@ Old code from HEAD, 7/13/14/?
         {"variable":"TextCount","label":"# of Texts"},
         {"variable":"TotalTexts","label":"Total # of Texts"},
         {"variable":"WordsRatio","label":"Ratio of group A to B"},
-        {"variable":"SumWords","label":"Total in both sets"}
+        {"variable":"SumWords","label":"Total in both sets"},
+        {"variable":"TextLength","label":"Mean text length (in words)"},
+        {"variable":"MatchesPerText","label":"Mean hits per matching text"},
+        {"variable":"TFIDF","label":"TFIDF"},
+        {"variable":"Dunning","label":"Dunning Log Likelihood"}
     ],
     nameSubstitutions : function() {
         that = {};
