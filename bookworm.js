@@ -1127,20 +1127,21 @@ BookwormClasses = {
 
         }
 
-        console.log('resetting inmotion')
         timeHandler.inmotion = true
         console.log("setting up time handler")
 
-        nester = d3.nest().key(function(d) {return d[bookworm.query.aesthetic.time]})
+        nester = d3.nest().key(function(d) {return parseInt(d[bookworm.query.aesthetic.time])})
 
         var smoothingSpan = 0 || bookworm.query.smoothingSpan
 
+	
         if(smoothingSpan > 0) {
             var rawData = bookworm.smooth();
             var filtered = rawData.filter(function(d) {return d[bookworm.query.aesthetic.size] > 0})
             timeHandler.nested = nester.map(filtered)
         } else {
             timeHandler.nested = nester.map(bookworm.data)
+	    console.log(timeHandler.nested)
         }
 
         timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.time]})))
@@ -1150,8 +1151,12 @@ BookwormClasses = {
         timeHandler.data = function(x) {
             if (!arguments.length) {
 		//There are occasions when there may be internal smoothed points without any data at all: those should be empty arrays, not just undefined.
-		var returnable = timeHandler.nested[timeHandler.currentTime] || [];
-                return returnable;
+		returnable = timeHandler.nested[timeHandler.currentTime]
+		if (typeof(returnable)=="undefined") {
+		    return []
+		} else {
+		    return(returnable)
+		}
             }
             data = x;
             return timeHandler;
@@ -1215,7 +1220,8 @@ BookwormClasses = {
            (in this case) we're passing a "proj" as well as a timeHandler item
            as the argument to the function.
 
-           This needs to be done here because it resets the data.
+           This needs to be done here because it resets the data to a subset, 
+	   but we want the scales to be continuous across the whole range of data.
         **/
         if (bookworm.query.aesthetic.time != undefined) {
 
@@ -1411,12 +1417,12 @@ BookwormClasses = {
 
         var smoothingSpan = this.smoothingSpan || 0;
 
-        var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
-        this.smooth(smoothingSpan)
+//        var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
+//        this.smooth(smoothingSpan)
 
-        bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
+//        bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
 
-        bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
+//        bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
 
         var scales = this.updateAxes()
         var xstuff = scales[0]
@@ -1486,7 +1492,6 @@ BookwormClasses = {
 
 
         //these need to belong to the line somehow.
-
         circles
             .attr('opacity','.01')
             .on('mouseover',function(d) {d3.select(this).attr('opacity','1')})
@@ -1500,7 +1505,7 @@ BookwormClasses = {
 
 
 
-        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
+//        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
         bookworm.alignAesthetic()
 
         circles.makeClickable()
@@ -1518,7 +1523,7 @@ BookwormClasses = {
 
         bookworm.query.plotType=="heatmap" ?
             ystuff = bookworm.makeAxisAndScale('y',undefined,"name",false) :
-            ystuff = bookworm.makeAxisAndScale('y',undefined,"value")
+            ystuff = bookworm.makeAxisAndScale('y',undefined,"value",false)
 
         var xstuff = bookworm.makeAxisAndScale('x')
 
@@ -1570,7 +1575,7 @@ BookwormClasses = {
         var bookworm = this;
         var query = bookworm.query;
         var mainPlotArea = this.selections.mainPlotArea;
-
+	var data = this.data
         var parentDiv = d3.select("#selectionOptions")
 
         bookworm.addFilters({"word":"textArray"},parentDiv)
@@ -1585,6 +1590,12 @@ BookwormClasses = {
         //elements from the x-axis. Yikes. That's no good.
         transition=2000
 
+	if (d3.set(data.map(function(d) {
+		return d[query.aesthetic.y]
+	    })).size() > 50) {
+	    topHits = data.map(function(d) {return d[query.aesthetic.x]}).sort(function(a,b) {return b-a})
+	    bookworm.data=data.filter(function(b) {return b[query.aesthetic.x] > topHits[50]})
+	}
 
         var scales = this.updateAxes(delays = {"x":0,"y":transition},transitiontime=transition)
 
@@ -2815,7 +2826,7 @@ BookwormClasses = {
         sortBy = sortBy || "name";
 
         //And that direction can be descending (true) or ascending (false)
-        descending = descending || true;
+        descending = descending || "default";
 
         var variableName = query['aesthetic'][axis]
 
@@ -2861,7 +2872,7 @@ BookwormClasses = {
                 } else { vals.sort() }
             }
 
-            if (!descending) {
+            if (descending=="default") {
 
                 vals.reverse()
             }
@@ -2983,7 +2994,11 @@ BookwormClasses = {
         {"variable":"TextCount","label":"# of Texts"},
         {"variable":"TotalTexts","label":"Total # of Texts"},
         {"variable":"WordsRatio","label":"Ratio of group A to B"},
-        {"variable":"SumWords","label":"Total in both sets"}
+        {"variable":"SumWords","label":"Total in both sets"},
+        {"variable":"TextLength","label":"Mean text length (in words)"},
+        {"variable":"MatchesPerText","label":"Mean hits per matching text"},
+        {"variable":"TFIDF","label":"TFIDF"},
+        {"variable":"Dunning","label":"Dunning Log Likelihood"}
     ],
     nameSubstitutions : function() {
         that = {};
