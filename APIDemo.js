@@ -55,7 +55,9 @@ var quantitativeVariables = [
     {"variable":"TextCount","label":"# of Texts"},
     {"variable":"TotalTexts","label":"Total # of Texts"},
     {"variable":"WordsRatio","label":"Ratio of group A to B"},
-    {"variable":"SumWords","label":"Total in both sets"}
+    {"variable":"SumWords","label":"Total in both sets"},
+    {"variable":"Dunning","label":"Dunning Log Likelihood"},
+    {"variable":"DunningTexts","label":"Dunning Log Likelihood (Text count)"}
 ]
 
 for (item in quantitativeVariables) {
