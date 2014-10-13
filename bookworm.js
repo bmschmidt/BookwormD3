@@ -192,45 +192,45 @@ BookwormClasses = {
     },
     smooth : function(span,axis,kernel) {
         var bookworm = this;
-	console.log(this.data)
-	var kernelSmoother;
+        console.log(this.data)
+        var kernelSmoother;
         span = span || bookworm.query.smoothingSpan
         axis = axis || "time"
 
-	kernel = kernel || "sine"
+        kernel = kernel || "sine"
 
-	if (kernel=="average") {
-	    kernelSmoother = function(array) {
-		return d3.mean(array)
-	    }
-	}
-	if (kernel=="sine") {
-	    kernelSmoother = function(array) {
-		//By default, use a sine-wave shaped smoothing kernel.
-		var length = array.length
-		var midpoint = (length-1)/2
-		var weighter = function(i) {
-		    return Math.cos((midpoint-i)/(length+2)*Math.PI/2)	
-		}
-		var totalWeights = 0;
-		var i = 0
-		weightedVals = array.map(function(d) {
-		    var weight = weighter(i);
-		    totalWeights += weight;
-		    i++;
-		    return (d * weight)
-		    
-		})
-		var total = d3.sum(weightedVals)/totalWeights
-		return total
-	    }
-	}
+        if (kernel=="average") {
+            kernelSmoother = function(array) {
+                return d3.mean(array)
+            }
+        }
+        if (kernel=="sine") {
+            kernelSmoother = function(array) {
+                //By default, use a sine-wave shaped smoothing kernel.
+                var length = array.length
+                var midpoint = (length-1)/2
+                var weighter = function(i) {
+                    return Math.cos((midpoint-i)/(length+2)*Math.PI/2)
+                }
+                var totalWeights = 0;
+                var i = 0
+                weightedVals = array.map(function(d) {
+                    var weight = weighter(i);
+                    totalWeights += weight;
+                    i++;
+                    return (d * weight)
+
+                })
+                var total = d3.sum(weightedVals)/totalWeights
+                return total
+            }
+        }
 
         //the funny thing about smoothing is that when it's multivariate, we need to create some entries to interpolate 0 counts: if Britain has a series from 1066 to 2000, and the US only from 1776 to 1860 and 1865 to 2000, we want to interpolate a whole bunch of zeroes before 1776 and 1860. But if there's a series of US grain and cattle exports but only British grain exports, there's no need to create a dummy set of British cattle exports consisting only of zeroes. Probably. (I don't know, maybe there is?)
 
-	//Assuming zero for no data is also problematic in all sorts of ways; this needs a "step" variable.
+        //Assuming zero for no data is also problematic in all sorts of ways; this needs a "step" variable.
 
-	//This code accomplishes that
+        //This code accomplishes that
 
         //using D3.nest to avoid expensive filters.
 
@@ -296,21 +296,21 @@ BookwormClasses = {
         var smoothedData = []
 
         hierarchy.forEach(function(hierarchyLevel) {
-	    //clone a new object off of the values for the level.
+            //clone a new object off of the values for the level.
             var locEntries = Object.create(hierarchyLevel['values']);
             delete hierarchyLevel['values']
             timeGroups.map(function(timesToMerge,i) {
                 var newOut = Object.create(hierarchyLevel);
                 newOut[bookworm.query.aesthetic[axis]] = timeStamps[i]
                 quantKeys.forEach(function(key) {
-		    //For each quantitative key, there's a different value to smooth.
-		    //Currently we work across them, not combining. (I think).
-		    values = timesToMerge.map(function(d) {
-                            if (locEntries[d]==undefined) {return 0}
-                            return locEntries[d][0][key]
+                    //For each quantitative key, there's a different value to smooth.
+                    //Currently we work across them, not combining. (I think).
+                    values = timesToMerge.map(function(d) {
+                        if (locEntries[d]==undefined) {return 0}
+                        return locEntries[d][0][key]
                     })
-		    //Set the smoothed data equal to whatever smoothing kernel is being used
-		    newOut[key] = kernelSmoother(values)
+                    //Set the smoothed data equal to whatever smoothing kernel is being used
+                    newOut[key] = kernelSmoother(values)
                 })
                 smoothedData.push(newOut)
             })
@@ -913,6 +913,8 @@ BookwormClasses = {
 
     makePlotArea: function(svgSelection) {
 
+
+
         //create if not exists
         root = svgSelection || this.selections.container || d3.selectAll("#svg")
 
@@ -981,6 +983,8 @@ BookwormClasses = {
         var y = ystuff.scale
 
 
+
+
         bookworm.scales.x = x;
 
         bookworm.data = bookworm.data.map(function(d) {
@@ -1040,6 +1044,119 @@ BookwormClasses = {
 
     },
 
+
+    streamgraph : function() {
+
+        var bookworm = this;
+        var parentDiv = d3.select("#selectionOptions")
+
+        bookworm.alignAesthetic()
+        bookworm.addFilters(
+            {
+                "word":"textArray"
+            },
+            parentDiv
+        )
+
+        bookworm.query.scaleType = "linear"
+
+        bookworm.addAestheticSelectors(
+            {
+                "x":"categoricalAesthetic",
+                "y":"numericAesthetic",
+                "fill":"categoricalAesthetic"
+            },
+            parentDiv)
+
+        var w = window.innerWidth*.9,h=window.innerHeight*.9
+        var limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
+        var myQuery = bookworm.query
+        var colorScaler = bookworm.returnScale()
+        //var sizeScaler  = bookworm.returnScale()
+
+        var mainPlotArea= bookworm.selections.mainPlotArea
+
+
+
+        transition=0
+
+        var scales = bookworm.updateAxes(delays = {"x":0,"y":0},transitiontime=transition)
+
+        var xstuff = scales[0]
+
+        var ystuff = scales[1]
+
+        var x = xstuff.scale
+
+        bookworm.scales.x = x;
+
+
+        console.log(x.domain())
+
+        var stack = d3.layout.stack()
+            .offset("wiggle")
+            .x(function(d) {return d[bookworm.query.aesthetic.x]})
+            .y(function(d) {return d[bookworm.query.aesthetic.y]})
+
+
+        var yearlist = d3.set(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.x]})).values()
+
+        var as2D = d3.nest().key(function(d) {return d[bookworm.query.aesthetic.fill]}).entries(bookworm.data).map(function(d) {return d.values})
+
+        as2D.forEach(function(colorset) {
+            var color = colorset[0][bookworm.query.aesthetic.fill]
+            var years = d3.set(yearlist)
+            colorset.forEach(function(d) {years.remove(d[bookworm.query.aesthetic.x])})
+            years.forEach(function(newYear) {
+                var newObj = new Object;
+                newObj[bookworm['query']['aesthetic']['x']] = newYear;
+                newObj[bookworm.query.aesthetic.y] = 0;
+                newObj[bookworm.query.aesthetic.fill] = color
+                colorset.push(newObj)
+            })
+        })
+
+        var xVariable = bookworm.query.aesthetic.x
+        as2D.forEach(function(array) {array.sort(function(a,b){return a[xVariable] - b[xVariable]})})
+
+
+        var layers0 = stack(as2D)
+
+
+
+        vals = layers0.map(function(d) {return d3.max(d.map(function(e) {return (e.y0)}))})
+
+
+        var y = ystuff.scale.domain([["cluster"].indexOf(bookworm.query.aesthetic.y)> -1 ? d3.min(vals) : 0,d3.max(vals)])
+
+        console.log(y.domain())
+
+        bands = mainPlotArea.selectAll("path.plotElement")
+            .data(layers0)
+
+        bands
+            .enter().append("path").attr("class","plotElement")
+
+        colorValues = bookworm.data.map(function(d) {
+            return(d[bookworm.query.aesthetic.fill])
+        })
+
+        bookworm.scales.color = d3.scale.category20().domain(colorValues)
+
+        var area = d3.svg.area()
+            .x(function(d) {var xval= x(bookworm.plotTransformers[xVariable](d[bookworm.query.aesthetic.x]));return xval;})
+            .y0(function(d) { return y(d.y0); })
+            .y1(function(d) { return y(d.y0 + d.y); });
+
+        bands
+            .attr("d", area)
+            .style("fill", function(d) {console.log(); return bookworm.scales.color(d[0][query.aesthetic.fill]); });
+
+        bands.makeClickable()
+
+    },
+
+
     settings:{
         //things we need to remember for plotting preferences.
         "lastPlotted":null,
@@ -1047,10 +1164,10 @@ BookwormClasses = {
     timeHandler: function(timeHandler,callback) {
 
 
-	// This is a rather elaborate mechanism to handle plotting a chart with a time dimension:
-	//after passing it a time handler (or nothing) and a callback function, it will 
-	// repeatedly advance the timeframe (based on the aesthetic["time"] element of query)
-	// and reinvoke the callback function, which is a plot function.
+        // This is a rather elaborate mechanism to handle plotting a chart with a time dimension:
+        //after passing it a time handler (or nothing) and a callback function, it will
+        // repeatedly advance the timeframe (based on the aesthetic["time"] element of query)
+        // and reinvoke the callback function, which is a plot function.
 
         var bookworm = this;
         var timeHandler = timeHandler || {};
@@ -1065,20 +1182,20 @@ BookwormClasses = {
 
 
 
-	    var getDate2 = function(intval) {
-		var val = new Date();
-		val.setFullYear(0,0,intval+1)
-		//console.log(intval,"----------",val)
-		return val
-	    }
+            var getDate2 = function(intval) {
+                var val = new Date();
+                val.setFullYear(0,0,intval+1)
+                //console.log(intval,"----------",val)
+                return val
+            }
 
-	    timeRegex = new RegExp("_week|_month|_day")
-	    if (timeRegex.test(bookworm.query.aesthetic.time)) {
-		timeHandler.axis.tickFormat(function(time) {
-		    var timevar = getDate2(time)
-		    return timevar.toDateString()
-		})
-	    }
+            timeRegex = new RegExp("_week|_month|_day")
+            if (timeRegex.test(bookworm.query.aesthetic.time)) {
+                timeHandler.axis.tickFormat(function(time) {
+                    var timevar = getDate2(time)
+                    return timevar.toDateString().substring(4)
+                })
+            }
 
 
             timeHandler.axisGroup = mainPlotArea.selectAll(".axis.time").data([1])
@@ -1134,14 +1251,14 @@ BookwormClasses = {
 
         var smoothingSpan = 0 || bookworm.query.smoothingSpan
 
-	
+
         if(smoothingSpan > 0) {
             var rawData = bookworm.smooth();
             var filtered = rawData.filter(function(d) {return d[bookworm.query.aesthetic.size] > 0})
             timeHandler.nested = nester.map(filtered)
         } else {
             timeHandler.nested = nester.map(bookworm.data)
-	    console.log(timeHandler.nested)
+            console.log(timeHandler.nested)
         }
 
         timeHandler.timeScale = d3.scale.linear().range([0,20000]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.time]})))
@@ -1150,13 +1267,13 @@ BookwormClasses = {
 
         timeHandler.data = function(x) {
             if (!arguments.length) {
-		//There are occasions when there may be internal smoothed points without any data at all: those should be empty arrays, not just undefined.
-		returnable = timeHandler.nested[timeHandler.currentTime]
-		if (typeof(returnable)=="undefined") {
-		    return []
-		} else {
-		    return(returnable)
-		}
+                //There are occasions when there may be internal smoothed points without any data at all: those should be empty arrays, not just undefined.
+                returnable = timeHandler.nested[timeHandler.currentTime]
+                if (typeof(returnable)=="undefined") {
+                    return []
+                } else {
+                    return(returnable)
+                }
             }
             data = x;
             return timeHandler;
@@ -1220,14 +1337,14 @@ BookwormClasses = {
            (in this case) we're passing a "proj" as well as a timeHandler item
            as the argument to the function.
 
-           This needs to be done here because it resets the data to a subset, 
-	   but we want the scales to be continuous across the whole range of data.
+           This needs to be done here because it resets the data to a subset,
+           but we want the scales to be continuous across the whole range of data.
         **/
         if (bookworm.query.aesthetic.time != undefined) {
 
             //create a time handler if it doesn't exist;
             if (typeof(timeHandler) == 'undefined') {
-		console.log("initializing")
+                console.log("initializing")
                 timeHandler = this.timeHandler(
                     timeHandler,
                     callback = function(timeHandler) {
@@ -1315,22 +1432,22 @@ BookwormClasses = {
             var sizer = bookworm.query.aesthetic.size
 
             midPointer = d3.nest()
-		.key(function(d) {return d[bookworm.query.midPointBy]})
+                .key(function(d) {return d[bookworm.query.midPointBy]})
                 .rollup(function(leaves) {
-		    var total = d3.sum(leaves.map(function(d) {return d[sizer]}))
-		    return (
-                    {"coordinates":[
-                        d3.sum(leaves.map(function(d) {return d[sizer]*d.coordinates[0]}))/total,
-                        d3.sum(leaves.map(function(d) {return d[sizer]*d.coordinates[1]}))/total],
-                     "type":"Point",
-                     "TextCount":d3.sum(leaves.map(function(d) {return d.TextCount}))}
-                )                                                                                                  })
+                    var total = d3.sum(leaves.map(function(d) {return d[sizer]}))
+                    return (
+                        {"coordinates":[
+                            d3.sum(leaves.map(function(d) {return d[sizer]*d.coordinates[0]}))/total,
+                            d3.sum(leaves.map(function(d) {return d[sizer]*d.coordinates[1]}))/total],
+                         "type":"Point",
+                         "TextCount":d3.sum(leaves.map(function(d) {return d.TextCount}))}
+                    )                                                                                                  })
             var midPoints = midPointer.entries(data)
-	    midPoints.forEach(function(d) {
-		d3.keys(d.values).forEach(function(key) {
-		    d[key] = d.values[key]
-		})
-	    })
+            midPoints.forEach(function(d) {
+                d3.keys(d.values).forEach(function(key) {
+                    d[key] = d.values[key]
+                })
+            })
             var midpointP = mainPlotArea.selectAll("path.midPoint").data(midPoints,function(d) {return d["key"]})
             midpointP.enter().append("path").attr("class","midPoint")
                 .attr("d",nullpath).attr("id","midPoint")
@@ -1372,7 +1489,7 @@ BookwormClasses = {
             .translate([width / 2, height / 2])
             .precision(.1);
 
-	proj = d3.geo.albers().scale(1050)
+        proj = d3.geo.albers().scale(1050)
 
 
         var polygons = mainPlotArea.selectAll("#mapregion").data([1])
@@ -1391,7 +1508,146 @@ BookwormClasses = {
         });
         bookworm.mapPoints(proj)
     },
+    network : function() {
+        var bookworm = this;
+        var query = bookworm.query;
+        var data = bookworm.data;
 
+        parentDiv = d3.select("#selectionOptions")
+        bookworm.addAestheticSelectors({
+            "node":"categoricalAesthetic",
+            "edgeVariable":"categoricalAesthetic",
+            "width":"numericAesthetic",
+            "size":"numericAesthetic"
+        },parentDiv)
+
+
+        var svg = d3.selectAll("svg")
+
+        var color = d3.scale.category20();
+
+
+        var nodes = {}
+        var edges = {}
+
+        clusters = d3.nest().key(function(d) {return d[query.aesthetic.edgeVariable]}).entries(data)
+        clusters.forEach(function(cluster) {
+            var name = cluster.key
+            while (bit=cluster.values.pop()) {
+                var masterKey = bit[query.aesthetic.node]
+
+                nodes[masterKey] = nodes[masterKey] === undefined ?
+                    //bit[query.aesthetic.size] :
+                    //nodes[masterKey] + bit[query.aesthetic.size]
+                    1:
+                    1 + nodes[masterKey]
+                cluster.values.forEach(function(remaining) {
+                    newKey = remaining[query.aesthetic.node]
+                    alph = [newKey,masterKey].sort()
+                    var combinedKey = alph[0] + "___JOIN___" + alph[1]
+                    edges[combinedKey] = edges[combinedKey]===undefined ?
+                        1 :
+                        edges[combinedKey] + 1
+                })
+            }
+        })
+
+        edgeCodes = {}
+
+
+
+        nodes = d3.keys(nodes).map(function(key,i) {out = {}; out.name = key; out.size = nodes[key]; out.color = null; edgeCodes[key] = i; return out})
+
+        edges = d3.keys(edges).map(function(key,i) {
+            values = key.split("___JOIN___")
+            out = {}
+            out.source = nodes[edgeCodes[values[0]]]
+            out.target = nodes[edgeCodes[values[1]]]
+
+
+            out.source.count = out.source.count + edges[key] || edges[key]
+            out.target.count = out.target.count + edges[key] || edges[key]
+
+            out.value = edges[key]
+            return out
+        })
+
+        edgedNodes = d3.set()
+
+
+        edges.forEach(function(d) {
+            //geometric mean seems more appropriate?
+            d.meanShare = (d.value/d.source.count +  d.value/d.target.count)
+        })
+
+        //sort by descending meanShare
+        edges.sort(function (a,b) {return b.meanShare-a.meanShare})
+
+        meanLinks=5;
+        edges = edges.slice(0,nodes.length*meanLinks)
+
+        linkScale = d3.scale.linear().domain(d3.extent(edges.map(function(d) {return d.meanShare}))).range([120,30])
+        linkScale.clamp()
+
+        var force = d3.layout.force()
+            .charge(-90)
+            .linkDistance(function(d) {
+                return linkScale(d.meanShare)
+            })
+            .size([svg.attr("width"), svg.attr("height")]);
+
+
+        edges.forEach(function(d) {
+            edgedNodes.add(d.source.name)
+            edgedNodes.add(d.target.name)
+        })
+        console.log(edgedNodes)
+
+        nodes = nodes.filter(function(d) {return edgedNodes.has(d.name)})
+
+
+
+        nodge = edges
+        console.log(edges)
+
+        force
+            .nodes(nodes)
+            .links(edges)
+
+
+        force
+            .start();
+
+        var link = svg.selectAll(".link")
+            .data(edges)
+            .enter().append("line")
+            .attr("class", "link")
+            .style("stroke","grey")
+            .style("stroke-opacity",.1)
+            .style("stroke-width", function(d) { return Math.sqrt(d.value); });
+
+        var node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", 5)
+            .style("fill", function(d) { return color(d.group); })
+            .call(force.drag);
+
+        node.append("title")
+            .text(function(d) { return d.name; });
+
+        force.on("tick", function() {
+            link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+            node.attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+        });
+
+    },
     linechart : function() {
         var mainPlotArea = this.selections.mainPlotArea;
         var bookworm = this;
@@ -1417,12 +1673,12 @@ BookwormClasses = {
 
         var smoothingSpan = this.smoothingSpan || 0;
 
-//        var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
-//        this.smooth(smoothingSpan)
+        //        var oldy = JSON.stringify(bookworm.query.aesthetic['y'])
+        //        this.smooth(smoothingSpan)
 
-//        bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
+        //        bookworm.query.aesthetic['y'] = JSON.parse(oldy) + "smoothedValues"
 
-//        bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
+        //        bookworm.updateKeysTransformer(bookworm.query.aesthetic['y'])
 
         var scales = this.updateAxes()
         var xstuff = scales[0]
@@ -1505,7 +1761,7 @@ BookwormClasses = {
 
 
 
-//        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
+        //        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
         bookworm.alignAesthetic()
 
         circles.makeClickable()
@@ -1513,6 +1769,7 @@ BookwormClasses = {
     },
 
     updateAxes : function(delays,transitiontime,yVariable) {
+
         yVariable = yVariable || "y"
         transitiontime = transitiontime || 2000;
         delays = delays || {"x":0,"y":0}
@@ -1525,6 +1782,9 @@ BookwormClasses = {
             ystuff = bookworm.makeAxisAndScale('y',undefined,"name",false) :
             ystuff = bookworm.makeAxisAndScale('y',undefined,"value",false)
 
+
+        console.log('x')
+
         var xstuff = bookworm.makeAxisAndScale('x')
 
         var x = xstuff.scale
@@ -1533,6 +1793,7 @@ BookwormClasses = {
         if (xstuff.type=="numeric") {
             x.domain([0,x.domain()[1]])
         }
+
         var yaxis = mainPlotArea.selectAll('.y.axis').data([ystuff.axis])
         var xaxis = mainPlotArea.selectAll('.x.axis').data([xstuff.axis])
 
@@ -1571,11 +1832,212 @@ BookwormClasses = {
 
         newTitle = "nothing"
     },
+    table: function() {
+	var bookworm = this;
+
+	var area = bookworm.selections.mainPlotArea
+	area = d3.select("#chart")
+	var table = area.selectAll('table').data([1])
+
+	table.enter().append('table')
+
+
+	var keys = bookworm.query.groups.concat(bookworm.query.counttype)
+	
+	var data = [keys]
+	
+	data = data.concat(bookworm.data.map(function(row) {
+	    return keys.map(function(key) {
+		return row[key]
+	    })
+	}))
+
+	console.log(data)
+
+	var rows = table
+	    .selectAll('tr')
+	    .data(data)
+
+	rows
+	    .enter()
+	    .append("tr")
+	    .each(function(row) {
+		rowelement = d3.select(this)
+		td = rowelement.selectAll('td').data(row)
+		td.exit().remove()
+		td.enter().append('td').text(function(d) {return d})
+	    })
+
+	rows
+	    .exit()
+	    .remove()
+
+    },
+    wordcloud : function() {
+        var n = 1
+        var bookworm = this;
+
+        var query = bookworm.query;
+        var mainPlotArea = bookworm.selections.mainPlotArea;
+        var svg = d3.selectAll("svg")
+
+        var parentDiv = d3.select("#selectionOptions")
+
+        var sizes = bookworm.data
+            .map(function(d) {return Math.abs(d[query.aesthetic.size])})
+
+        var sizer = d3.scale.sqrt()
+            .domain(d3.extent(sizes))
+            .range([1,150])
+
+        console.log(sizer.domain())
+
+
+        var words = bookworm.data
+            .filter(function(d) {return Math.abs(d[query.aesthetic.size]) > 20})
+            .map(function(d) {
+                return {
+                    "text":d[query.aesthetic.label],
+                    "color":"black",
+                    "size":sizer(Math.abs(d[query.aesthetic.size])),
+                    "color":d[query.aesthetic.size] > 0,
+                }})
+
+
+        console.log(words)
+
+        d3.layout.cloud()
+            .size([svg.attr("width"),svg.attr("height")])
+            .words(words)
+            .padding(0)
+            .rotate(function() { return Math.floor(Math.random()*10-5)*3})
+            .font("Impact")
+            .fontSize(function(d) { return d.size })
+            .on("end", draw)
+            .start();
+
+        function draw(words) {
+            var container = mainPlotArea.selectAll("g.wordcloud.container").data([1])
+            container.enter().append("g").attr("class","wordcloud container")
+                .attr("transform", "translate(" + window.innerWidth*.45 + "," + window.innerHeight*.4+ ")")
+
+            selection = container
+                .selectAll("text")
+                .data(words,function(d) {return d.text})
+
+            selection
+                .enter().append("text")
+                .text(function(d) { return d.text; })
+                .style("font-size", function(d) { return d.size + "px"; })
+                .style("font-family", "Impact")
+                .style("fill", function(d) { return d.color? "red": "black"; })
+                .attr("text-anchor", "middle")
+                .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                })
+
+            selection
+                .style("font-size", function(d) { return d.size + "px"; })
+                .style("font-family", "Impact")
+                .style("fill", function(d) { return d.color? "red": "black"; })
+                .attr("text-anchor", "middle")
+                .attr("transform", function(d) {
+                    return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+                })
+
+            selection.exit().transition().style("opacity",0).remove()
+        }
+
+        /**
+           cloud = d3.layout.cloud()
+           .size([mainPlotArea.attr("width"),mainPlotArea.attr("height")])
+           .words([
+           "Hello", "world", "normally", "you", "want", "more", "words",
+           "than", "this"].map(function(d) {
+           return {text: d, size: 10 + Math.random() * 90};
+           }))
+           .padding(8)
+           .rotate(function() {return Math.random()*90}).font("Impact")
+           .fontSize(function(d) {return d.size})
+           //       .on("end",draw)
+           //            .start()
+
+
+           var draw = function(words) {
+           console.log("in loop")
+           parentDiv
+           .append("g")
+           .selectAll("text")
+           .data(words,function(d) {return d.unigram})
+           .enter()
+           .append("text")
+           .style("font-size",function(d) {return d.size + "px"})
+           .style("font-family","Impact")
+           .style("fill",function(d) {return d.size < 0 ? "red" : "black"})
+           .attr("text-anchor","middle")
+           .attr("transform", function(d) {
+           return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
+           })
+           .text(function(d) { return d.text; });
+           }
+        **/
+    },
+
+    worddiv : function() {
+	/**
+	   Use sized text in divs to represent the distinctive vocab of search and compare limits.
+
+	 **/
+
+        var n = 1
+        var bookworm = this;
+	var data = this.data;
+
+        var query = bookworm.query;
+
+	var div = d3.select("div#chart")
+	div.style("display","inline-block")
+
+	data = data.sort(function(b,a) {return Math.abs(a[query.aesthetic.size]) - Math.abs(b[query.aesthetic.size])})
+
+	groups = d3.nest().key(function(d) {return d[query.aesthetic.size] > 0}).entries(data)
+
+	groups.sort(function(a,b){return a.key=="false"})
+
+	var divs = div.selectAll("div.textgroup").data(groups)
+
+	var sizes = data.map(function(d) {return Math.abs(d[query.aesthetic.size])})
+
+        var sizer = d3.scale.sqrt()
+            .domain(d3.extent(sizes))
+            .range(["1px","160px"])
+
+	divs.enter()
+	    .append("div")
+	    .classed("textgroup",true)
+	    .attr("id",function(d) {return d})
+	    .style("width","45%").style("display","inline-block")
+	    .style("vertical-align","top")
+	    .each(function(d) {
+		var values = d.values.sort(function(a,b) {return Math.abs(b[query.aesthetic.size])- Math.abs(a[query.aesthetic.size])})
+		values = values.slice(0,100)
+		var words = d3.select(this).selectAll("text.label").data(values)
+		    .enter()
+		    .append('span')
+		    .text(function(d) {return " " + d[query.aesthetic.label]}).style("font-size",function(d) {return sizer(Math.abs(d[query.aesthetic.size]))})
+		    .style("text-fill","red")
+		.style("opacity",.75)
+		.style("font-family","impact")
+		.on("mouseover",function(d) {d3.select(this).style("opacity",1)})
+	    })
+
+    },
+
     barchart : function() {
         var bookworm = this;
         var query = bookworm.query;
         var mainPlotArea = this.selections.mainPlotArea;
-	var data = this.data
+        var data = this.data
         var parentDiv = d3.select("#selectionOptions")
 
         bookworm.addFilters({"word":"textArray"},parentDiv)
@@ -1590,12 +2052,12 @@ BookwormClasses = {
         //elements from the x-axis. Yikes. That's no good.
         transition=2000
 
-	if (d3.set(data.map(function(d) {
-		return d[query.aesthetic.y]
-	    })).size() > 50) {
-	    topHits = data.map(function(d) {return d[query.aesthetic.x]}).sort(function(a,b) {return b-a})
-	    bookworm.data=data.filter(function(b) {return b[query.aesthetic.x] > topHits[50]})
-	}
+        if (d3.set(data.map(function(d) {
+            return d[query.aesthetic.y]
+        })).size() > 50) {
+            topHits = data.map(function(d) {return d[query.aesthetic.x]}).sort(function(a,b) {return b-a})
+            bookworm.data=data.filter(function(b) {return b[query.aesthetic.x] > topHits[50]})
+        }
 
         var scales = this.updateAxes(delays = {"x":0,"y":transition},transitiontime=transition)
 
@@ -1777,11 +2239,15 @@ BookwormClasses = {
 
     },
     "addFilters" : function(fields,attachTo,limitthing) {
+        /**
+
+         **/
+        var bookworm = this;
 
         var elements = d3.keys(fields).map(function(key){
             return {"element":key,"type":fields[key]}
         })
-
+        console.log(elements)
         selectors = attachTo
             .selectAll("div.filter.selector")
             .data(elements,function(d) {return d.element + d.type})
@@ -1792,7 +2258,9 @@ BookwormClasses = {
             .attr("class","filter selector")
             .style("display","inline")
             .each(function(d) {
-                d3.select(this)     .text(function(d) {return d.element + " limited to "})
+                d3.select(this)
+                    .text(function(d) {return d.element + " limited to "})
+
                 var box = bookworm.queryVisualizations[d.type]()
                 box.target(d.element)
                 box.createOn(d3.select(this))
@@ -2508,7 +2976,7 @@ BookwormClasses = {
         //if a date: return a dateTime object
         isADate = false
 
-	timeSignifiers = ['year','month','day','week','decade','century',"Year","Decade","yearchunk"]
+        timeSignifiers = ['year','month','day','week','decade','century',"Year","Decade","yearchunk","MovieYear"]
 
         key.split("_").map(function(part) {
             //I'm just coming up with descriptions, here.
@@ -2516,16 +2984,16 @@ BookwormClasses = {
         })
 
         if (isADate) {
-		var getDate2 = function(intval) {
-		    var val = new Date();
-		    val.setFullYear(0,0,intval+1)
-		    //console.log(intval,"----------",val)
-		    return val
-		}
+            var getDate2 = function(intval) {
+                var val = new Date();
+                val.setFullYear(0,0,intval+1)
+                //console.log(intval,"----------",val)
+                return val
+            }
 
 
             bookworm.plotTransformers[key] = function(originalValue) {
-		originalValue = parseInt(originalValue)
+                originalValue = parseInt(originalValue)
                 datedValue = new Date()
                 //This code could be useful in the other Bookworm.
                 extractRelevantField = function(dateKey) {
@@ -2540,9 +3008,9 @@ BookwormClasses = {
                 relevantField = extractRelevantField(key)
                 if (relevantField == "day") { return getDate2(originalValue)}
                 else if (relevantField=="week") {return getDate2(originalValue) }
-                else if (relevantField=="month") {return getDate2(originalValue) } 
-		else {
-		    datedValue.setFullYear(originalValue,1,1)
+                else if (relevantField=="month") {return getDate2(originalValue) }
+                else {
+                    datedValue.setFullYear(originalValue,1,1)
                     return datedValue
                 }
             }
@@ -2805,6 +3273,7 @@ BookwormClasses = {
                 .data(data);
             rows.enter().append('tr');
             rows.html(function(d) { return d; });
+            row.selectAll("a").attr("target","_blank")
         })
     },
 
@@ -2854,13 +3323,18 @@ BookwormClasses = {
         datatype = bookworm.dataTypes[variableName]
 
         function updateOrder() {
+
+            var nester = d3.nest().key(function(d) {return d[query.aesthetic[axis]]})
+
+            var lookup = nester.map(bookworm.data)
+
             if (sortBy == "value") {
-                value = function(keyname) {
-                    local = bookworm.data.filter(function(d) {
-                        return d[query["aesthetic"][axis]]==keyname
-                    }).map(function(d) {return d[query["aesthetic"]["x"]]})
-                    return d3.median(local)
-                }
+                value = function(keyname) {return d3.median(lookup[keyname].map(function(d) {return d[query.aesthetic.x]}))}
+                //value = function(keyname) {
+                //local = bookworm.data.filter(function(d) {
+                //      return d[query["aesthetic"][axis]]==keyname
+                //}).map(function(d) {return d[query["aesthetic"]["x"]]})
+                //return d3.median(local)
                 vals.sort(function(a,b) {
                     return (value(a) - value(b))
                 })
@@ -2922,8 +3396,10 @@ BookwormClasses = {
 
             var domain = d3.extent(vals)
             var oldLow = domain[0]
-            domain[0] = 0;
-
+            console.log(oldLow)
+            if (bookworm.query.aesthetic[axis] != "chunk") {
+                domain[0] = 0;
+            }
             if (axis=='y') {
                 //because svg is defined from the upper right corner,
                 //but we want lower numbers lower.
@@ -2998,7 +3474,8 @@ BookwormClasses = {
         {"variable":"TextLength","label":"Mean text length (in words)"},
         {"variable":"MatchesPerText","label":"Mean hits per matching text"},
         {"variable":"TFIDF","label":"TFIDF"},
-        {"variable":"Dunning","label":"Dunning Log Likelihood"}
+        {"variable":"Dunning","label":"Dunning Log Likelihood"},
+        {"variable":"DunningTexts","label":"Dunning Log Likelihood (Text count)"}
     ],
     nameSubstitutions : function() {
         that = {};

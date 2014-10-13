@@ -1,0 +1,97 @@
+<head>
+  <title>TV shows: The difference Engine</title>
+  <style>
+text {
+font-size:12px;
+font-style:sans-serif
+}
+text.preface {
+font-size:13px
+}
+div.tooltip {
+background:white;
+border-radius:10px;
+padding:2px
+}
+text.selector{
+display:None
+}
+.axis path, .axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+div.aesthetic.selector{
+display:None
+}
+rect.highlit{
+stroke:black
+}
+div.selectionOptions{
+font-size:larger
+}
+  </style>
+  <script src="http://benschmidt.org/beta/d3.v3.min.js"></script>
+  <script src="http://benschmidt.org/beta/lib/colorbrewer/colorbrewer.js"></script>
+  <script src="http://benschmidt.org/beta/lib/d3-cloud/d3.layout.cloud.js"></script>
+  <script src="http://benschmidt.org/beta/bookworm.js"></script>
+  <script src="http://benschmidt.org/beta/colorbar/colorbar.js"></script>
+</head>
+
+<body>
+  <h1>Difference Engine: a different type of Bookworm visualization</h1>
+
+  <text class="preface">
+
+    People don't always realize that the <a href=http://bookworm.culturomics.org>bookworm platform</a> is useful for more than just line graphs of words over time.
+<br>
+Made by <a href=http://benschmidt.org>Ben Schmidt</a>. See more <a
+href=http://benschmidt.org/maps-visualizations-gallery/>maps and visualizations</a>
+
+</text>
+
+<comment text="These are the two divs that have to be defined to hold the bookworm container; you could also define them manually, but I just use the default names here."><comment>
+<br><br>
+<div id=selectionOptions></div>
+<div id="main"></div>
+<br><br>
+<text class="postlude">
+<br><br>
+ The real point of this visualization isn't to show you anything you don't know about baby names. It's to test whether the <a href=http://github.com/D3Bookworm>D3 Bookworm visualization library</a> I wrote likes being dropped into a different HTML stylesheet than the one it grew up in. But like everything with names, this one is kind of fun. If you want to run this same visualization off your own server, you can get pretty close to doing it by cloning the <a href=https://github.com/bmschmidt/SSA-bookworm>host repository</a>.
+  </text>
+
+  <script>
+
+    // Create a well-sized svg element to hold the Bookworm graphics
+    var width = window.innerWidth,
+    height=d3.max([window.innerHeight,600]);
+    var svg = d3.select("#main").append("svg").attr("width",width).attr("height",height)
+
+
+
+    //define the Bookworm by its initial query
+    var dbookworm = Bookworm(
+    {"database":"movies",
+    "search_limits":{"TV_show":"Deadwood"},
+    "compare_limits":{"TV_show":"The Wire"},
+    "aesthetic":{"size":"Dunning","label":"unigram"},
+    "plotType":"wordcloud","method":"return_json"
+    })
+
+    //attach it to the svg
+    dbookworm.makePlotArea(svg)
+
+    dbookworm.addFilters({"search_limits.TV_show":"categorical"},d3.select("#selectionOptions"),"limitation")
+
+    //Try pulling the location from the hash
+    dbookworm.checkHashForLocation()
+    //Run the query and plot the elements.
+    dbookworm.updatePlot()
+    
+    //Additional queries can be run through the interface on screen;
+
+    //add this fun little function.
+
+
+  </script>
+</body>
