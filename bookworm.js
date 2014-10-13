@@ -1791,6 +1791,109 @@ Old code from HEAD, 7/13/14/?
             })
 
     },
+
+    "scatter" : function() {
+        var bookworm = this;
+        var query = bookworm.query;
+        var mainPlotArea = this.selections.mainPlotArea;
+
+        parentDiv = d3.select("#selectionOptions")
+        bookworm.addFilters({
+            "word":"textArray"  
+	},
+                            parentDiv)
+
+        bookworm.addAestheticSelectors({
+            "x":"numericAesthetic",
+            "y":"numericAesthetic",
+	    "label":"categoricalAesthetic",
+            "color":"categoricalAesthetic",
+	    "size":"numericAesthetic"
+	},
+                                       parentDiv)
+        bookworm.alignAesthetic()
+
+        //this order matters, because the y-axis is curtailed and can exclude
+        //elements from the x-axis. Yikes. That's no good.
+
+        transition = 2000
+
+        var scales = this.updateAxes(delays = {"x":0,"y":transition},transitiontime=transition)
+        var xstuff = scales[0]
+        var ystuff = scales[1]
+        var x = xstuff.scale
+        var y = ystuff.scale
+
+        getColor = function(d) {return colorscale(d[query.aesthetic.color])}
+
+        if (typeof(query['aesthetic']['color']) != 'undefined') {
+            topColors = bookworm.topn(255,query['aesthetic']['color'],bookworm.data)
+
+            bookworm.data = bookworm.data
+                .filter(function(d) {
+                    return(topColors.indexOf(d[query['aesthetic']['color']]) > -1)
+                });
+
+            topColors.sort()
+            colorscale = d3.scale.category10()
+                .domain(topColors)
+        } else {
+
+            colors = d3.scale.category20().range().concat(d3.scale.category20b().range()).concat(d3.scale.category20c().range())
+            colors = colors.concat(colors).concat(colors).concat(colors)
+            colorscale = d3.scale.category20c().domain(y.domain()).range(colors)
+            getColor = function(d) {return colorscale(d[query.aesthetic.y])}
+        }
+
+        bookworm.colorscale=colorscale
+
+        points = mainPlotArea.selectAll('circle')
+            .data(bookworm.data,function(d) {
+                key = d[query['aesthetic']['label']]
+                if (typeof(d[query['aesthetic']['color']]) != undefined) {
+                    key = key + d[query['aesthetic']['color']]
+                }
+                return key
+            })
+
+        points
+            .enter()
+            .append('circle')
+            .classed("plot",true)
+            .attr("r",5)
+            .makeClickable()
+            .attr('cx',function(d) {
+                return(x(d.query.aesthetic.y))
+            })
+            .attr('cy',function(d) {
+                return y(d[query['aesthetic']['y']])
+            })
+
+        points
+            .exit()
+            .transition()
+            .duration(transition)
+            .attr('opacity',0)
+            .attr("r",0)
+            .remove()
+
+        bookworm.yscale = y;
+
+        points
+            .style('fill',function(d) {
+                return colorscale(d[query['aesthetic']['color']])})
+            .transition()
+            .duration(transitiontime)
+            .attr('cx',function(d) {
+                return x(d[query['aesthetic']['x']])
+            })
+            .transition(transitiontime)
+            .attr('cy',function(d) {
+                return y(d[query['aesthetic']['y']])
+            })
+
+    },
+
     "addFilters" : function(fields,attachTo,limitthing) {
 
         var elements = d3.keys(fields).map(function(key){
