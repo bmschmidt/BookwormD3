@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,6 +14,8 @@
 <script src="lib/beautify.js"/></script>
 <script src="lib/topojson.v1.min.js"></script>
 <script src="lib/d3-cloud/d3.layout.cloud.js"></script>
+<script src="lib/d3-svg-legend-master/legend.js"></script>
+
 <style>
 
 </style>
@@ -39,7 +42,11 @@
     </svg>
   </div>
 
-  <div id="bottomBoxes">
+  <button id="AdvancedOptions">
+  Show Advanced
+  </button>
+
+  <div id="bottomBoxes" class = "debugging" style="display:none;" >
     Plot Type:
     <select id="plotType" bindTo = "bookworm.query['plotType']">
       <option value="map">Geographic Map</option>
@@ -52,9 +59,6 @@
     </select>
   </div>
 
-  <button id="AdvancedOptions">
-  Show Advanced
-  </button>
 
   <div id="debugging" class = "debugging">
     <br>API call:
@@ -62,17 +66,31 @@
     <br />
     Database: <input id="boundDatabase" class="queryViz" bindTo="bookworm.query['database']">
     <br />
+    <br />
   </div>
 
-  <button id = "ExportData" />Export Data</button>
 
-  <div id="bottomBoxes"></div>
   <div id="lastOptions"></div>
 
 
   <!--This runs after everything else has been set up: it uses some of the elements created above-->
 
   <script type="text/javascript" src = "multimethod.js"></script>
+  <script>
 
+    d3.select("#debugging").style("display","none")
+    d3.select("body").on("keydown",function(d) {
+        console.log(d3.event.altKey);
+        if (d3.event.altKey) {
+            if (d3.event.keyCode==65) {d3.select("#debugging").style("display","inline")}
+        }})
+
+    d3.select("#AdvancedOptions").on("click",function() {
+    var bugs = d3.selectAll(".debugging")
+    bugs.style("display")=="inline" ? 
+        bugs.style("display","none") : 
+        bugs.style("display","inline")
+    })
+  </script>
   </body>
   </html>
