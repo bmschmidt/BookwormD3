@@ -1,7 +1,7 @@
 //first, a behavior called "drag" is defined; this is super-optional.
 //Then the d3.selection prototype is expanded to allow clicks bound t data.
 //Finally, a class "Bookworm" is defined, essentially, based on a function
-//and a huge object with various methods which include charts, and so forth.
+//and a huge object with various methods which includes charts, and so forth.
 
 var drag = d3.behavior.drag()
     .on("drag", function(d,i) {
@@ -30,12 +30,10 @@ d3.selection.prototype.makeClickable = function(query,legend,ourBookworm) {
             //pointer update only works if there is a color
             //aesthetic; otherwise, nothing happens
 
-
             textArea = ourBookworm.selections.tooltip
 
             textArea.selectAll("text").remove()
             textArea.selectAll("br").remove()
-
 
             textArea
                 .transition()
@@ -91,7 +89,7 @@ d3.selection.prototype.makeClickable = function(query,legend,ourBookworm) {
         })
 
         .on('click',function(d) {
-            BookwormClasses.runSearch(d)
+            ourBookworm.runSearch(d)
         })
     return selection
 }
@@ -157,10 +155,6 @@ BookwormClasses = {
     },
 
     updateData: function(callback,append) {
-
-
-
-
         //callback is a string relative to the layer we're working with here.
         //that *names* a function to be called.
 
@@ -198,14 +192,12 @@ BookwormClasses = {
                 if (bookworm.data===undefined) {bookworm.data=[]}
                 bookworm.data = bookworm.data.concat(bookworm.parseBookwormData(data,bookworm.query))
             }
-
-
-
-
-
+	    
             callback()
+
         })
     },
+
     smooth : function(span,axis,kernel) {
         var bookworm = this;
         var kernelSmoother;
@@ -396,7 +388,6 @@ BookwormClasses = {
 
 
 
-        history.pushState(window.location.hash)
         window.location.hash = encodeURIComponent(JSON.stringify(this.query))
         //housekeeping;
 
@@ -426,9 +417,13 @@ BookwormClasses = {
         // is fine.
 
         if (this.lastQuery != this.serverSideJSON(bookworm.query)) {
-            bookworm.updateData(function() {bookworm[bookworm.query.plotType]()});
+            bookworm.updateData(function() {
+		bookworm[bookworm.query.plotType]()
+		callback()
+	    });
         } else {
             bookworm[bookworm.query.plotType]()
+	    callback()
         }
 
         this.lastQuery = this.serverSideJSON(this.query);
@@ -1748,6 +1743,7 @@ BookwormClasses = {
         var smoothingSpan = this.smoothingSpan || 0;
 
         var scales = this.updateAxes()
+
         var xstuff = scales[0]
         var ystuff = scales[1]
         var x = xstuff.scale
@@ -1836,6 +1832,92 @@ BookwormClasses = {
 
     },
 
+    sparkline : function() {
+
+	//we write directly on the container, here.
+
+        var mainPlotArea = this.selections.container;
+
+	mainPlotArea.selectAll("child").remove()
+        var bookworm = this;
+
+        bookworm.data=bookworm.data.filter(function(d) {
+            return d[bookworm.query.aesthetic.y] != undefined & !isNaN(d[bookworm.query.aesthetic.y])
+        })
+
+        var query=bookworm.query;
+
+        bookworm.data.sort(function(a,b) {
+            return parseFloat(b[query['aesthetic']['x']] - a[query['aesthetic']['x']])
+        })
+
+        var smoothingSpan = this.smoothingSpan || 0;
+
+
+
+        var x = d3.scale.linear()
+	    .range([3,mainPlotArea.attr("width")-3])
+	    .domain(d3.extent(bookworm.data.map(function(d) {return parseFloat(d[bookworm.query.aesthetic.x])})))
+	
+	var y = d3.scale.linear().range([mainPlotArea.attr("height")-3,3]).domain(d3.extent(bookworm.data.map(function(d) {return parseFloat(d[bookworm.query.aesthetic.y])})))
+
+	console.log(y.range())
+
+	console.log(y(1500))
+
+        //make the lines
+        var lineGenerator = d3.svg.line()
+            .x(function(d) { return x(d[query['aesthetic']['x']])})
+	    .y(function(d) { return y(d[query['aesthetic']['y']])})
+
+
+
+        var nestedData = d3.nest().key(function(d) {
+            return 1
+        }).entries(bookworm.data)
+
+
+        var points = this.selections.mainPlotArea
+            .selectAll('.line');
+
+        var selection = points
+            .data(nestedData,function(d) {return d['key']})
+
+        selection
+            .enter()
+            .append("path")
+            .attr('class','line')
+
+        selection.exit().remove()
+
+        selection
+            .attr('d',function(d) {
+                return lineGenerator(d.values)
+            })
+
+        var circles = mainPlotArea.selectAll('circle.selector').data([bookworm.data[0]])
+
+        circles.enter().append('circle').attr("class","selector")
+
+        circles.exit().remove()
+
+
+        //these need to belong to the line somehow.
+        circles
+            .attr('cx',function(d) {
+                name = query['aesthetic']['x']
+                return x(d[query['aesthetic']['x']])})
+            .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
+            .attr("r",6)
+            .attr('fill','red')
+
+        //        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
+        bookworm.alignAesthetic()
+
+        circles.makeClickable()
+
+    },
+
     updateAxes : function(delays,transitiontime,yVariable) {
 
         yVariable = yVariable || "y"
@@ -1849,7 +1931,6 @@ BookwormClasses = {
         bookworm.query.plotType=="heatmap" ?
             ystuff = bookworm.makeAxisAndScale('y',undefined,"name",false) :
             ystuff = bookworm.makeAxisAndScale('y',undefined,"value",false)
-
 
         var xstuff = bookworm.makeAxisAndScale('x')
 
@@ -1868,6 +1949,8 @@ BookwormClasses = {
 
         //put in a new axis node if it isn't there.
 
+
+
         //axis creation/updating.
         yaxis
             .attr('transform','translate(' +ystuff.limits['x'][0] + ',0)')
@@ -1878,9 +1961,16 @@ BookwormClasses = {
             .attr("id","y-axis")
             .attr('class','y axis')
 
+
+	var i = 1;
+	m = setInterval(function() {
+	    i++;
+	    if (i> 20) {clearInterval(m)}
+	},10)
+
+
         xaxis
             .attr('transform','translate(0,' + xstuff.limits['y'][1] + ')')
-            .transition()
             .transition()
             .delay(delays.x)
             .duration(transitiontime)
@@ -1889,6 +1979,7 @@ BookwormClasses = {
             .attr('class','x axis')
 
         return [xstuff,ystuff]
+
     },
 
     title: function() {
@@ -2309,10 +2400,14 @@ BookwormClasses = {
         var transition = 2000
 
         var scales = this.updateAxes(delays = {"x":0,"y":transition},transitiontime=transition)
+
         var xstuff = scales[0]
         var ystuff = scales[1]
         var x = xstuff.scale
         var y = ystuff.scale
+
+
+
 
         getColor = function(d) {return colorscale(d[query.aesthetic.color])}
 
@@ -2340,6 +2435,7 @@ BookwormClasses = {
         legendscale = d3.svg.legend()
 	    .inputScale(colorscale).orientation("vertical")
 	    .labelFormat("none")
+	    .cellPadding(4)
 	    .units(bookworm.query.aesthetic.color)
 
         d3.selectAll(".color.scale").remove()
@@ -2355,7 +2451,6 @@ BookwormClasses = {
             .attr("transform","translate(" + w * .8+ ","+  h*.05+ ")")
 
         legendg.call(legendscale)
-        legendg.call(drag)
 
         points = mainPlotArea.selectAll('circle')
             .data(bookworm.data,function(d) {
@@ -2388,6 +2483,7 @@ BookwormClasses = {
             .remove()
 
         bookworm.yscale = y;
+
 
         points
             .style('fill',function(d) {
@@ -2849,7 +2945,9 @@ BookwormClasses = {
                     bookworm.updateQuery();
                     shutWindow()
                     removeOverlay()
-                    bookworm.updatePlot(function() {bookworm[bookworm.query.plotType]})
+                    bookworm.updatePlot(function() {
+			bookworm[bookworm.query.plotType]
+		    })
                 })
         },
         "writeTitle" : function() {
@@ -3533,7 +3631,9 @@ BookwormClasses = {
         //takes an element that has attributes corresponding to groups:
         //opens up a search window with the full query restrictions, plus the particular restrictions
         //for which it is grouped.
-        myQuery = JSON.parse(JSON.stringify(query))
+	
+        myQuery = JSON.parse(JSON.stringify(query).replace("*",""))
+
         myQuery['groups'].map(function(group) {
             myQuery['search_limits'][group] = [d[group]]
         })
@@ -3629,7 +3729,6 @@ BookwormClasses = {
 
                 vals.reverse()
             }
-
         }
 
         if (datatype=="Categorical") {
@@ -3652,7 +3751,10 @@ BookwormClasses = {
 
             vals = names
             updateOrder()
-            scale = d3.scale.ordinal().domain(vals).rangeBands(limits[axis])
+            scale = d3.scale.ordinal().domain(vals).rangePoints(limits[axis])
+	    bookworm.query.plotType=="heatmap" || bookworm.query.plotType=="barchart" ? 
+		scale.rangeBands(limits[axis]) :
+		{}
             if (bookworm.query.aesthetic[axis]=="state") {
                 scale.domain(["HI","AK","WA","OR","CA","AZ","NM","CO","WY","UT","NV","ID","MT","ND","SD","NE","KS","IA","MN","MO","OH","MI","IN","IL","WI","OK","AR","TX","LA","MS","AL","TN","KY","GA","FL","SC","WV","NC","VA","DC","MD","DE","PA","NJ","NY","CT","RI","MA","NH","VT","ME"])
             }
@@ -3769,11 +3871,16 @@ Bookworm = function(query) {
         newBookworm.updatePlot()
     }
 
+
+
+    //The various functions are cloned off the classes. It would be better to have them defined inside the closure here.
     d3
         .keys(BookwormClasses)
         .forEach(function(classname) {
             newBookworm[classname] = BookwormClasses[classname]
         })
+
+
     newBookworm.selections = {};
     newBookworm.dataTypes = {};
     newBookworm.plotTransformers = {};
