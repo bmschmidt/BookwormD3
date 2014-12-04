@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<title>Advanced Bookworm Browser</title>
+<script src="d3.v3.min.js"></script>
+<script src="jquery-2.0.3.min.js"></script>
+<!--
+<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css"/>
+-->
+<script src="lib/colorbrewer/colorbrewer.js"/></script>
+<script src="lib/beautify.js"/></script>
+<script src="lib/topojson.v1.min.js"></script>
+<script src="lib/d3-cloud/d3.layout.cloud.js"></script>
+<style>
+
+</style>
+
+<!--
+@import url(treemap.css);
+@import url(bostock.css); 
+-->
+
+<link type="text/css" rel="stylesheet" href="lib/colorbrewer/colorbrewer.css"/>
+
+<link type="text/css" rel="stylesheet" href="bookworm.css"/>
+
+<script type="text/javascript" src="bookworm.js"></script>
+<script type="text/javascript" src="lib/colorbar.js"></script>
+
+</head>
+
+<body>
+
+<div id="selectionOptions"></div>
+<div id="chart" class="maindiv">
+    <svg id="svg">
+    </svg>
+  </div>
+
+  <div id="bottomBoxes">
+    Plot Type:
+    <select id="plotType" bindTo = "bookworm.query['plotType']">
+      <option value="map">Geographic Map</option>
+      <option value="heatmap">2-D Heatmap</option>
+      <option value="linechart">Basic line plot</option>
+      <option value="barchart">Bar Chart</option>
+      <option value="pointchart">Scatterplot</option>
+      <option value="sunburst">Sunburst</option>
+      <option value="treemap">Treemap</option>
+    </select>
+  </div>
+
+  <button id="AdvancedOptions">
+  Show Advanced
+  </button>
+
+  <div id="debugging" class = "debugging">
+    <br>API call:
+    <textarea rows="10" cols="40" id="APIbox" bindTo="bookworm.query" class="queryViz" /></textarea>
+    <br />
+    Database: <input id="boundDatabase" class="queryViz" bindTo="bookworm.query['database']">
+    <br />
+  </div>
+
+
+  <div id="bottomBoxes"></div>
+  <div id="lastOptions"></div>
+
+
+  <!--This runs after everything else has been set up: it uses some of the elements created above-->
+
+  <script type="text/javascript" src = "multimethod.js"></script>
+  <script>
+    d3.select("#debugging").style("display","none")
+    d3.select("body").on("keydown",function(d) {
+        console.log(d3.event.altKey);
+        if (d3.event.altKey) {
+            if (d3.event.keyCode==65) {d3.select("#debugging").style("display","inline")}
+        }})
+  </script>
+  </body>
+  </html>

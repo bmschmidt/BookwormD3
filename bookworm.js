@@ -2229,9 +2229,10 @@ BookwormClasses = {
         var data = this.data;
 
         var query = bookworm.query;
-
-        var div = d3.select("div#chart")
-        div.style("display","inline-block")
+	var div = this.selections.container
+	div.selectAll("text").remove()
+        //var div = d3.select("div#chart")
+        //div.style("display","inline-block")
 
         data = data.sort(function(b,a) {return Math.abs(a[query.aesthetic.size]) - Math.abs(b[query.aesthetic.size])})
 
@@ -2245,13 +2246,13 @@ BookwormClasses = {
 
         var sizer = d3.scale.sqrt()
             .domain(d3.extent(sizes))
-            .range(["1px","160px"])
+            .range(["1px","90px"])
 
         divs.enter()
             .append("div")
             .classed("textgroup",true)
             .attr("id",function(d) {return d})
-            .style("width","45%").style("display","inline-block")
+            .style("width","50%").style("display","inline-block")
             .style("vertical-align","top")
             .each(function(d) {
                 var values = d.values.sort(function(a,b) {return Math.abs(b[query.aesthetic.size])- Math.abs(a[query.aesthetic.size])})
@@ -2263,7 +2264,7 @@ BookwormClasses = {
                     .style("text-fill","red")
                     .style("opacity",.75)
                     .style("font-family","impact")
-                    .on("mouseover",function(d) {d3.select(this).style("opacity",1)})
+                    .on("mouseover",function(d) {})//d3.select(this).style("opacity","")})
             })
 
                 },
@@ -2324,6 +2325,7 @@ BookwormClasses = {
         }
 
         bookworm.colorscale=colorscale
+	/**
         var points = mainPlotArea.selectAll('circle')
             .data(bookworm.data,function(d) {
                 key = d[query['aesthetic']['y']]
@@ -2332,7 +2334,7 @@ BookwormClasses = {
                 }
                 return key
             })
-
+	**/
         var bars = mainPlotArea
             .selectAll('rect')
             .data(bookworm.data,function(d) {
@@ -2358,14 +2360,14 @@ BookwormClasses = {
 
         bars
             .transition()
-            .duration(2000)
+            .duration(transition)
             .attr("height",y.pixels)
             .attr('x',xstuff.limits.x[0])
             .attr("width",function(d) {
                 return x(d[query['aesthetic']['x']]) - xstuff.limits.x[0]
             })
             .transition()
-            .duration(2000)
+            .duration(transition)
             .attr('y',function(d) {
                 var yVariable = query['aesthetic']['y']
                 return y(bookworm.plotTransformers[yVariable](d[yVariable]))
