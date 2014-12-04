@@ -1010,9 +1010,9 @@ BookwormClasses = {
         var xstuff = scales[0]
         var ystuff = scales[1]
 
+
         var x = xstuff.scale
         var y = ystuff.scale
-
 
 
 
@@ -1937,8 +1937,14 @@ BookwormClasses = {
         var x = xstuff.scale
         var y = ystuff.scale
 
+
+
         if (xstuff.type=="numeric") {
-            x.domain([0,x.domain()[1]])
+	    x.domain()[0] > 0 ? 
+//		x.domain([0,x.domain()[1]]) : 
+		x.domain(x.domain()) : 
+		{}
+
         }
 
         var yaxis = mainPlotArea.selectAll('.y.axis').data([ystuff.axis])
@@ -3680,7 +3686,6 @@ BookwormClasses = {
 
         var variableName = query['aesthetic'][axis]
 
-
         var vals = d3.nest()
             .key(function(d) {
                 return d[variableName]
@@ -3728,7 +3733,6 @@ BookwormClasses = {
             }
 
             if (descending=="default") {
-
                 vals.reverse()
             }
         }
@@ -3757,7 +3761,7 @@ BookwormClasses = {
 	    bookworm.query.plotType=="heatmap" || bookworm.query.plotType=="barchart" ? 
 		scale.rangeBands(limits[axis]) :
 		{}
-            if (bookworm.query.aesthetic[axis]=="state") {
+            if (bookworm.query.aesthetic[axis]=="state" && bookworm.query.database=="SSA") {
                 scale.domain(["HI","AK","WA","OR","CA","AZ","NM","CO","WY","UT","NV","ID","MT","ND","SD","NE","KS","IA","MN","MO","OH","MI","IN","IL","WI","OK","AR","TX","LA","MS","AL","TN","KY","GA","FL","SC","WV","NC","VA","DC","MD","DE","PA","NJ","NY","CT","RI","MA","NH","VT","ME"])
             }
             pointsToLabel = vals
@@ -3779,7 +3783,7 @@ BookwormClasses = {
 
             var domain = d3.extent(vals)
             var oldLow = domain[0]
-            if (bookworm.query.aesthetic[axis] != "chunk") {
+            if (bookworm.query.aesthetic[axis] != "chunk" && domain[0] > 0) {
                 domain[0] = 0;
             }
             if (axis=='y') {
@@ -3816,7 +3820,6 @@ BookwormClasses = {
             thisAxis = d3.svg.axis()
             scale = d3.scale.linear()
         }
-
         if (axis=='x') {
             thisAxis = thisAxis.orient("bottom")
         }
