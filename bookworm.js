@@ -1019,7 +1019,7 @@ BookwormClasses = {
         bookworm.scales.x = x;
 
         bookworm.data = bookworm.data.map(function(d) {
-            d.key = d[myQuery['aesthetic']['x']] + d[myQuery['aesthetic']['y']]
+            d.key = d[myQuery['aesthetic']['x']] + "-" + d[myQuery['aesthetic']['y']]
             return(d)
         })
 
