@@ -87,7 +87,6 @@ d3.selection.prototype.makeClickable = function(query,legend,ourBookworm) {
             d3.select(this).classed("highlit",false)
             //toggleHighlighting(d,false)
         })
-
         .on('click',function(d) {
             ourBookworm.runSearch(d)
         })
@@ -1078,6 +1077,8 @@ BookwormClasses = {
 
     streamgraph : function() {
 
+
+	var LimitTo = 10
         var bookworm = this;
         var parentDiv = d3.select("#selectionOptions")
 
@@ -1103,11 +1104,8 @@ BookwormClasses = {
         var limits = {'x':[w*.1,w*.66],'y':[75,h*.95]}
         var myQuery = bookworm.query
         var colorScaler = bookworm.returnScale()
-        //var sizeScaler  = bookworm.returnScale()
 
         var mainPlotArea= bookworm.selections.mainPlotArea
-
-
 
         transition=0
 
@@ -1121,16 +1119,32 @@ BookwormClasses = {
 
         bookworm.scales.x = x;
 
+	topEntries = d3.nest()
+		    .key(function(d) {return d[bookworm.query.aesthetic.fill]})
+		    .rollup(function(leaves) {
+					      counts = leaves.map(function(entry) {return entry[bookworm.query.aesthetic.y]})
+					      return d3.sum(counts)})
+		    .entries(bookworm.data)
+	
+
+	topEntries.sort((function(a,b) {return b.values - a.values}))
+	keeping = d3.set(topEntries.map(function(d) {return d.key}).slice(0,LimitTo))
+
+	var data = bookworm.data.filter(function(d) {return keeping.has(d[bookworm.query.aesthetic.fill])})
+	bookworm.data = data
+//		    .sort(function(a,b) {return a[values]-b[values]}))
+	
+
 
         var stack = d3.layout.stack()
-            .offset("wiggle")
+            .offset("silhouette")
             .x(function(d) {return d[bookworm.query.aesthetic.x]})
             .y(function(d) {return d[bookworm.query.aesthetic.y]})
 
 
         var yearlist = d3.set(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.x]})).values()
 
-        var as2D = d3.nest().key(function(d) {return d[bookworm.query.aesthetic.fill]}).entries(bookworm.data).map(function(d) {return d.values})
+        var as2D = d3.nest().key(function(d) {return d[bookworm.query.aesthetic.fill]}).entries(data).map(function(d) {return d.values})
 
         as2D.forEach(function(colorset) {
             var color = colorset[0][bookworm.query.aesthetic.fill]
@@ -1153,11 +1167,13 @@ BookwormClasses = {
 
 
 
-        vals = layers0.map(function(d) {return d3.max(d.map(function(e) {return (e.y0)}))})
+        var vals = layers0.map(function(d) {return d.map(function(e) {return ([e.y0,e.y+e.y0])})})
+	vals = 	[].concat.apply([],[].concat.apply([],vals))
 
-
-        var y = ystuff.scale.domain([["cluster"].indexOf(bookworm.query.aesthetic.y)> -1 ? d3.min(vals) : 0,d3.max(vals)])
-
+	console.log(d3.extent(vals))
+	var min = d3.min(vals)
+        var y = ystuff.scale.domain([d3.min(vals),d3.max(vals)])
+	console.log(y.domain())
         bands = mainPlotArea.selectAll("path.plotElement")
             .data(layers0)
 
@@ -1171,6 +1187,7 @@ BookwormClasses = {
         bookworm.scales.color = d3.scale.category20().domain(colorValues)
 
         var area = d3.svg.area()
+	    .interpolate("cardinal")
             .x(function(d) {var xval= x(bookworm.plotTransformers[xVariable](d[bookworm.query.aesthetic.x]));return xval;})
             .y0(function(d) { return y(d.y0); })
             .y1(function(d) { return y(d.y0 + d.y); });
@@ -1180,6 +1197,35 @@ BookwormClasses = {
             .style("fill", function(d) {return bookworm.scales.color(d[0][query.aesthetic.fill]); });
 
         bands.makeClickable()
+
+	//Add a color scale
+
+	function makeColorScale() {
+
+            legendscale = d3.svg.legend()
+		.inputScale(bookworm.scales.color).orientation("vertical")
+		.labelFormat("none")
+		.cellPadding(4)
+		.units(bookworm.query.aesthetic.color)
+
+            d3.selectAll(".color.scale").remove()
+
+
+	    var w = bookworm.selections.container.attr("width")
+	    var h = bookworm.selections.container.attr("height")
+            var legendg = bookworm
+		.selections.container.append("g")
+		.attr("id","scale")
+		.classed("color scale",true)
+		.classed("axis",true)
+		.attr("transform","translate(" + w * .8+ ","+  h*.05+ ")")
+
+            legendg.call(legendscale)
+	}
+
+	makeColorScale()
+
+
 
     },
 
@@ -2242,6 +2288,7 @@ BookwormClasses = {
 
         data = data.sort(function(b,a) {return Math.abs(a[query.aesthetic.size]) - Math.abs(b[query.aesthetic.size])})
 
+	data = data.filter(function(d) {return d[query.aesthetic.label].length > 1})
         groups = d3.nest().key(function(d) {return d[query.aesthetic.size] > 0}).entries(data)
 
         groups.sort(function(a,b){return a.key=="false"})
@@ -2252,7 +2299,7 @@ BookwormClasses = {
 
         var sizer = d3.scale.sqrt()
             .domain(d3.extent(sizes))
-            .range(["1px","90px"])
+            .range(["8px","90px"])
 
         divs.enter()
             .append("div")
@@ -2438,27 +2485,31 @@ BookwormClasses = {
             getColor = function(d) {return colorscale(d[query.aesthetic.y])}
         }
 
-        bookworm.colorscale=colorscale
 
-        legendscale = d3.svg.legend()
-	    .inputScale(colorscale).orientation("vertical")
-	    .labelFormat("none")
-	    .cellPadding(4)
-	    .units(bookworm.query.aesthetic.color)
+	function makeColorScale() {
+            bookworm.colorscale=colorscale
 
-        d3.selectAll(".color.scale").remove()
+            legendscale = d3.svg.legend()
+		.inputScale(colorscale).orientation("vertical")
+		.labelFormat("none")
+		.cellPadding(4)
+		.units(bookworm.query.aesthetic.color)
+
+            d3.selectAll(".color.scale").remove()
 
 
-	var w = bookworm.selections.container.attr("width")
-	var h = bookworm.selections.container.attr("height")
-        var legendg = bookworm
-            .selections.container.append("g")
-            .attr("id","scale")
-            .classed("color scale",true)
-            .classed("axis",true)
-            .attr("transform","translate(" + w * .8+ ","+  h*.05+ ")")
+	    var w = bookworm.selections.container.attr("width")
+	    var h = bookworm.selections.container.attr("height")
+            var legendg = bookworm
+		.selections.container.append("g")
+		.attr("id","scale")
+		.classed("color scale",true)
+		.classed("axis",true)
+		.attr("transform","translate(" + w * .8+ ","+  h*.05+ ")")
 
-        legendg.call(legendscale)
+            legendg.call(legendscale)
+	}
+
 
         points = mainPlotArea.selectAll('circle')
             .data(bookworm.data,function(d) {
