@@ -1,5 +1,7 @@
 BookwormClasses.logClassify = function() {
     
+
+    console.log(this.query)
     //due to inheritance problems, bookworm has to be defined globally for this one.
 
     d3
@@ -45,7 +47,7 @@ BookwormClasses.logClassify = function() {
     }
 
     localTotals = d3.nest().key(variableKey).map(local)
-
+    console.log(totals)
     totals.forEach(function(d) {
         //update the chances;
 
@@ -75,6 +77,11 @@ BookwormClasses.logClassify = function() {
     var x = d3.scale.linear()
         .domain([domain[0],domain[1]])
         .range([30,window.innerWidth*.8]);
+
+    var bWormwidth = d3.select("svg").attr("width")
+    x.range([30,bWormwidth])
+
+    console.log(x.range())
 
     var axis = d3.svg.axis().orient("top").scale(x);
 
@@ -136,5 +143,5 @@ BookwormClasses.logClassify = function() {
         .attr("width",function(d) {
             return x(d.currentOverall);
         })
-    setTimeout(changeWords,100)
+    setTimeout(changeWords,700)
 }
