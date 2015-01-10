@@ -136,5 +136,5 @@ BookwormClasses.logClassify = function() {
         .attr("width",function(d) {
             return x(d.currentOverall);
         })
-    setTimeout(changeWords,100)
+    setTimeout(changeWords,1500)
 }

@@ -1370,7 +1370,10 @@ BookwormClasses = {
                 .update()
         }
 
-        var sizeScale = d3.scale.sqrt().range([0,50]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
+	topsize = 50
+        var sizeScale = d3.scale.sqrt().range([2,topsize]).domain(d3.extent(bookworm.data.map(function(d) {return d[bookworm.query.aesthetic.size]})))
+
+	if (sizeScale.domain()[0]==0) {sizeScale.range([0,topsize])}
 
 	bookworm.query.database=="boston"? sizeScale = function(x) {return 5} : {}
 	
@@ -1548,7 +1551,12 @@ BookwormClasses = {
         } 
 
 
+        if (bookworm.query.database=="SOTUgeo") {
+	    proj = d3.geo.mercator().center([0,0]).scale(120)                .translate([width / 2, height / 2])
+        } 
 
+
+ 
             var polygons = mainPlotArea.selectAll("#mapregion").data([1])
 
             polygons.enter().append("g").attr("id","mapregion")
