@@ -1,14 +1,20 @@
 var timeworm = {};
 
+var xVariable = "twelfth"
+var splitPoint = 6
+
 var json = {"database":"moments","plotType":"slopegraph","method":"return_json","search_limits":{
-    "topic":[6],"MovieYear":{"$lte":1990,"$ne":0}
+    "topic":[6]
     //,   "primary_country":["USA"]
 },
-            "compare_limits":{"topic":[6],
-                              "MovieYear":{"$gt":1990}
+            "compare_limits":{"topic":[6]
+
                               //,                              "primary_country":{"$ne":"USA"}
                              },
             "aesthetic":{"left":"WordCount","right":"TotalWords","label":"unigram"},"counttype":["WordCount","TotalWords"],"groups":["unigram"]}
+
+json.search_limits[xVariable] = {"$lte":splitPoint}
+json.compare_limits[xVariable] = {"$gt":splitPoint,"$lte":11}
 
 var dbookworm = Bookworm(json)
 
@@ -51,8 +57,8 @@ a.updateData(callback = function() {
 function buildTimeChart() {
     d3.select("#timechart").attr("width",$("#timechart").parent().width()).attr("height",240)
     var newquery = JSON.parse(JSON.stringify(dbookworm.query))
-    newquery.aesthetic = {"x":"MovieYear","y":"WordsPerMillion"}
-    newquery.search_limits = {"*topic":newquery.search_limits.topic,"MovieYear":{"$gt":1930}}
+    newquery.aesthetic = {"x":xVariable,"y":"WordsPerMillion"}
+    newquery.search_limits = {"*topic":newquery.search_limits.topic}; newquery.search_limits[xVariable]={"$lt":12}
     newquery.compare_limits = undefined
     newquery.plotType="linechart"
     timeworm = Bookworm(newquery)
@@ -92,14 +98,16 @@ function setSparkWatcher() {
 	    .selectAll("element").remove()
             var quer = {"database": "movies","method":"return_json",
                         "plotType": "sparkline",
-                        "search_limits": {"MovieYear":{"$lte":2013,"$gte":1945},
+                        "search_limits": {
                                           "word": [d.unigram]
                                          },
                         "aesthetic": {
-                            "x": "MovieYear",
+                            "x": xVariable,
                             "y": "WordsPerMillion"
                         } }
+	    query.search_limits[xVariable] = {"$lte":2013,"$gte":1945}
             var svg = timeSpark(quer)
+	    
 //        }).on("mouseover",function() {
 
         })
