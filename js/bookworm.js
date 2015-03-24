@@ -1602,8 +1602,11 @@ BookwormClasses = {
     map : function() {
         var mainPlotArea = this.selections.mainPlotArea;
 	var container = this.selections.container
-        var width = container.attr("width") || container.style("width")
-        var width = container.attr("height") || container.style("height")
+	foobar = container
+
+        var width = container.attr("width") || container.style("width").replace("px","")
+        var height = container.attr("height") || container.style("height").replace("px","")
+
 
 
         var bookworm = this;
@@ -2895,10 +2898,15 @@ BookwormClasses = {
 	function drawPoints() {
 
 	    var container = bookworm.selections.container
-
-	    var legendDivWrapper = d3.select(container.node().parentNode).selectAll("div.controlWrapper").data([1])
-	    legendDivWrapper.enter().append("div").attr("class","controlWrapper").style("display","block")
+	    var parentDiv = d3.select(container.node().parentNode)
+	    var legendDivWrapper = parentDiv.style("display","float").style("clear","both").selectAll("div.controlWrapper").data([1])
 	    
+	    legendDivWrapper.enter().append("div").attr("class","controlWrapper").style("display","block")
+
+	    parentDiv.style("display","block")
+	    
+
+	    legendDivWrapper.selectAll("p").remove()
 
 	    var legendDivs=legendDivWrapper
 		.selectAll("div.vectorLegend")
@@ -2915,7 +2923,8 @@ BookwormClasses = {
 		.append("div")
 		.style("width",radius*2+10 + "px")
 		.attr("class","vectorLegend")
-		.style("float","left")
+		.style("display","inline-block")
+//		.style("float","left")
 
 	    newbits.append('text').style("text-anchor","middle").style("display","block")//.attr("transform","translate(0," + (-radius -1) + ")").style("text-anchor","middle")
 
@@ -2932,6 +2941,7 @@ BookwormClasses = {
 	    newsvgs.append("circle").attr("r",radius).style("fill","none").style("stroke","black")
 	    newsvgs.append("circle").attr("r",1).style("fill","none").style("stroke","black")
 	    newsvgs.append("circle").attr("r",4).style("fill","red").style("stroke","red").attr("class","pointer")
+
 
 	    var x = d3.scale.linear().domain([-1,1]).range([-radius,radius])
 	    var y = d3.scale.linear().domain([-1,1]).range([radius,-radius])
@@ -3163,9 +3173,7 @@ BookwormClasses = {
 
 	["x","y"].forEach(function(axis) {
 	    var working = bookworm.selections.container.selectAll("." + axis + ".axis")
-	    console.log(working)
 	    working.selectAll("text.label").remove()
-	    console.log("appending")
 	    working.append("text")
 		.attr("class","label")
 		.text(labelText(axis)) 
