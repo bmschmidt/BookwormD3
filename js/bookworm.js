@@ -930,15 +930,7 @@ BookwormClasses = {
             this.selections.background = root.append("g").attr("id","plotBackground")
         }
 
-
-
-        //      if (bookworm.query.plotType=="linechart") {console.log(bookworm.query.plotType,dbookworm.selections.container[0]) }
-
-
         this.selections.container = root;
-        //      if (bookworm.query.plotType=="linechart") {console.log(bookworm.query.plotType,dbookworm.selections.container[0]) }
-
-
         this.selections.mainPlotArea = root.selectAll("#mainPlotArea").data([1])
         this.selections.mainPlotArea.enter().append("g").attr("id","mainPlotArea")
 
@@ -992,6 +984,7 @@ BookwormClasses = {
         var sizeScaler  = bookworm.returnScale()
         var mainPlotArea= bookworm.selections.mainPlotArea
 
+
         transition=200
 
         var scales = bookworm.updateAxes(delays = {"x":0,"y":0},transitiontime=transition)
@@ -1013,7 +1006,7 @@ BookwormClasses = {
 
         if (myQuery['scaleType']==undefined) {myQuery['scaleType'] = "linear"}
 
-        colorValues = bookworm.data.map(function(d) {
+        var colorValues = bookworm.data.map(function(d) {
             return(d[myQuery['aesthetic']['color']])
         })
 
@@ -1205,7 +1198,7 @@ BookwormClasses = {
 
         //Add a color scale
 
-	bookworm.makeDiscreteColorLegend(bookworm.scales.color)
+
 
         function makeColorScale() {
 
@@ -1230,17 +1223,12 @@ BookwormClasses = {
             legendg.call(legendscale)
         }
 
-//        makeColorScale()
-
-
-
     },
     "getSVGDimensions" : function() {
 	var bookworm = this;
         var w = bookworm.selections.container.attr("width") || bookworm.selections.container.style("width").replace("px","")
         var h = bookworm.selections.container.attr("height") || bookworm.selections.container.style("width").replace("px","")
 	var dims = {"width":w,"height":h}
-	console.log(dims);
 	return dims;
 	
     },
@@ -1883,10 +1871,12 @@ BookwormClasses = {
 
         var mainPlotArea = this.selections.mainPlotArea;
         var bookworm = this;
+        var query=bookworm.query;
 
         bookworm.data=bookworm.data.filter(function(d) {
             return d[bookworm.query.aesthetic.y] != undefined & !isNaN(d[bookworm.query.aesthetic.y])
         })
+
         var parentDiv = d3.select("#selectionOptions")
         bookworm.addFilters({
             "word":"textArray"  },
@@ -1894,19 +1884,18 @@ BookwormClasses = {
                            )
         bookworm.addAestheticSelectors({
             "y":"numericAesthetic",
-            "x":"categoricalAesthetic","color":"categoricalAesthetic"},
+            "x":"categoricalAesthetic",
+	    "color":"categoricalAesthetic"},
                                        parentDiv)
 
-        var query=bookworm.query;
+
 
         bookworm.data.sort(function(a,b) {
             return parseFloat(a[query['aesthetic']['x']] - b[query['aesthetic']['x']])
         })
 
         var smoothingSpan = this.smoothingSpan || 0;
-
         var scales = this.updateAxes()
-
         var xstuff = scales[0]
         var ystuff = scales[1]
         var x = xstuff.scale
@@ -1918,7 +1907,6 @@ BookwormClasses = {
         var lineGenerator = d3.svg.line()
             .x(function(d) {
                 name = query['aesthetic']['x']
-
                 var value = x(bookworm.plotTransformers[name](d[name]));
                 return value})
             .y(function(d) {
@@ -1931,67 +1919,88 @@ BookwormClasses = {
         }).entries(bookworm.data)
 
 
-        var points = this.selections.mainPlotArea
-            .selectAll('.line');
+        getColor = function(d) {return colorscale(d[query.aesthetic.color])}
 
-        var selection = points
+        if (typeof(query['aesthetic']['color']) != 'undefined') {
+            topColors = bookworm.topn(255,query['aesthetic']['color'],bookworm.data)
+
+            colorscale = d3.scale.category10()
+                .domain(topColors)
+	    console.log(topColors)
+	    bookworm.makeDiscreteColorLegend(colorscale)
+        } else {
+            var colors = d3.scale.category20().range().concat(d3.scale.category20b().range()).concat(d3.scale.category20c().range())
+            colors = colors.concat(colors).concat(colors).concat(colors)
+            var colorscale = d3.scale.category20c().domain(y.domain()).range(colors)
+	    bookworm.scales.color=colorscale
+            getColor = function(d) {return colorscale(d[query.aesthetic.y])}
+        }
+
+        var lines = mainPlotArea
+            .selectAll('g.line')
             .data(nestedData,function(d) {return d['key']})
 
-        selection
+        var newlines = lines
             .enter()
+	    .append("g")
+	    .attr("class","line")
+
+	newlines
             .append("path")
             .attr('class','line')
+	    .style("stroke",function(d) {return colorscale(d.key)})
 
-        selection.exit().remove()
+        lines.exit().transition().style("opacity",0).remove()
 
-        selection
-            .transition().duration(2000)
-            .attr('d',function(d) {
-                return lineGenerator(d.values)
-            })
+        lines.each(
+	    function(d) {
+		var group = d3.select(this)
+		group
+		    .selectAll("path")
+		    .transition()
+		    .duration(2000)
+		    .attr('d',lineGenerator(d.values))
+		    .style("stroke-width",3)
 
+		var circles = group
+		    .selectAll('circle.selector')
+		    .data(d.values)
+		
+		circles.exit().remove()
 
-        //        selection
-        //          .attr('stroke','#F0E1BD')
-        //        .attr('fill','#F0E1BD')
+		circles.enter().append('circle').attr("class","selector")
 
+		circles
+		    .style('opacity','.01')
+		    .style("stroke","black")
+		    .style("stroke-width",10) // Give the points a penumbra
+		    .style("stroke-opacity",0)
 
-        selection
-            .on('mouseover',function(d) {
-                d3.select(this).style('stroke-width','5')
-            })
-            .on('mouseout',function(d) {
-                d3.select(this).style('stroke-width','')
-            })
-
-        //Make the points
-
-
-        var circles = mainPlotArea.selectAll('circle.selector').data(bookworm.data,function(d) {return d[query.aesthetic.color] + d[query['aesthetic']['x']]})
-
-        circles.enter().append('circle').attr("class","selector")
-
-        circles.exit().remove()
+		circles.makeClickable()
 
 
-        //these need to belong to the line somehow.
-        circles
-            .attr('opacity','.01')
-            .on('mouseover',function(d) {d3.select(this).attr('opacity','1')})
-            .on('mouseout',function(d) {d3.select(this).attr('opacity','.01')})
-            .attr('cx',function(d) {
-                name = query['aesthetic']['x']
-                return x(bookworm.plotTransformers[name](d[query['aesthetic']['x']]))})
-            .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
-            .attr("r",6)
-            .attr('fill','yellow')
-
-
-
-        //        bookworm.query.aesthetic['y'] = JSON.parse(oldy)
+		circles
+		    .on('mouseover',function(d) {
+			d3.select(this)
+			    .style('opacity','1')
+			group.selectAll("path").transition().style('stroke-width','6')
+		    })
+		    .on('mouseout',function(d) {
+			d3.select(this).style('opacity','.01')
+			group.selectAll("path").transition().style('stroke-width','3')
+		    })
+		    .attr('cx',function(d) {
+			var name = query['aesthetic']['x']
+			return x(bookworm.plotTransformers[name](d[name]))})
+		    .attr('cy',function(d) {return y(parseFloat(d[query['aesthetic']['y']]))})
+		    .attr("r",6)
+		    .style('fill',colorscale(d.key));
+//
+	    })
+	
         bookworm.alignAesthetic()
 
-        circles.makeClickable()
+
 
     },
 
@@ -2633,7 +2642,7 @@ BookwormClasses = {
         var y = ystuff.scale
 
 
-
+	var colorscale;
 
         getColor = function(d) {return colorscale(d[query.aesthetic.color])}
 
@@ -2649,7 +2658,6 @@ BookwormClasses = {
             colorscale = d3.scale.category10()
                 .domain(topColors)
         } else {
-
             var colors = d3.scale.category20().range().concat(d3.scale.category20b().range()).concat(d3.scale.category20c().range())
             colors = colors.concat(colors).concat(colors).concat(colors)
             colorscale = d3.scale.category20c().domain(y.domain()).range(colors)
@@ -3999,7 +4007,7 @@ BookwormClasses = {
                     var output = undefined
                     dateKey.split("_").reverse().forEach(function(phrase) {
                         //The first date phrase to appear is the one we're using.
-                        if (['year','month','day','week','decade','century',"Year","Decade","yearchunk"].indexOf(phrase) >=0) {output=phrase}
+                        if (['year','month','day','week','decade','century',"Year","Decade","yearchunk","hour"].indexOf(phrase) >=0) {output=phrase}
                     })
                     return output
                 }
@@ -4008,6 +4016,7 @@ BookwormClasses = {
                 if (relevantField == "day") { return getDate2(originalValue)}
                 else if (relevantField=="week") {return getDate2(originalValue) }
                 else if (relevantField=="month") {return getDate2(originalValue) }
+                else if (relevantField=="hour") {var val=new Date(); val.setHours(originalValue); val.setMinutes(0); return val; }
                 else {
                     datedValue.setFullYear(originalValue,1,1)
                     return datedValue
