@@ -1220,6 +1220,8 @@ BookwormClasses = {
             legendg.call(legendscale)
         }
 
+	makeColorScale()
+
     },
     getSVGDimensions : function() {
         var bookworm = this;
@@ -3231,7 +3233,7 @@ BookwormClasses = {
                     try {
                         box
                             .property("value",bookworm.query.search_limits[target].join(","))
-                    } catch(err) {console.log(err)}
+                    } catch(err) {}
                     return that
                 }
                 that.target = function(x) {
