@@ -3268,15 +3268,14 @@ BookwormClasses = {
 
                 return that
             },
-            "dropDown" : function() {
+            "dropdown" : function() {
                 var that = {}
                 var box;
-                var target = "word"
-
+                var target = "topic"
                 that.pull = function() {
                     try {
                         box
-                            .property("value",bookworm.query.search_limits[target].join(","))
+                            .property("value",bookworm.query.search_limits[target])
                     } catch(err) {console.log(err)}
                     return that
                 }
@@ -3286,23 +3285,47 @@ BookwormClasses = {
                     return that
                 }
                 that.push = function() {
-                    text = box.property("value")
-                    text = text.replace(" *, *",",")
-                    bookworm.query.search_limits[target] = text.split(",")
+                    var value = box.node().value
+                    bookworm.query.search_limits[target] = [value]
                     return that
                 }
 
                 that.createOn = function(domElement) {
                     box = domElement
                         .append("div")
-                        .append("input")
+                        .append("select")
                         .attr("class","text queryVisualization")
                         .on("change",function(d) {
                             that.push()
-                            if(d3.event.keyCode == 13){
-                                bookworm.updatePlot()
-                            }
+                            bookworm.updatePlot()
                         })
+
+		    var myQuery = JSON.parse(JSON.stringify(bookworm.query))
+
+		    myQuery.groups = [target]
+		    myQuery.search_limits[target] = undefined
+		    myQuery.aesthetic = undefined
+		    myQuery.counttype = ["WordCount"]
+
+		    console.log(bookworm.destinationize(myQuery))
+		    d3.json(bookworm.destinationize(myQuery),function(json) {
+			var myData = bookworm.parseBookwormData(json,myQuery);
+			myData.sort(function(a,b) {return(b.WordCount - a.WordCount)})
+
+			var thisSelection = box.selectAll('option').data(myData)
+			thisSelection.enter()
+			    .append('option')
+			    .attr('value',function(d){
+				return d[target]})
+			    .text(function(d) {
+				text = d[target]
+				if( d[target]=="") {text = "[value blank]"}
+				return text + " (" + d.WordCount + " words)"
+			    })
+			that.pull()
+			return that
+		    })
+
                     return that
                 }
 
