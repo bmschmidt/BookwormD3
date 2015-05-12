@@ -153,10 +153,12 @@ BookwormClasses = {
         append = append || false;
         var bookworm = this;
 
-
+	var myquery = JSON.parse(JSON.stringify(this.query))
+	myquery["weights"] = undefined
+	
         destination = (
             "/cgi-bin/dbbindings.py/?queryTerms=" +
-                encodeURIComponent(JSON.stringify(this.query)))
+                encodeURIComponent(JSON.stringify(myquery)))
 
 
 
