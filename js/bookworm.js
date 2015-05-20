@@ -157,7 +157,7 @@ BookwormClasses = {
 	myquery["weights"] = undefined
 	
         destination = (
-            "/cgi-bin/dbbindings.py/?queryTerms=" +
+            "/cgi-bin/dbbindings.py?query=" +
                 encodeURIComponent(JSON.stringify(myquery)))
 
 
@@ -3311,7 +3311,6 @@ BookwormClasses = {
 		    myQuery.aesthetic = undefined
 		    myQuery.counttype = ["WordCount"]
 
-		    console.log(bookworm.destinationize(myQuery))
 		    d3.json(bookworm.destinationize(myQuery),function(json) {
 			var myData = bookworm.parseBookwormData(json,myQuery);
 			myData.sort(function(a,b) {return(b.WordCount - a.WordCount)})
@@ -4324,12 +4323,14 @@ BookwormClasses = {
     },
 
     destinationize : function(query) {
+	query = JSON.parse(JSON.stringify(query))
+	query["weights"] = undefined
         //Constructs a cgi-bin request to local host.
         //Can be used with runSearch and searchWindow (below);
         //Or to get other things, like lists of variables.
         query['method'] = query['method'] || "return_json"
 
-        return( "/cgi-bin/dbbindings.py/?queryTerms=" + encodeURIComponent(JSON.stringify(query)))
+        return( "/cgi-bin/dbbindings.py/?query=" + encodeURIComponent(JSON.stringify(query)))
     },
 
     runSearch : function(d) {
