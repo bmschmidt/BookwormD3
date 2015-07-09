@@ -1050,6 +1050,8 @@ BookwormClasses = {
 
         colorscale.call(drag)
 
+
+
         gridPoint
             .attr('x',function(d) {return x(bookworm.plotTransformers[xVariable](d[xVariable]))})
             .attr('y',function(d) {return Math.round(y(bookworm.plotTransformers[yVariable](d[yVariable])))})
@@ -1642,7 +1644,7 @@ BookwormClasses = {
         var proj
 
         if (bookworm.projection) {
-            //Anyone can custom-define a projection at bookworm.projection.
+            //Anyone can custom-define a projection by setting bookworm.projection.
             var proj = bookworm.projection
         } else {
             if (bookworm.query.projection=="mercator") {
