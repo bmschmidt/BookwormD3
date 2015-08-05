@@ -4104,6 +4104,19 @@ BookwormClasses = {
                 return
                 break
             }
+	    
+	    if (d.length >= 2) {
+		//Using zero-formatted numbers like zip codes is a sign that it isn't really a number.
+		//This wastes some serious processing time, mefears.
+		if (d[0]=="0") {
+
+		    if (d[1]!=".") {
+
+			return
+			break
+		    }
+		}
+	    }
         }
 
         bookworm.plotTransformers[key] = function(originalValue) {
@@ -4385,15 +4398,10 @@ BookwormClasses = {
         limits = limits || {'x':[w*.2,w*.9],'y':[85,h*.9]}
         //the scale can be sorted by either by "name" or "values",
         sortBy = sortBy || "name";
-
         //And that direction can be descending (true) or ascending (false)
         descending = descending || "default";
 
         var variableName = query['aesthetic'][axis]
-
-
-
-
 
         var vals = d3.nest()
             .key(function(d) {
@@ -4423,14 +4431,14 @@ BookwormClasses = {
 
 
 
-
+	
         function updateOrder() {
 
-            var nester = d3.nest().key(function(d) {return d[query.aesthetic[axis]]})
+            var nester = d3.nest().key(function(d) {
+		return d[query.aesthetic[axis]]
+	    })
 
-            var lookup = nester.map(bookworm.data)
-
-
+            lookup = nester.map(bookworm.data)
             if (sortBy == "value") {
                 value = function(keyname) {
                     return d3.median(
