@@ -3303,7 +3303,7 @@ BookwormClasses = {
                 }
 
                 return that
-            },
+            }, 
             "dropdown" : function() {
                 var that = {}
                 var box;
