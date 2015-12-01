@@ -3341,11 +3341,11 @@ BookwormClasses = {
 		    myQuery.groups = [target]
 		    myQuery.search_limits[target] = undefined
 		    myQuery.aesthetic = undefined
-		    myQuery.counttype = ["WordCount"]
+		    myQuery.counttype = ["TotalWords"]
 
 		    d3.json(bookworm.destinationize(myQuery),function(json) {
 			var myData = bookworm.parseBookwormData(json,myQuery);
-			myData.sort(function(a,b) {return(b.WordCount - a.WordCount)})
+			myData.sort(function(a,b) {return(b.TotalWords - a.TotalWords)})
 
 			var thisSelection = box.selectAll('option').data(myData)
 			thisSelection.enter()
@@ -3355,7 +3355,7 @@ BookwormClasses = {
 			    .text(function(d) {
 				text = d[target]
 				if( d[target]=="") {text = "[value blank]"}
-				return text + " (" + d.WordCount + " words)"
+				return text + " (" + d.TotalWords + " words)"
 			    })
 			that.pull()
 			return that
@@ -4137,6 +4137,19 @@ BookwormClasses = {
                 return
                 break
             }
+	    
+	    if (d.length >= 2) {
+		//Using zero-formatted numbers like zip codes is a sign that it isn't really a number.
+		//This wastes some serious processing time, mefears.
+		if (d[0]=="0") {
+
+		    if (d[1]!=".") {
+
+			return
+			break
+		    }
+		}
+	    }
         }
 
         bookworm.plotTransformers[key] = function(originalValue) {
@@ -4418,7 +4431,6 @@ BookwormClasses = {
         limits = limits || {'x':[w*.2,w*.9],'y':[85,h*.9]}
         //the scale can be sorted by either by "name" or "values",
         sortBy = sortBy || "name";
-
         //And that direction can be descending (true) or ascending (false)
         descending = descending || "default";
 
@@ -4452,11 +4464,11 @@ BookwormClasses = {
 
         function updateOrder() {
 
-            var nester = d3.nest().key(function(d) {return d[query.aesthetic[axis]]})
+            var nester = d3.nest().key(function(d) {
+		return d[query.aesthetic[axis]]
+	    })
 
-            var lookup = nester.map(bookworm.data)
-
-
+            lookup = nester.map(bookworm.data)
             if (sortBy == "value") {
                 value = function(keyname) {
                     return d3.median(
