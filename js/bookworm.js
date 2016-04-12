@@ -2994,6 +2994,12 @@ BookwormClasses = {
                 .style("display","inline-block")
             //          .style("float","left")
 
+
+	    var refreshButton = legendDivWrapper.selectAll("button").data([1])
+	    var newButton = refreshButton.enter().append("button").text("Reset to Principal Components").on("click",function() {
+	    bookworm.vectorspace(transition=1500,usingPCs=true)
+	    })
+	    
             newbits.append('text').style("text-anchor","middle").style("display","block")//.attr("transform","translate(0," + (-radius -1) + ")").style("text-anchor","middle")
 
             var newsvgs = newbits
@@ -3034,8 +3040,9 @@ BookwormClasses = {
 
                     bookworm.alignAesthetic()
 
-
-                    window.location.hash = encodeURIComponent(JSON.stringify(bookworm.query))
+		    if (!bookworm.silent) {
+                       window.location.hash = encodeURIComponent(JSON.stringify(bookworm.query))
+		    }
                     bookworm.vectorspace(100,usingPCs=false)
                 });
 
@@ -3103,6 +3110,7 @@ BookwormClasses = {
             if (usingPCs) {
                 var pca = new PCA()
                 prweights = []
+		console.log(prweights)
                 var rotation = pca.rotation(matrix)
 
                 d3.range(rotation.length).forEach(function(i) {
@@ -3120,7 +3128,10 @@ BookwormClasses = {
                     dims.forEach(function(dim) {
                         if (bookworm.query.weights[key]===undefined) {
                             bookworm.query.weights[key] = {};}
-                        bookworm.query.weights[key][dim] = prweights[variables[dim]][key].toPrecision(2)
+			    if (prweights[variables[dim]][key]) {
+			    //sometimes a weight is defined for something not in the matrix. If so, skip it.
+			    	bookworm.query.weights[key][dim] = prweights[variables[dim]][key].toPrecision(2)
+			    }
 
                     })
                 })
@@ -3221,17 +3232,19 @@ BookwormClasses = {
 
     },
 
-    labelAxes:function() {h
+    labelAxes:function() {
         var bookworm = this;
 
         function labelText(axis) {
             if (bookworm.query.plotType=="vectorspace") {
                 var labs = []
                 d3.keys(bookworm.query.weights).forEach(function(key) {
+		    if (bookworm.query.weights[key]) {		      
                     var loc = bookworm.query.weights[key]
                     if (loc[axis] != 0) {
-                        labs = labs.concat(key + "*" + loc[axis].toFixed(2))
-                    }
+                       labs = labs.concat(key + "*" + parseFloat(loc[axis]).toFixed(3))
+                    }	
+		    }	
                 })
                 return labs.join(" + ")
             }
@@ -3767,10 +3780,10 @@ BookwormClasses = {
                 topChoices = bookworm.functions.topn(50,category,myData)
 
                 myData.filter(function(entry) {
-                    return(topChoices.indexOf(entry[category]) > -1 & entry.WordCount > 0)
+                    return(topChoices.indexOf(entry[category]) > -1 & entry.TextCount > 0)
                 })
 
-                myData.sort(function(a,b) {return(b.WordCount - a.WordCount)})
+                myData.sort(function(a,b) {return(b.TextCount - a.TextCount)})
 
                 thisGuy = parentSelection
                     .append('select')
@@ -4547,8 +4560,6 @@ BookwormClasses = {
 		var pixels = 20
 	    }
 		
-	    console.log(pixels)
-	    
             var domain = d3.extent(vals)
             var oldLow = domain[0]
             if (bookworm.query.aesthetic[axis] != "chunk" &&

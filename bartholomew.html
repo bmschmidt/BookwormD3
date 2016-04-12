@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Bartholomew’s Regional Projection</title>
+<style>
+@import url(../maps.css);
+
+.outline {
+  fill: #efbb89;
+  stroke-width: 1px;
+  stroke: #000;
+}
+
+.land {
+  fill: #c97344;
+  stroke-width: .5px;
+  stroke: #000;
+}
+
+.boundary, .graticule {
+  fill: none;
+  stroke-width: .5px;
+  stroke: #000;
+}
+
+.graticule {
+  stroke-opacity: .3;
+}
+
+.parallel {
+  fill: none;
+  stroke: #000;
+  stroke-width: .5px;
+  stroke-dasharray: 2,2;
+}
+
+</style>
+
+<p class="breadcrumbs"><a href="http://www.jasondavies.com/">Jason Davies</a> → <a href="../">Maps</a>
+
+<h1>Bartholomew’s Regional Projection</h1>
+<div id="map"></div>
+
+<div class="wrapper">
+  <p>The <a href="http://bl.ocks.org/3734317">equidistant conic projection</a> is used for latitudes above the <a href="http://en.wikipedia.org/wiki/Tropic_of_Cancer">Tropic of Cancer</a> (22.5°N), with an <a href="../bonne/">interrupted Bonne</a> elsewhere.
+  <p>Created using <a href="http://d3js.org/">D3</a>’s <a href="https://github.com/d3/d3-plugins/tree/master/geo/projection">geo.projection</a> and <a href="https://github.com/d3/d3-plugins/tree/master/geo/polyhedron">geo.polyhedron</a> plugins.
+  <h2>See Also</h2>
+  <ul>
+  </ul>
+  <p class="cite" style="text-align: left">Data: <a href="http://www.naturalearthdata.com/downloads/50m-physical-vectors/">Natural Earth, 1:50m Physical Vectors</a>.
+</div>
+
+<script src="js/d3.v3.min.js"></script>
+<script src="js/d3.geo.projection.min.js"></script>
+<script src="../d3.geo.polyhedron.js?20130517"></script>
+<script src="../topojson.min.js?1.1.1"></script>
+<script>
+
+var π = Math.PI,
+    degrees = 180 / π,
+    radians = π / 180,
+    width = 1300,
+    height = 825,
+    ε = 1e-2,
+    φ0 = 22.5, // Tropic of Cancer
+    φ1 = 67.5, // Arctic Circle
+    path = d3.geo.path().projection(bartholomew(φ0, φ1)
+      .rotate([-20, 0])
+      .scale(200)
+      .translate([width / 2, height / 2])
+      .center([0, φ0 + 5])),
+    x0 = path.projection().rotate()[0],
+    graticule = d3.geo.graticule()
+      .majorExtent([[ε - 180 - x0, ε - 90], [180 - ε - x0, 80 + ε]]);
+
+var svg = d3.select("#map").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.append("path")
+    .attr("class", "outline")
+    .datum(graticule.outline)
+    .attr("d", path);
+
+svg.append("path")
+    .datum(graticule)
+    .attr("class", "graticule")
+    .attr("d", path);
+
+svg.selectAll("path.parallel")
+    .data([
+      d3.range(-180, 181, 1).map(function(x) { return [x - x0, 22.5]; }),
+      d3.range(-180, 181, 1).map(function(x) { return [x - x0, 67.5]; }),
+      d3.range(-180, 181, 1).map(function(x) { return [x - x0, -22.5]; }),
+      d3.range(-180, 181, 1).map(function(x) { return [x - x0, -67.5]; }),
+      [[-180, 0], [-60, 0], [60, 0], [180, 0]]
+    ])
+  .enter().append("path")
+    .datum(function(d) { return {type: "LineString", coordinates: d}; })
+    .attr("class", "parallel")
+    .attr("d", path);
+
+d3.json("../world-50m.json", function(error, world) {
+  svg.insert("path", ".graticule")
+      .datum(topojson.feature(world, world.objects.land))
+      .attr("class", "land")
+      .attr("d", path);
+  svg.insert("path", ".graticule")
+      .datum(topojson.mesh(world, world.objects.countries, function(a, b) { return a !== b; }))
+      .attr("class", "boundary")
+      .attr("d", path);
+});
+
+function bartholomew(φ0, φ1) {
+  // First, define the shared vertices.
+  var vertices = [
+    [   0,  90],
+
+    [-180, φ0],
+    [ -40,  φ0],
+    [  40,  φ0],
+    [  70,  φ0],
+    [ 180,  φ0],
+
+    [ -80, -90],
+    [   0, -90],
+    [ 110, -90],
+
+    [  40,   0],
+    [  70,   0]
+  ];
+
+  var faces = [
+    [0, 3, 2, 1],
+    [0, 5, 4, 3],
+    [1, 2, 6],
+    [2, 3, 7],
+    [3, 4, 10, 9],
+    [4, 5, 8, 9, 10]
+  ].map(function(face, i) {
+    face = face.map(function(i) { return vertices[i]; });
+    return {face: face, project: (i > 1
+        ? d3.geo.bonne().parallel(bonneParallel(φ0, φ1)).rotate([-face[2][0], 0])
+        : d3.geo.conicEquidistant().parallels([φ0, φ1])
+    ).scale(1).translate([0, 0])};
+  });
+
+  faces[0].children = faces.slice(1, 4);
+  faces[1].children = faces.slice(4);
+
+  function face(λ, φ) {
+    λ *= degrees;
+    φ *= degrees;
+    return faces[
+      φ > φ0 ? λ < 40 ? 0 : 1
+      : λ < -40 ? 2
+      : λ < 40 ? 3
+      : λ < 70 ? φ >= 0 ? 4 : 5
+      : 5
+    ];
+  }
+
+  return d3.geo.polyhedron(faces[0], face, 0).precision(.1);
+}
+
+// Solve cot(φ) + φ = G, where G is taken from the equidistant conic formula.
+function bonneParallel(φ0, φ1) {
+  if (φ0 === φ1) return φ0;
+  φ0 *= radians, φ1 *= radians;
+  var ε = 1e-6,
+      cosφ0 = Math.cos(φ0),
+      G = cosφ0 * (φ1 - φ0) / (cosφ0 - Math.cos(φ1)) + φ0,
+      δ;
+  do {
+    φ0 += δ = (δ = Math.tan(φ0)) + (φ0 - G) * δ * δ;
+  } while (Math.abs(δ) > ε);
+  return φ0 * degrees;
+}
+
+</script>
