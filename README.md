@@ -5,14 +5,15 @@ This is my attempt to build a D3-based framework for visualizing data from Bookw
 
 The repo comes pre-equipped with several different types of visualizations on Bookworm browsers.
 
-1. Bar charts
-2. Point charts
-3. Maps (static or animated)
-4. Heat maps
-5. Treemaps.
-6. Line charts (only partially implemented for now, since they are done well in the other Bookworm)
-7. Scatterplots (including a prototype of a multidimensional scatterplot).
-8. Sparklines (for embedding small inline line charts without axes).
+1. Bar charts (plotType: 'barchart').
+2. Point charts (plotType: 'pointchart').
+3. Maps, static or animated (plotType: 'map').
+4. Heat maps (plotType: 'heatmap').
+5. Treemaps (plotType: 'treemap').
+6. Line charts. Only partially implemented for now, since they are done well in the other Bookworm.
+7. Scatterplots, including a prototype of a multidimensional scatterplot (plotType: 'scatter').
+8. Sparklines. For embedding small inline line charts without axes (plotType: 'sparkline').
+9. Streamgraphs (plotType: 'streamgraph').
 
 The basic functionality also means that it can be extended by any new plot types built in D3.
 
