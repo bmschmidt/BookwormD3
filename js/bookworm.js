@@ -1662,10 +1662,12 @@ BookwormClasses = {
             if (bookworm.query.projection=="azimuthal") {
                 proj = d3.geo.azimuthalEqualArea()
                     .clipAngle(180 - 1e-3)
-                    .scale(275)
-                    .translate([width/2, height/2])
+                    .scale(250)
+                    .translate([width/2, height/1.5])
                     .precision(.1);
             }
+
+
             if (bookworm.query.projection=="albers") {
                 proj = d3.geo.albers()
                     .center([0,0])
