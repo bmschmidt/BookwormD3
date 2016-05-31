@@ -3223,7 +3223,7 @@ BookwormClasses = {
 
     },
 
-    labelAxes:function() {h
+    labelAxes:function() {
         var bookworm = this;
 
         function labelText(axis) {
