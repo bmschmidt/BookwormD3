@@ -1072,7 +1072,7 @@ var BookwormClasses = {
                 return color;
             })
 	window.legend = bookworm.legends.color
-        bookworm.legends.color.update(bookworm.scales.color)
+        //bookworm.legends.color.update(bookworm.scales.color)
 
     },
 
@@ -2553,7 +2553,7 @@ var BookwormClasses = {
 
         //this order matters, because the y-axis is curtailed and can exclude
         //elements from the x-axis. Yikes. That's no good.
-        transition=2000
+        var transition=2000
 
         if (d3.set(data.map(function(d) {
             return d[query.aesthetic.y]
@@ -2562,14 +2562,14 @@ var BookwormClasses = {
             bookworm.data=data.filter(function(b) {return b[query.aesthetic.x] > topHits[50]})
         }
 
-        var scales = this.updateAxes(delays = {"x":0,"y":transition},transitiontime=transition)
+        var scales = this.updateAxes({"x":0,"y":transition},transition)
 
         var xstuff = scales[0]
         var ystuff = scales[1]
         var x = xstuff.scale
         var y = ystuff.scale
 
-        getColor = function(d) {return colorscale(d[query.aesthetic.color])}
+        var getColor = function(d) {return colorscale(d[query.aesthetic.color])}
 
         if (typeof(query['aesthetic']['color']) != 'undefined') {
             topColors = bookworm.topn(5,query['aesthetic']['color'],bookworm.data)
@@ -2604,7 +2604,7 @@ var BookwormClasses = {
         var bars = mainPlotArea
             .selectAll('rect')
             .data(bookworm.data,function(d) {
-                key = d[query['aesthetic']['y']]
+                var key = d[query['aesthetic']['y']]
                 if (typeof(d[query['aesthetic']['color']]) != undefined) {
                     key = key + d[query['aesthetic']['color']]
                 }
@@ -4198,6 +4198,9 @@ var BookwormClasses = {
         var bookworm = this;
         var value;
 
+	//
+	var bindTo;
+	
         if (typeof(selection) == "object") {
             //if nothing is passed, move on
 
@@ -4430,9 +4433,14 @@ var BookwormClasses = {
         })
     },
 
-    makeAxisAndScale : function(axis,limits,sortBy,descending) {
+    makeAxisAndScale : function(axis,limits,sortBy,descending,bookworm) {
 
-        var bookworm = this;
+	// Creates an axis and a scale
+	// By default, acts on the Bookworm itself.
+
+	// Most of the challenges here are about 
+
+        var bookworm = bookworm || this;
         var query = bookworm.query
 
         //axis is either "x" or "y"
@@ -4487,7 +4495,7 @@ var BookwormClasses = {
 
             var lookup = nester.map(bookworm.data)
             if (sortBy == "value") {
-                value = function(keyname) {
+                var value = function(keyname) {
                     return d3.median(
                         lookup[keyname].map(function(d) {
                             return d[query.aesthetic.x]
@@ -4569,7 +4577,7 @@ var BookwormClasses = {
             var oldLow = domain[0]
             if (bookworm.query.aesthetic[axis] != "chunk" &&
 		domain[0] > 0 &&
-		["streamgraph","linegraph"].indexOf(bookworm.query.plottype) > -1
+		["streamgraph","linegraph","barchart"].indexOf(bookworm.query.plotType) > -1
 	       ) {
                 domain[0] = 0;
             }
@@ -4585,6 +4593,7 @@ var BookwormClasses = {
                 domain[0] = oldLow
                 scale = d3.scale.log().domain(domain).range([limits[axis][0],limits[axis][1]-pixels])
             }
+	    
             thisAxis = d3.svg.axis()
                 .scale(scale)
                 .tickFormat(d3.format('g'))
