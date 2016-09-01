@@ -1,4 +1,4 @@
-"use strict";
+//"use strict";
 
 d3.selection.prototype.makeClickable = function(query,legend,thisBookworm) {
     thisBookworm = thisBookworm || bookworm
