@@ -1,6 +1,12 @@
 D3 Bookworm
 ===========
 
+## Deprecation
+
+I've mostly stopped working on this in favor of a newer repo that [uses vega-lite to visualize Bookworm databases](https://github.com/CreatingData/Bookworm-Vega) for most of the interactions. Tragically, that doesn't allow animated transitions, but otherwise it's generally more powerful.
+
+## Intro
+
 This is my attempt to build a D3-based framework for visualizing data from Bookworm backends. It disentangles the user interfaces from the representation of the graphics: this makes it much more powerful than the standard line chart browser in terms of what it can represent, but gives no easy GUI hooks for ordinary users to fully manipulate that power. The philosophy is that those manipulations will be done as part of specific installations using the functions here: for instance, [my embedded state-of-the-union reader](http://benschmidt.org/poli/2015-SOTU) or [chart of gender and teaching evaluations](http://benschmidt.org/profGender). Each of those charts only uses one of the several functionalities made possible by the base library, and adds significant styling of their own.
 
 The repo comes pre-equipped with several different types of visualizations on Bookworm browsers.
